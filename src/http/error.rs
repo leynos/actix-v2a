@@ -20,6 +20,37 @@ const fn status_for(code: ErrorCode) -> StatusCode {
     }
 }
 
+fn code_for_status(status: StatusCode) -> ErrorCode {
+    match status {
+        StatusCode::BAD_REQUEST => ErrorCode::InvalidRequest,
+        StatusCode::UNAUTHORIZED => ErrorCode::Unauthorized,
+        StatusCode::FORBIDDEN => ErrorCode::Forbidden,
+        StatusCode::NOT_FOUND => ErrorCode::NotFound,
+        StatusCode::CONFLICT => ErrorCode::Conflict,
+        StatusCode::SERVICE_UNAVAILABLE => ErrorCode::ServiceUnavailable,
+        _ if status.is_client_error() => ErrorCode::InvalidRequest,
+        _ => ErrorCode::InternalError,
+    }
+}
+
+fn redact_server_error(status: StatusCode) -> Error {
+    match code_for_status(status) {
+        ErrorCode::ServiceUnavailable => {
+            Error::from_static(ErrorCode::ServiceUnavailable, "Service unavailable")
+        }
+        _ => Error::internal_static("Internal server error"),
+    }
+}
+
+fn preserve_client_error(error: &actix_web::Error, status: StatusCode) -> Error {
+    let code = code_for_status(status);
+    let message = error.to_string();
+
+    Error::try_new(code, message).unwrap_or_else(|_| {
+        Error::from_static(code, status.canonical_reason().unwrap_or("Request failed"))
+    })
+}
+
 impl ResponseError for Error {
     fn status_code(&self) -> StatusCode { status_for(self.code()) }
 
@@ -36,8 +67,14 @@ impl ResponseError for Error {
 
 impl From<actix_web::Error> for Error {
     fn from(error: actix_web::Error) -> Self {
-        error!(error = %error, "actix error promoted to shared API error");
-        Self::internal_static("Internal server error")
+        let status = error.as_response_error().status_code();
+        error!(error = %error, %status, "actix error promoted to shared API error");
+
+        if status.is_server_error() {
+            return redact_server_error(status);
+        }
+
+        preserve_client_error(&error, status)
     }
 }
 
@@ -148,8 +185,35 @@ mod tests {
         let actix_error = actix_web::error::ErrorBadRequest("boom");
         let error: Error = actix_error.into();
 
+        assert_eq!(error.code(), ErrorCode::InvalidRequest);
+        assert_eq!(error.message(), "boom");
+        assert_eq!(error.trace_id(), None);
+    }
+
+    #[test]
+    fn not_found_actix_errors_preserve_not_found_code() {
+        let actix_error = actix_web::error::ErrorNotFound("missing route");
+        let error: Error = actix_error.into();
+
+        assert_eq!(error.code(), ErrorCode::NotFound);
+        assert_eq!(error.message(), "missing route");
+    }
+
+    #[test]
+    fn service_unavailable_actix_errors_preserve_service_code() {
+        let actix_error = actix_web::error::ErrorServiceUnavailable("db unavailable");
+        let error: Error = actix_error.into();
+
+        assert_eq!(error.code(), ErrorCode::ServiceUnavailable);
+        assert_eq!(error.message(), "Service unavailable");
+    }
+
+    #[test]
+    fn internal_actix_errors_are_redacted_to_internal_error() {
+        let actix_error = actix_web::error::ErrorInternalServerError("boom");
+        let error: Error = actix_error.into();
+
         assert_eq!(error.code(), ErrorCode::InternalError);
         assert_eq!(error.message(), "Internal server error");
-        assert_eq!(error.trace_id(), None);
     }
 }
