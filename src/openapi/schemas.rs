@@ -1,9 +1,11 @@
 //! `utoipa` schema fragments for shared envelopes.
 
+use serde::Serialize;
 use utoipa::ToSchema;
 
 /// `OpenAPI` schema for [`crate::ErrorCode`].
-#[derive(ToSchema)]
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
 #[schema(as = crate::ErrorCode)]
 pub enum ErrorCodeSchema {
     /// The request is malformed or fails validation.
@@ -70,6 +72,7 @@ mod tests {
     use utoipa::{PartialSchema, ToSchema};
 
     use super::{ErrorCodeSchema, ErrorSchema, ReplayMetadataSchema};
+    use crate::ErrorCode;
 
     fn schema_json<T: PartialSchema>() -> String {
         serde_json::to_string(&T::schema()).expect("schema should serialize")
@@ -91,6 +94,36 @@ mod tests {
         ] {
             assert!(schema.contains(variant), "missing variant {variant}");
         }
+    }
+
+    #[test]
+    fn error_code_schema_wire_names_match_error_code_wire_names() {
+        let error_code_wire_names = [
+            ErrorCode::InvalidRequest,
+            ErrorCode::Unauthorized,
+            ErrorCode::Forbidden,
+            ErrorCode::NotFound,
+            ErrorCode::Conflict,
+            ErrorCode::ServiceUnavailable,
+            ErrorCode::InternalError,
+        ]
+        .into_iter()
+        .map(|error_code| serde_json::to_value(error_code).expect("error code should serialize"))
+        .collect::<Vec<_>>();
+        let schema_wire_names = [
+            ErrorCodeSchema::InvalidRequest,
+            ErrorCodeSchema::Unauthorized,
+            ErrorCodeSchema::Forbidden,
+            ErrorCodeSchema::NotFound,
+            ErrorCodeSchema::Conflict,
+            ErrorCodeSchema::ServiceUnavailable,
+            ErrorCodeSchema::InternalError,
+        ]
+        .into_iter()
+        .map(|error_code| serde_json::to_value(error_code).expect("schema code should serialize"))
+        .collect::<Vec<_>>();
+
+        assert_eq!(error_code_wire_names, schema_wire_names);
     }
 
     #[test]

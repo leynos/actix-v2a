@@ -1,6 +1,10 @@
 //! Actix responder support for the shared API error envelope.
 
-use actix_web::{HttpResponse, ResponseError, http::StatusCode};
+use actix_web::{
+    HttpResponse,
+    ResponseError,
+    http::{StatusCode, header::HeaderValue},
+};
 use tracing::error;
 
 use crate::{Error, ErrorCode, TRACE_ID_HEADER};
@@ -81,8 +85,11 @@ impl ResponseError for Error {
     fn error_response(&self) -> HttpResponse {
         let payload = self.redacted();
         let mut builder = HttpResponse::build(self.status_code());
-        if let Some(trace_id) = payload.trace_id() {
-            builder.insert_header((TRACE_ID_HEADER, trace_id.to_owned()));
+        if let Some(trace_id) = payload
+            .trace_id()
+            .and_then(|trace_id| HeaderValue::from_str(trace_id).ok())
+        {
+            builder.insert_header((TRACE_ID_HEADER, trace_id));
         }
 
         builder.json(payload)
@@ -99,6 +106,10 @@ fn adapt_actix_error(error: &actix_web::Error, status: StatusCode) -> Error {
 
 impl From<actix_web::Error> for Error {
     fn from(error: actix_web::Error) -> Self {
+        if let Some(shared_error) = error.as_error::<Self>() {
+            return shared_error.clone();
+        }
+
         let status = error.as_response_error().status_code();
         adapt_actix_error(&error, status)
     }
@@ -197,6 +208,17 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn invalid_trace_id_is_not_inserted_into_response_headers() {
+        let error = Error::internal_static("boom")
+            .try_with_trace_id("trace\n123")
+            .expect("trace identifier should be stored before HTTP validation");
+
+        let payload = decode_response(error, StatusCode::INTERNAL_SERVER_ERROR, None).await;
+
+        assert_eq!(payload.trace_id(), Some("trace\n123"));
+    }
+
+    #[actix_web::test]
     async fn non_internal_errors_keep_message_and_details() {
         let error = Error::invalid_request_static("bad")
             .try_with_trace_id("trace-456")
@@ -284,5 +306,22 @@ mod tests {
             assert_eq!(ResponseError::status_code(&error), status);
         }
         assert_eq!(error.trace_id(), None);
+    }
+
+    #[test]
+    fn round_tripped_shared_errors_preserve_context() {
+        let original = Error::invalid_request_static("bad")
+            .try_with_trace_id("trace-123")
+            .expect("trace identifier should be valid")
+            .with_details(json!({"field": "name"}))
+            .with_http_status(StatusCode::IM_A_TEAPOT.as_u16());
+        let actix_error = actix_web::Error::from(original.clone());
+        let round_tripped: Error = actix_error.into();
+
+        assert_eq!(round_tripped, original);
+        assert_eq!(
+            ResponseError::status_code(&round_tripped),
+            StatusCode::IM_A_TEAPOT
+        );
     }
 }
