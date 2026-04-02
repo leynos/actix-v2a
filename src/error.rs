@@ -112,13 +112,14 @@ impl Error {
         message: impl Into<String>,
     ) -> Result<Self, ErrorValidationError> {
         let message_text = message.into();
-        if message_text.trim().is_empty() {
+        let trimmed_message = message_text.trim();
+        if trimmed_message.is_empty() {
             return Err(ErrorValidationError::EmptyMessage);
         }
 
         Ok(Self {
             code,
-            message: message_text,
+            message: trimmed_message.to_owned(),
             trace_id: None,
             details: None,
         })
@@ -241,6 +242,14 @@ mod tests {
         let result = Error::try_new(ErrorCode::InvalidRequest, "   ");
 
         assert_eq!(result, Err(ErrorValidationError::EmptyMessage));
+    }
+
+    #[test]
+    fn try_new_trims_whitespace_before_storing() {
+        let error =
+            Error::try_new(ErrorCode::InvalidRequest, " bad request ").expect("message is valid");
+
+        assert_eq!(error.message(), "bad request");
     }
 
     #[test]
