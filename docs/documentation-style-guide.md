@@ -21,6 +21,7 @@ consistent, and easy to maintain across projects.
   - and so forth.
 - The words **"outwith"** and **"caveat"** are acceptable.
 - Prefer the spellings _improvise_ and _parameterize_.
+- Prefer _schemata_ as the plural of _schema_ in prose.
 - When naming canonical guides, prefer the possessive forms _user's guide_ and
   _developer's guide_.
 - Keep United States (US) spelling when used in an API, for example, `color`.
@@ -122,7 +123,7 @@ this means operators, end users, or integrators.
 - Use tables where they clarify field sets, command options, or compatibility
   matrices.
 - Include concrete examples in code or data form when describing formats,
-  schemas, or command usage.
+  schemata, or command usage.
 - Higher-level user workflows belong here, for example "load a document",
   "configure the service", or "interpret diagnostics".
 - Link to design documents or maintainer references when deeper rationale would

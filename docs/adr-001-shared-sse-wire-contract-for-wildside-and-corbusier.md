@@ -133,7 +133,7 @@ The shared module should not own:
 
 - authentication policy;
 - event-store persistence or retention;
-- application-specific event names or payload schemas;
+- application-specific event names or payload schemata;
 - endpoint routing such as `/api/v1/events` versus
   `/api/v1/events/conversations/{id}`.
 
