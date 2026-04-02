@@ -17,12 +17,11 @@ OpenAPI wrappers in `../wildside/backend` (canonical upstream:
 `https://github.com/leynos/wildside`). The same planning pass did not find a
 reusable Server-Sent Events (SSE) helper module in that checkout.
 
-At the same time, Corbusier already has explicit SSE expectations in
-`/data/leynos/Projects/corbusier.worktrees/plan-front-end-adoption` (canonical
-upstream: `https://github.com/leynos/corbusier`). Its API design documents
-require stable event identifiers, reconnection through the `Last-Event-ID`
-header, replay-aware semantics, and event-stream endpoints that work with
-browser `EventSource` clients.
+At the same time, Corbusier already has explicit SSE expectations in its
+canonical upstream repository, `https://github.com/leynos/corbusier`. Its API
+design documents require stable event identifiers, reconnection through the
+`Last-Event-ID` header, replay-aware semantics, and event-stream endpoints that
+work with browser `EventSource` clients.
 
 If `actix-v2a` is going to provide SSE support for both Wildside and Corbusier,
 it needs a shared wire contract that is generic enough for both applications,

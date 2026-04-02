@@ -117,7 +117,9 @@ fn the_cursor_is_decoded(world: &World) {
 }
 
 #[when("the parameters are normalized")]
-fn the_parameters_are_normalized(_world: &World) {}
+fn the_parameters_are_normalized(_world: &World) {
+    // no-op: normalization is performed by PageParams::new during setup.
+}
 
 #[when("pagination parameters request limit {limit:u64}")]
 #[expect(

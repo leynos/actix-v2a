@@ -60,6 +60,7 @@ pub enum ErrorValidationError {
     reason = "This crate intentionally exports a shared API error type named Error"
 )]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(try_from = "ErrorPayload")]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct Error {
@@ -69,6 +70,34 @@ pub struct Error {
     trace_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     details: Option<Value>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
+struct ErrorPayload {
+    code: ErrorCode,
+    message: String,
+    #[serde(alias = "trace_id")]
+    trace_id: Option<String>,
+    details: Option<Value>,
+}
+
+impl TryFrom<ErrorPayload> for Error {
+    type Error = ErrorValidationError;
+
+    fn try_from(payload: ErrorPayload) -> Result<Self, Self::Error> {
+        let message = payload.message.trim().to_owned();
+        let mut error = Self::try_new(payload.code, message)?;
+        if let Some(trace_id) = payload.trace_id {
+            error = error.try_with_trace_id(trace_id)?;
+        }
+
+        Ok(match payload.details {
+            Some(details) => error.with_details(details),
+            None => error,
+        })
+    }
 }
 
 impl Error {
@@ -133,11 +162,12 @@ impl Error {
         trace_id: impl Into<String>,
     ) -> Result<Self, ErrorValidationError> {
         let trace_id_text = trace_id.into();
-        if trace_id_text.trim().is_empty() {
+        let trimmed_trace_id = trace_id_text.trim();
+        if trimmed_trace_id.is_empty() {
             return Err(ErrorValidationError::EmptyTraceId);
         }
 
-        self.trace_id = Some(trace_id_text);
+        self.trace_id = Some(trimmed_trace_id.to_owned());
         Ok(self)
     }
 
@@ -193,9 +223,18 @@ impl std::error::Error for Error {}
 mod tests {
     //! Regression coverage for the shared error payload.
 
-    use serde_json::json;
+    use rstest::rstest;
+    use serde_json::{Value, json};
 
     use super::{Error, ErrorCode, ErrorValidationError};
+
+    #[derive(Debug)]
+    struct RedactedExpectation {
+        code: ErrorCode,
+        message: &'static str,
+        trace_id: Option<&'static str>,
+        details: Option<Value>,
+    }
 
     #[test]
     fn try_new_rejects_blank_messages() {
@@ -213,29 +252,90 @@ mod tests {
         assert_eq!(result, Err(ErrorValidationError::EmptyTraceId));
     }
 
-    #[test]
-    fn redacted_internal_error_hides_message_and_details() {
-        let error = Error::internal_static("boom")
+    #[rstest]
+    #[case(
+        Error::internal_static("boom")
             .try_with_trace_id("trace-123")
             .expect("trace identifier should be valid")
-            .with_details(json!({"secret": true}));
-
+            .with_details(json!({"secret": true})),
+        RedactedExpectation {
+            code: ErrorCode::InternalError,
+            message: "Internal server error",
+            trace_id: Some("trace-123"),
+            details: None
+        }
+    )]
+    #[case(
+        Error::invalid_request_static("bad request").with_details(json!({"field": "name"})),
+        RedactedExpectation {
+            code: ErrorCode::InvalidRequest,
+            message: "bad request",
+            trace_id: None,
+            details: Some(json!({"field": "name"}))
+        }
+    )]
+    fn redacted_behaviour(#[case] error: Error, #[case] expected: RedactedExpectation) {
         let redacted = error.redacted();
 
-        assert_eq!(redacted.code(), ErrorCode::InternalError);
-        assert_eq!(redacted.message(), "Internal server error");
-        assert_eq!(redacted.trace_id(), Some("trace-123"));
-        assert_eq!(redacted.details(), None);
+        assert_eq!(redacted.code(), expected.code);
+        assert_eq!(redacted.message(), expected.message);
+        assert_eq!(redacted.trace_id(), expected.trace_id);
+        assert_eq!(redacted.details(), expected.details.as_ref());
     }
 
     #[test]
-    fn non_internal_errors_keep_message_and_details() {
-        let error =
-            Error::invalid_request_static("bad request").with_details(json!({"field": "name"}));
+    fn try_with_trace_id_trims_whitespace_before_storing() {
+        let error = Error::invalid_request_static("bad request")
+            .try_with_trace_id("  trace-123  ")
+            .expect("trace identifier should be valid");
 
-        let redacted = error.redacted();
+        assert_eq!(error.trace_id(), Some("trace-123"));
+    }
 
-        assert_eq!(redacted.message(), "bad request");
-        assert_eq!(redacted.details(), Some(&json!({"field": "name"})));
+    #[test]
+    fn deserialization_rejects_blank_values_after_trimming() {
+        let error = serde_json::from_value::<Error>(json!({
+            "code": "invalid_request",
+            "message": "   ",
+            "traceId": " trace-123 "
+        }))
+        .expect_err("blank messages should fail validation");
+
+        assert!(
+            error
+                .to_string()
+                .contains("error message must not be empty")
+        );
+    }
+
+    #[test]
+    fn deserialization_rejects_blank_trace_id_after_trimming() {
+        let error = serde_json::from_value::<Error>(json!({
+            "code": "invalid_request",
+            "message": "bad request",
+            "traceId": "   "
+        }))
+        .expect_err("blank trace identifiers should fail validation");
+
+        assert!(
+            error
+                .to_string()
+                .contains("trace identifier must not be empty")
+        );
+    }
+
+    #[test]
+    fn deserialization_trims_message_and_trace_id() {
+        let error = serde_json::from_value::<Error>(json!({
+            "code": "invalid_request",
+            "message": " bad request ",
+            "traceId": " trace-123 ",
+            "details": {"field": "name"}
+        }))
+        .expect("deserialization should preserve invariants");
+
+        assert_eq!(error.message(), "bad request");
+        assert_eq!(error.trace_id(), Some("trace-123"));
+        assert_eq!(error.details(), Some(&json!({"field": "name"})));
     }
 }

@@ -76,18 +76,16 @@ The only nearby source found during planning was WebSocket heartbeat handling
 in `../wildside/backend/src/inbound/ws/session.rs`, which is useful as design
 inspiration but is not itself an SSE helper that can be imported verbatim.
 
-Corbusier already has documented SSE expectations in
-`/data/leynos/Projects/corbusier.worktrees/plan-front-end-adoption` (canonical
-upstream: `https://github.com/leynos/corbusier`), especially in
+Corbusier already has documented SSE expectations in the canonical upstream
+repository `https://github.com/leynos/corbusier`, especially in
 `docs/corbusier-api-design.md` where `Last-Event-ID`, replay-aware
 reconnection, global event streams, and explicit event identifiers are all part
 of the planned application contract.
 
 For SSE specifically, this execplan owns delivery sequencing, extraction
-boundaries, and gates. The normative shared SSE wire contract belongs in
-the
+boundaries, and gates. The normative shared SSE wire contract belongs in the
 [Architectural decision record (ADR) 001](../adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md),
-which must stay authoritative if the two documents ever diverge.
+ which must stay authoritative if the two documents ever diverge.
 
 ## Constraints
 
@@ -126,8 +124,7 @@ which must stay authoritative if the two documents ever diverge.
   discovery.
 - OpenAPI scope: if porting the shared `utoipa` fragments requires pulling in
   Wildside-specific endpoint registration or application data transfer objects
-  (DTOs), stop and narrow the extraction back to reusable schema fragments
-  only.
+  (DTOs), stop and narrow the extraction back to reusable schema fragments only.
 - Iterations: if the same failing gate persists after three focused fix
   attempts, stop and document the blocker before continuing.
 
@@ -305,9 +302,8 @@ source-independent implementation pass.
 
 Before marking the implementation complete, do one final documentation pass to
 remove machine-specific and checkout-specific paths from the finished
-deliverables. During planning it is acceptable to refer to
-`../wildside/backend` and
-`/data/leynos/Projects/corbusier.worktrees/plan-front-end-adoption` because
+deliverables. During planning, it is acceptable to refer to
+`../wildside/backend` and the canonical upstream Corbusier repository because
 they identify the local source material, but the completed implementation
 should not leave those paths as normative references in public-facing docs.
 
@@ -335,7 +331,6 @@ Use this command pattern during implementation:
 set -o pipefail && make check-fmt | tee /tmp/check-fmt-actix-v2a-import-components-from-wildside.out
 set -o pipefail && make lint | tee /tmp/lint-actix-v2a-import-components-from-wildside.out
 set -o pipefail && make test | tee /tmp/test-actix-v2a-import-components-from-wildside.out
-set -o pipefail && make fmt | tee /tmp/fmt-actix-v2a-import-components-from-wildside.out
 set -o pipefail && make markdownlint | tee /tmp/markdownlint-actix-v2a-import-components-from-wildside.out
 set -o pipefail && make nixie | tee /tmp/nixie-actix-v2a-import-components-from-wildside.out
 ```
@@ -453,7 +448,7 @@ Implementation must not begin until the following gates are satisfied:
   because `actix-v2a` is meant to become the shared component library.
 - 2026-04-02 08:16 BST: the OpenAPI target is shared schema fragments only, not
   Wildside's full `ApiDoc` document assembly.
-- 2026-04-02 08:35 BST: the user confirmed that `utoipa` schemata are in
+- 2026-04-02 08:35 BST: the user confirmed that `utoipa` schemas are in
   scope, so Milestone 4 now assumes shared schema fragment extraction rather
   than treating OpenAPI parity as an open decision.
 - 2026-04-02 08:16 BST: the SSE item remains unresolved because the planning
@@ -476,8 +471,21 @@ Implementation must not begin until the following gates are satisfied:
 
 ## Outcomes & Retrospective
 
-Implementation is in progress. Milestone 1 is complete with green Rust gates,
-while Milestones 2 through 6 remain open. Replace this note at the end of the
-work with a short factual summary of what shipped, which milestones were
-deferred, the final gate outcomes, and the main lessons learned from the
-extraction.
+Milestone 1 shipped the pagination foundation, Milestone 2 shipped the
+idempotency primitives and HTTP helpers, Milestone 3 shipped the shared error
+envelope plus Actix adapter, and Milestone 4 shipped the reusable `utoipa`
+schema fragments. Milestone 5 was deferred because the Wildside source review
+did not uncover an authoritative SSE helper to extract, while Milestone 6
+shipped as part of the documentation clean-up that removed machine-local
+references from the finished docs.
+
+Final gate outcomes for this implementation pass were green for the Rust gates
+(`make check-fmt`, `make lint`, and `make test`) and green for the
+documentation gates (`make markdownlint` and `make nixie`) after the final doc
+updates landed.
+
+Lessons learned: Wildside's pagination crate transferred cleanly because it was
+already transport-neutral; the shared error and OpenAPI surfaces needed tighter
+test coverage around external contracts than the initial import suggested; and
+SSE reuse should stay contract-first until there is source-backed helper code
+to extract.

@@ -21,9 +21,13 @@ pub const IDEMPOTENCY_CONFLICT_MESSAGE: &str = "idempotency key reuse with diffe
 pub fn extract_idempotency_key(
     headers: &HeaderMap,
 ) -> Result<Option<IdempotencyKey>, IdempotencyKeyValidationError> {
-    let Some(header_value) = headers.get(IDEMPOTENCY_KEY_HEADER) else {
+    let mut header_values = headers.get_all(IDEMPOTENCY_KEY_HEADER);
+    let Some(header_value) = header_values.next() else {
         return Ok(None);
     };
+    if header_values.next().is_some() {
+        return Err(IdempotencyKeyValidationError::InvalidKey);
+    }
 
     let header_text = header_value
         .to_str()
@@ -51,7 +55,11 @@ mod tests {
     use actix_web::http::header::{HeaderMap, HeaderName, HeaderValue};
 
     use super::{extract_idempotency_key, map_idempotency_key_error};
-    use crate::{ErrorCode, idempotency::http::IDEMPOTENCY_CONFLICT_MESSAGE};
+    use crate::{
+        ErrorCode,
+        IdempotencyKeyValidationError,
+        idempotency::http::IDEMPOTENCY_CONFLICT_MESSAGE,
+    };
 
     #[test]
     fn extract_idempotency_key_returns_none_when_header_missing() {
@@ -75,6 +83,24 @@ mod tests {
             .expect("header should be present");
 
         assert_eq!(key.as_ref(), "550e8400-e29b-41d4-a716-446655440000");
+    }
+
+    #[test]
+    fn extract_idempotency_key_rejects_repeated_headers() {
+        let mut headers = HeaderMap::new();
+        let header_name = HeaderName::from_static("idempotency-key");
+        headers.append(
+            header_name.clone(),
+            HeaderValue::from_static("550e8400-e29b-41d4-a716-446655440000"),
+        );
+        headers.append(
+            header_name,
+            HeaderValue::from_static("36f0a7ea-5d53-4e03-8bb0-cd9574c53c4b"),
+        );
+
+        let error = extract_idempotency_key(&headers).expect_err("repeated headers should fail");
+
+        assert_eq!(error, IdempotencyKeyValidationError::InvalidKey);
     }
 
     #[test]

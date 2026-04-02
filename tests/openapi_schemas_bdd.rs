@@ -4,6 +4,7 @@ use actix_v2a::{ErrorCodeSchema, ErrorSchema, ReplayMetadataSchema};
 use rstest::fixture;
 use rstest_bdd::{Slot, StepResult};
 use rstest_bdd_macros::{ScenarioState, given, scenario, then};
+use serde_json::Value;
 use utoipa::openapi::{ComponentsBuilder, Info, OpenApi, OpenApiBuilder, Paths};
 
 #[derive(Default, ScenarioState)]
@@ -84,8 +85,26 @@ fn the_error_schema_exposes_code_message_trace_id_and_details_fields(
     world: &World,
 ) -> StepResult<(), String> {
     let schema_json = schema_json(world, "crate.Error")?;
+    let schema: Value = serde_json::from_str(&schema_json).map_err(|error| {
+        format!(
+            "the_error_schema_exposes_code_message_trace_id_and_details_fields should parse \
+             schema JSON: {error}"
+        )
+    })?;
+    let properties = schema
+        .get("properties")
+        .and_then(Value::as_object)
+        .ok_or_else(|| {
+            "the_error_schema_exposes_code_message_trace_id_and_details_fields should expose a \
+             properties object"
+                .to_owned()
+        })?;
     for field in ["code", "message", "traceId", "details"] {
-        assert!(schema_json.contains(field), "missing field {field}");
+        assert!(
+            properties.contains_key(field),
+            "the_error_schema_exposes_code_message_trace_id_and_details_fields missing field \
+             {field}"
+        );
     }
     Ok(())
 }
@@ -99,6 +118,19 @@ fn the_error_code_schema_enumerates_the_shared_error_codes(
     world: &World,
 ) -> StepResult<(), String> {
     let schema_json = schema_json(world, "crate.ErrorCode")?;
+    let schema: Value = serde_json::from_str(&schema_json).map_err(|error| {
+        format!(
+            "the_error_code_schema_enumerates_the_shared_error_codes should parse schema JSON: \
+             {error}"
+        )
+    })?;
+    let variants = schema
+        .get("enum")
+        .and_then(Value::as_array)
+        .ok_or_else(|| {
+            "the_error_code_schema_enumerates_the_shared_error_codes should expose an enum array"
+                .to_owned()
+        })?;
     for variant in [
         "invalid_request",
         "unauthorized",
@@ -108,7 +140,10 @@ fn the_error_code_schema_enumerates_the_shared_error_codes(
         "service_unavailable",
         "internal_error",
     ] {
-        assert!(schema_json.contains(variant), "missing variant {variant}");
+        assert!(
+            variants.iter().any(|value| value.as_str() == Some(variant)),
+            "the_error_code_schema_enumerates_the_shared_error_codes missing variant {variant}"
+        );
     }
     Ok(())
 }
@@ -116,8 +151,25 @@ fn the_error_code_schema_enumerates_the_shared_error_codes(
 #[then("the ReplayMetadata schema exposes the replayed field")]
 fn the_replay_metadata_schema_exposes_the_replayed_field(world: &World) -> StepResult<(), String> {
     let schema_json = schema_json(world, "crate.idempotency.ReplayMetadata")?;
+    let schema: Value = serde_json::from_str(&schema_json).map_err(|error| {
+        format!(
+            "the_replay_metadata_schema_exposes_the_replayed_field should parse schema JSON: \
+             {error}"
+        )
+    })?;
+    let properties = schema
+        .get("properties")
+        .and_then(Value::as_object)
+        .ok_or_else(|| {
+            "the_replay_metadata_schema_exposes_the_replayed_field should expose a properties \
+             object"
+                .to_owned()
+        })?;
 
-    assert!(schema_json.contains("replayed"));
+    assert!(
+        properties.contains_key("replayed"),
+        "the_replay_metadata_schema_exposes_the_replayed_field missing field replayed"
+    );
     Ok(())
 }
 

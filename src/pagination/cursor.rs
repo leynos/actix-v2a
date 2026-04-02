@@ -197,6 +197,7 @@ mod tests {
     //! Unit tests for opaque cursor encoding and decoding.
 
     use base64::Engine as _;
+    use rstest::{fixture, rstest};
     use serde::{Deserialize, Serialize};
 
     use super::{Cursor, CursorError, Direction};
@@ -207,16 +208,21 @@ mod tests {
         id: String,
     }
 
+    #[fixture]
+    fn fixture_key() -> FixtureKey {
+        FixtureKey {
+            created_at: "2026-03-22T10:30:00Z".to_owned(),
+            id: "8b116c56-0a58-4c55-b7d7-06ee6bbddb8c".to_owned(),
+        }
+    }
+
     const _CONST_CURSOR: Cursor<&str> = Cursor::new("compile-time-test");
     const _CONST_DIRECTIONAL_CURSOR: Cursor<&str> =
         Cursor::with_direction("compile-time-test", Direction::Prev);
 
-    #[test]
-    fn cursor_round_trips_through_opaque_token() {
-        let cursor = Cursor::new(FixtureKey {
-            created_at: "2026-03-22T10:30:00Z".to_owned(),
-            id: "8b116c56-0a58-4c55-b7d7-06ee6bbddb8c".to_owned(),
-        });
+    #[rstest]
+    fn cursor_round_trips_through_opaque_token(fixture_key: FixtureKey) {
+        let cursor = Cursor::new(fixture_key);
 
         let encoded = cursor.encode().expect("cursor encoding should succeed");
         let decoded =
@@ -225,19 +231,17 @@ mod tests {
         assert_eq!(decoded, cursor);
     }
 
-    #[test]
-    fn invalid_base64_cursor_fails_decode() {
-        let result = Cursor::<FixtureKey>::decode("!!!");
+    #[rstest]
+    #[case("!!!")]
+    fn invalid_base64_cursor_fails_decode(#[case] raw_input: &str) {
+        let result = Cursor::<FixtureKey>::decode(raw_input);
 
         assert!(matches!(result, Err(CursorError::InvalidBase64 { .. })));
     }
 
-    #[test]
-    fn padded_base64_cursor_decodes_successfully() {
-        let cursor = Cursor::new(FixtureKey {
-            created_at: "2026-03-22T10:30:00Z".to_owned(),
-            id: "8b116c56-0a58-4c55-b7d7-06ee6bbddb8c".to_owned(),
-        });
+    #[rstest]
+    fn padded_base64_cursor_decodes_successfully(fixture_key: FixtureKey) {
+        let cursor = Cursor::new(fixture_key);
         let payload = serde_json::to_vec(&cursor).expect("cursor should serialize");
         let encoded = base64::engine::general_purpose::URL_SAFE.encode(payload);
 

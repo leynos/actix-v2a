@@ -3,7 +3,7 @@
 use serde::Serialize;
 use url::{Url, form_urlencoded};
 
-use crate::pagination::PageParams;
+use crate::pagination::{PAGE_PARAM_CURSOR, PAGE_PARAM_LIMIT, PageParams};
 
 /// Hypermedia links for one paginated response.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -143,7 +143,7 @@ fn build_page_link(request_url: &Url, limit: usize, cursor: Option<&str>) -> Str
     let mut url = request_url.clone();
     let retained_pairs = request_url
         .query_pairs()
-        .filter(|(key, _)| key != "limit" && key != "cursor")
+        .filter(|(key, _)| key != PAGE_PARAM_LIMIT && key != PAGE_PARAM_CURSOR)
         .map(|(key, value)| (key.into_owned(), value.into_owned()))
         .collect::<Vec<_>>();
 
@@ -151,9 +151,9 @@ fn build_page_link(request_url: &Url, limit: usize, cursor: Option<&str>) -> Str
     for (key, value) in retained_pairs {
         serializer.append_pair(&key, &value);
     }
-    serializer.append_pair("limit", &limit.to_string());
+    serializer.append_pair(PAGE_PARAM_LIMIT, &limit.to_string());
     if let Some(cursor_token) = cursor {
-        serializer.append_pair("cursor", cursor_token);
+        serializer.append_pair(PAGE_PARAM_CURSOR, cursor_token);
     }
 
     url.set_query(Some(&serializer.finish()));

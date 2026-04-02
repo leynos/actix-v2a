@@ -181,7 +181,7 @@ mod tests {
     }
 
     #[test]
-    fn actix_errors_are_promoted_to_redacted_internal_errors() {
+    fn actix_bad_request_preserves_message() {
         let actix_error = actix_web::error::ErrorBadRequest("boom");
         let error: Error = actix_error.into();
 

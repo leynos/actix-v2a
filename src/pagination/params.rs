@@ -7,6 +7,10 @@ use thiserror::Error;
 pub const DEFAULT_LIMIT: usize = 20;
 /// Shared maximum page size for endpoints using the pagination foundation.
 pub const MAX_LIMIT: usize = 100;
+/// Shared query parameter name for page size.
+pub const PAGE_PARAM_LIMIT: &str = "limit";
+/// Shared query parameter name for opaque cursors.
+pub const PAGE_PARAM_CURSOR: &str = "cursor";
 
 /// Normalized pagination parameters.
 ///

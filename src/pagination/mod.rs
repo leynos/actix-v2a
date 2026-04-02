@@ -51,4 +51,11 @@ mod params;
 
 pub use cursor::{Cursor, CursorError, Direction};
 pub use envelope::{Paginated, PaginationLinks};
-pub use params::{DEFAULT_LIMIT, MAX_LIMIT, PageParams, PageParamsError};
+pub use params::{
+    DEFAULT_LIMIT,
+    MAX_LIMIT,
+    PAGE_PARAM_CURSOR,
+    PAGE_PARAM_LIMIT,
+    PageParams,
+    PageParamsError,
+};
