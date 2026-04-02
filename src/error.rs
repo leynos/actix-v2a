@@ -70,6 +70,8 @@ pub struct Error {
     trace_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     details: Option<Value>,
+    #[serde(skip)]
+    http_status: Option<u16>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -119,6 +121,7 @@ impl Error {
             message: Self::fallback_message_for(code).to_owned(),
             trace_id: None,
             details: None,
+            http_status: None,
         }
     }
 
@@ -153,6 +156,7 @@ impl Error {
             message: normalized_message,
             trace_id: None,
             details: None,
+            http_status: None,
         })
     }
 
@@ -189,6 +193,9 @@ impl Error {
     #[must_use]
     pub const fn details(&self) -> Option<&Value> { self.details.as_ref() }
 
+    #[must_use]
+    pub(crate) const fn http_status(&self) -> Option<u16> { self.http_status }
+
     /// Attach a validated trace identifier to the payload.
     ///
     /// # Errors
@@ -210,6 +217,12 @@ impl Error {
     #[must_use]
     pub fn with_details(mut self, details: Value) -> Self {
         self.details = Some(details);
+        self
+    }
+
+    #[must_use]
+    pub(crate) const fn with_http_status(mut self, http_status: u16) -> Self {
+        self.http_status = Some(http_status);
         self
     }
 
@@ -274,7 +287,6 @@ mod tests {
     #[test]
     fn try_new_rejects_blank_messages() {
         let result = Error::try_new(ErrorCode::InvalidRequest, "   ");
-
         assert_eq!(result, Err(ErrorValidationError::EmptyMessage));
     }
 
@@ -282,7 +294,6 @@ mod tests {
     fn try_new_trims_whitespace_before_storing() {
         let error =
             Error::try_new(ErrorCode::InvalidRequest, " bad request ").expect("message is valid");
-
         assert_eq!(error.message(), "bad request");
     }
 
@@ -297,16 +308,13 @@ mod tests {
     #[test]
     fn from_static_rejects_blank_messages() {
         let result = Error::from_static(ErrorCode::InvalidRequest, "   ");
-
         assert_eq!(result, Err(ErrorValidationError::EmptyMessage));
     }
 
     #[test]
     fn try_with_trace_id_rejects_blank_values() {
         let error = Error::invalid_request_static("bad request");
-
         let result = error.try_with_trace_id("   ");
-
         assert_eq!(result, Err(ErrorValidationError::EmptyTraceId));
     }
 
@@ -334,7 +342,6 @@ mod tests {
     )]
     fn redacted_behaviour(#[case] error: Error, #[case] expected: RedactedExpectation) {
         let redacted = error.redacted();
-
         assert_eq!(redacted.code(), expected.code);
         assert_eq!(redacted.message(), expected.message);
         assert_eq!(redacted.trace_id(), expected.trace_id);
@@ -373,7 +380,6 @@ mod tests {
     ) {
         let error = serde_json::from_value::<Error>(payload)
             .expect_err("blank values should fail validation");
-
         assert!(error.to_string().contains(expected_error_substring));
     }
 

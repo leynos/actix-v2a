@@ -20,41 +20,53 @@ const fn status_for(code: ErrorCode) -> StatusCode {
     }
 }
 
-fn code_for_status(status: StatusCode) -> ErrorCode {
+fn code_for_status(status: StatusCode) -> Option<ErrorCode> {
     match status {
-        StatusCode::BAD_REQUEST => ErrorCode::InvalidRequest,
-        StatusCode::UNAUTHORIZED => ErrorCode::Unauthorized,
-        StatusCode::FORBIDDEN => ErrorCode::Forbidden,
-        StatusCode::NOT_FOUND => ErrorCode::NotFound,
-        StatusCode::CONFLICT => ErrorCode::Conflict,
-        StatusCode::SERVICE_UNAVAILABLE => ErrorCode::ServiceUnavailable,
-        _ if status.is_client_error() => ErrorCode::InvalidRequest,
-        _ => ErrorCode::InternalError,
+        StatusCode::BAD_REQUEST => Some(ErrorCode::InvalidRequest),
+        StatusCode::UNAUTHORIZED => Some(ErrorCode::Unauthorized),
+        StatusCode::FORBIDDEN => Some(ErrorCode::Forbidden),
+        StatusCode::NOT_FOUND => Some(ErrorCode::NotFound),
+        StatusCode::CONFLICT => Some(ErrorCode::Conflict),
+        StatusCode::SERVICE_UNAVAILABLE => Some(ErrorCode::ServiceUnavailable),
+        StatusCode::INTERNAL_SERVER_ERROR => Some(ErrorCode::InternalError),
+        _ => None,
     }
 }
 
 fn redact_server_error(status: StatusCode) -> Error {
     match code_for_status(status) {
-        ErrorCode::ServiceUnavailable => {
+        Some(ErrorCode::ServiceUnavailable) => {
             Error::from_static(ErrorCode::ServiceUnavailable, "Service unavailable")
                 .unwrap_or_else(|_| Error::fallback_for(ErrorCode::ServiceUnavailable))
         }
-        _ => Error::internal_static("Internal server error"),
+        Some(ErrorCode::InternalError) => Error::internal_static("Internal server error"),
+        _ => Error::internal_static("Internal server error").with_http_status(status.as_u16()),
     }
 }
 
 fn preserve_client_error(error: &actix_web::Error, status: StatusCode) -> Error {
-    let code = code_for_status(status);
+    let mapped_code = code_for_status(status);
+    let code = mapped_code.unwrap_or(ErrorCode::InvalidRequest);
     let message = error.to_string();
 
-    Error::try_new(code, message).unwrap_or_else(|_| {
+    let payload = Error::try_new(code, message).unwrap_or_else(|_| {
         Error::from_static(code, status.canonical_reason().unwrap_or("Request failed"))
             .unwrap_or_else(|_| Error::fallback_for(code))
-    })
+    });
+
+    if mapped_code.is_none() {
+        return payload.with_http_status(status.as_u16());
+    }
+
+    payload
 }
 
 impl ResponseError for Error {
-    fn status_code(&self) -> StatusCode { status_for(self.code()) }
+    fn status_code(&self) -> StatusCode {
+        self.http_status()
+            .and_then(|status| StatusCode::from_u16(status).ok())
+            .unwrap_or_else(|| status_for(self.code()))
+    }
 
     fn error_response(&self) -> HttpResponse {
         let payload = self.redacted();
@@ -206,6 +218,17 @@ mod tests {
     }
 
     #[test]
+    fn unmapped_client_actix_errors_preserve_original_status() {
+        let actix_error: actix_web::Error =
+            actix_web::error::InternalError::new("teapot", StatusCode::IM_A_TEAPOT).into();
+        let error: Error = actix_error.into();
+
+        assert_eq!(error.code(), ErrorCode::InvalidRequest);
+        assert_eq!(error.message(), "teapot");
+        assert_eq!(ResponseError::status_code(&error), StatusCode::IM_A_TEAPOT);
+    }
+
+    #[test]
     fn service_unavailable_actix_errors_preserve_service_code() {
         let actix_error = actix_web::error::ErrorServiceUnavailable("db unavailable");
         let error: Error = actix_error.into();
@@ -221,5 +244,20 @@ mod tests {
 
         assert_eq!(error.code(), ErrorCode::InternalError);
         assert_eq!(error.message(), "Internal server error");
+    }
+
+    #[test]
+    fn unmapped_server_actix_errors_preserve_original_status() {
+        let actix_error: actix_web::Error =
+            actix_web::error::InternalError::new("gateway timeout", StatusCode::GATEWAY_TIMEOUT)
+                .into();
+        let error: Error = actix_error.into();
+
+        assert_eq!(error.code(), ErrorCode::InternalError);
+        assert_eq!(error.message(), "Internal server error");
+        assert_eq!(
+            ResponseError::status_code(&error),
+            StatusCode::GATEWAY_TIMEOUT
+        );
     }
 }
