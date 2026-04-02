@@ -1,8 +1,43 @@
-//! `Actix v2a components` library.
+//! Shared version 2a Actix components and HTTP primitives.
+//!
+//! This crate hosts reusable transport-facing building blocks extracted from
+//! application code so Wildside, Corbusier, and other services can share one
+//! stable set of contracts.
 
-// TODO: Remove this stub and implement actual library functionality.
-/// Returns a greeting for the library.
-#[must_use]
-pub const fn greet() -> &'static str {
-    "Hello from Actix v2a components!"
-}
+pub mod error;
+pub mod http;
+pub mod idempotency;
+pub mod openapi;
+pub mod pagination;
+
+pub use error::{Error, ErrorCode, ErrorValidationError, TRACE_ID_HEADER};
+pub use idempotency::{
+    IDEMPOTENCY_CONFLICT_MESSAGE,
+    IDEMPOTENCY_KEY_HEADER,
+    IdempotencyKey,
+    IdempotencyKeyValidationError,
+    IdempotencyLookupQuery,
+    IdempotencyLookupResult,
+    IdempotencyRecord,
+    MutationType,
+    MutationTypeValidationError,
+    PayloadHash,
+    PayloadHashError,
+    ReplayMetadata,
+    ResponseSnapshot,
+    canonicalize_and_hash,
+    extract_idempotency_key,
+    map_idempotency_key_error,
+};
+pub use openapi::{ErrorCodeSchema, ErrorSchema, ReplayMetadataSchema};
+pub use pagination::{
+    Cursor,
+    CursorError,
+    DEFAULT_LIMIT,
+    Direction,
+    MAX_LIMIT,
+    PageParams,
+    PageParamsError,
+    Paginated,
+    PaginationLinks,
+};

@@ -20,6 +20,10 @@ consistent, and easy to maintain across projects.
   - suffix -ogue in words such as _analogue_ and _catalogue_,
   - and so forth.
 - The words **"outwith"** and **"caveat"** are acceptable.
+- Prefer the spellings _improvise_ and _parameterize_.
+- Prefer _schemata_ as the plural of _schema_ in prose.
+- When naming canonical guides, prefer the possessive forms _user's guide_ and
+  _developer's guide_.
 - Keep United States (US) spelling when used in an API, for example, `color`.
 - The project uses the filename `LICENSE` for community consistency.
 
@@ -119,7 +123,7 @@ this means operators, end users, or integrators.
 - Use tables where they clarify field sets, command options, or compatibility
   matrices.
 - Include concrete examples in code or data form when describing formats,
-  schemas, or command usage.
+  schemata, or command usage.
 - Higher-level user workflows belong here, for example "load a document",
   "configure the service", or "interpret diagnostics".
 - Link to design documents or maintainer references when deeper rationale would
@@ -175,10 +179,10 @@ decision, and an RFC to propose a change.
 ### Design document
 
 Use a dedicated design document, conventionally named
-`docs/<product-or-topic>-design.md`, to explain the architecture,
-constraints, rationale, and intended evolution of a system or subsystem. This
-document is the correct location for design intent; that material must not be
-buried in the user's guide or developer's guide.
+`docs/<product-or-topic>-design.md`, to explain the architecture, constraints,
+rationale, and intended evolution of a system or subsystem. This document is
+the correct location for design intent; that material must not be buried in the
+user's guide or developer's guide.
 
 - Start with a concise front matter section that states status, scope, primary
   audience, and the decision records or other documents that take precedence.

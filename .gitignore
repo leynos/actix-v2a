@@ -1,2 +1,7 @@
 target/
 **/*.rs.bk
+*.swp
+*.swo
+*.swn
+*~
+*.un~
