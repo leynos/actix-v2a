@@ -85,7 +85,8 @@ of the planned application contract.
 
 For SSE specifically, this execplan owns delivery sequencing, extraction
 boundaries, and gates. The normative shared SSE wire contract belongs in
-[`ADR 001`](../adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md),
+the
+[Architectural decision record (ADR) 001](../adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md),
 which must stay authoritative if the two documents ever diverge.
 
 ## Constraints
@@ -124,8 +125,9 @@ which must stay authoritative if the two documents ever diverge.
   contract. Draft or update the SSE ADR instead, then stop after recording the
   discovery.
 - OpenAPI scope: if porting the shared `utoipa` fragments requires pulling in
-  Wildside-specific endpoint registration or application DTOs, stop and narrow
-  the extraction back to reusable schema fragments only.
+  Wildside-specific endpoint registration or application data transfer objects
+  (DTOs), stop and narrow the extraction back to reusable schema fragments
+  only.
 - Iterations: if the same failing gate persists after three focused fix
   attempts, stop and document the blocker before continuing.
 
