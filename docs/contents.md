@@ -4,6 +4,8 @@
   set, including guides, references, and execution plans.
 - [Documentation style guide](documentation-style-guide.md): repository
   standards for structure, tone, formatting, and maintenance of documentation.
+- [Roadmap](roadmap.md): phased implementation backlog for planned shared
+  `actix-v2a` capabilities and follow-on delivery work.
 - [Complexity antipatterns and refactoring strategies](complexity-antipatterns-and-refactoring-strategies.md):
   reference material for identifying and reducing structural complexity in code.
 - [Reliable testing in Rust via dependency injection](reliable-testing-in-rust-via-dependency-injection.md):
