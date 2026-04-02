@@ -101,6 +101,40 @@ impl TryFrom<ErrorPayload> for Error {
 }
 
 impl Error {
+    const fn fallback_message_for(code: ErrorCode) -> &'static str {
+        match code {
+            ErrorCode::InvalidRequest => "Invalid request",
+            ErrorCode::Unauthorized => "Unauthorized",
+            ErrorCode::Forbidden => "Forbidden",
+            ErrorCode::NotFound => "Not found",
+            ErrorCode::Conflict => "Conflict",
+            ErrorCode::ServiceUnavailable => "Service unavailable",
+            ErrorCode::InternalError => "Internal server error",
+        }
+    }
+
+    pub(crate) fn fallback_for(code: ErrorCode) -> Self {
+        Self {
+            code,
+            message: Self::fallback_message_for(code).to_owned(),
+            trace_id: None,
+            details: None,
+        }
+    }
+
+    fn normalize_non_empty_text(
+        input_text: impl Into<String>,
+        empty_error: ErrorValidationError,
+    ) -> Result<String, ErrorValidationError> {
+        let owned_text = input_text.into();
+        let trimmed_text = owned_text.trim();
+        if trimmed_text.is_empty() {
+            return Err(empty_error);
+        }
+
+        Ok(trimmed_text.to_owned())
+    }
+
     /// Construct a validated error payload.
     ///
     /// # Errors
@@ -111,29 +145,32 @@ impl Error {
         code: ErrorCode,
         message: impl Into<String>,
     ) -> Result<Self, ErrorValidationError> {
-        let message_text = message.into();
-        let trimmed_message = message_text.trim();
-        if trimmed_message.is_empty() {
-            return Err(ErrorValidationError::EmptyMessage);
-        }
+        let normalized_message =
+            Self::normalize_non_empty_text(message, ErrorValidationError::EmptyMessage)?;
 
         Ok(Self {
             code,
-            message: trimmed_message.to_owned(),
+            message: normalized_message,
             trace_id: None,
             details: None,
         })
     }
 
+    fn validated_static_or_fallback(code: ErrorCode, message: &'static str) -> Self {
+        Self::from_static(code, message).unwrap_or_else(|_| Self::fallback_for(code))
+    }
+
     /// Construct a library-owned error payload from a trusted static message.
-    #[must_use]
-    pub fn from_static(code: ErrorCode, message: &'static str) -> Self {
-        Self {
-            code,
-            message: message.to_owned(),
-            trace_id: None,
-            details: None,
-        }
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ErrorValidationError::EmptyMessage`] when `message` is blank
+    /// once trimmed.
+    pub fn from_static(
+        code: ErrorCode,
+        message: &'static str,
+    ) -> Result<Self, ErrorValidationError> {
+        Self::try_new(code, message)
     }
 
     /// Access the machine-readable error code.
@@ -162,13 +199,10 @@ impl Error {
         mut self,
         trace_id: impl Into<String>,
     ) -> Result<Self, ErrorValidationError> {
-        let trace_id_text = trace_id.into();
-        let trimmed_trace_id = trace_id_text.trim();
-        if trimmed_trace_id.is_empty() {
-            return Err(ErrorValidationError::EmptyTraceId);
-        }
-
-        self.trace_id = Some(trimmed_trace_id.to_owned());
+        self.trace_id = Some(Self::normalize_non_empty_text(
+            trace_id,
+            ErrorValidationError::EmptyTraceId,
+        )?);
         Ok(self)
     }
 
@@ -182,19 +216,19 @@ impl Error {
     /// Construct an invalid-request error from a trusted static message.
     #[must_use]
     pub fn invalid_request_static(message: &'static str) -> Self {
-        Self::from_static(ErrorCode::InvalidRequest, message)
+        Self::validated_static_or_fallback(ErrorCode::InvalidRequest, message)
     }
 
     /// Construct a conflict error from a trusted static message.
     #[must_use]
     pub fn conflict_static(message: &'static str) -> Self {
-        Self::from_static(ErrorCode::Conflict, message)
+        Self::validated_static_or_fallback(ErrorCode::Conflict, message)
     }
 
     /// Construct an internal error from a trusted static message.
     #[must_use]
     pub fn internal_static(message: &'static str) -> Self {
-        Self::from_static(ErrorCode::InternalError, message)
+        Self::validated_static_or_fallback(ErrorCode::InternalError, message)
     }
 
     /// Return the payload clients should see.
@@ -253,6 +287,21 @@ mod tests {
     }
 
     #[test]
+    fn from_static_trims_whitespace_before_storing() {
+        let error = Error::from_static(ErrorCode::InvalidRequest, " bad request ")
+            .expect("message is valid");
+
+        assert_eq!(error.message(), "bad request");
+    }
+
+    #[test]
+    fn from_static_rejects_blank_messages() {
+        let result = Error::from_static(ErrorCode::InvalidRequest, "   ");
+
+        assert_eq!(result, Err(ErrorValidationError::EmptyMessage));
+    }
+
+    #[test]
     fn try_with_trace_id_rejects_blank_values() {
         let error = Error::invalid_request_static("bad request");
 
@@ -302,27 +351,26 @@ mod tests {
     }
 
     #[rstest]
-    #[case("message", "   ", "error message must not be empty")]
-    #[case("traceId", "   ", "trace identifier must not be empty")]
+    #[case(
+        json!({
+            "code": "invalid_request",
+            "message": "   ",
+            "traceId": " trace-123 "
+        }),
+        "error message must not be empty"
+    )]
+    #[case(
+        json!({
+            "code": "invalid_request",
+            "message": "bad request",
+            "traceId": "   "
+        }),
+        "trace identifier must not be empty"
+    )]
     fn deserialization_rejects_blank_values_after_trimming(
-        #[case] field_name: &str,
-        #[case] blank_value: &str,
+        #[case] payload: Value,
         #[case] expected_error_substring: &str,
     ) {
-        let payload = match field_name {
-            "message" => json!({
-                "code": "invalid_request",
-                "message": blank_value,
-                "traceId": " trace-123 "
-            }),
-            "traceId" => json!({
-                "code": "invalid_request",
-                "message": "bad request",
-                "traceId": blank_value
-            }),
-            other => panic!("unexpected field name: {other}"),
-        };
-
         let error = serde_json::from_value::<Error>(payload)
             .expect_err("blank values should fail validation");
 

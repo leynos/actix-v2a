@@ -37,6 +37,7 @@ fn redact_server_error(status: StatusCode) -> Error {
     match code_for_status(status) {
         ErrorCode::ServiceUnavailable => {
             Error::from_static(ErrorCode::ServiceUnavailable, "Service unavailable")
+                .unwrap_or_else(|_| Error::fallback_for(ErrorCode::ServiceUnavailable))
         }
         _ => Error::internal_static("Internal server error"),
     }
@@ -48,6 +49,7 @@ fn preserve_client_error(error: &actix_web::Error, status: StatusCode) -> Error 
 
     Error::try_new(code, message).unwrap_or_else(|_| {
         Error::from_static(code, status.canonical_reason().unwrap_or("Request failed"))
+            .unwrap_or_else(|_| Error::fallback_for(code))
     })
 }
 
@@ -122,20 +124,24 @@ mod tests {
                 StatusCode::BAD_REQUEST,
             ),
             (
-                Error::from_static(ErrorCode::Unauthorized, "no auth"),
+                Error::from_static(ErrorCode::Unauthorized, "no auth")
+                    .expect("static message should be valid"),
                 StatusCode::UNAUTHORIZED,
             ),
             (
-                Error::from_static(ErrorCode::Forbidden, "denied"),
+                Error::from_static(ErrorCode::Forbidden, "denied")
+                    .expect("static message should be valid"),
                 StatusCode::FORBIDDEN,
             ),
             (
-                Error::from_static(ErrorCode::NotFound, "missing"),
+                Error::from_static(ErrorCode::NotFound, "missing")
+                    .expect("static message should be valid"),
                 StatusCode::NOT_FOUND,
             ),
             (Error::conflict_static("duplicate"), StatusCode::CONFLICT),
             (
-                Error::from_static(ErrorCode::ServiceUnavailable, "db unavailable"),
+                Error::from_static(ErrorCode::ServiceUnavailable, "db unavailable")
+                    .expect("static message should be valid"),
                 StatusCode::SERVICE_UNAVAILABLE,
             ),
             (
