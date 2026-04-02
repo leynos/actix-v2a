@@ -5,7 +5,7 @@ This ExecPlan (execution plan) is a living document. The sections
 `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work
 proceeds.
 
-Status: DRAFT
+Status: IN PROGRESS
 
 ## Purpose / big picture
 
@@ -347,10 +347,8 @@ Expected evidence after a successful implementation run:
   `docs/contents.md` are added.
 
 For planning-only documentation changes, replay only the documentation gates
-unless new Rust code is introduced. This branch currently has no imported
-runtime code yet, so Rust gate failures caused solely by the stub crate or by
-`cargo nextest` finding zero tests should be recorded, not used to block the
-planning artifact itself.
+unless new Rust code is introduced. Once implementation begins, rerun the full
+Rust gate set for every code-bearing milestone before committing.
 
 ## Approval gates
 
@@ -390,7 +388,16 @@ Implementation must not begin until the following gates are satisfied:
 - [x] 2026-04-02 08:54 BST: added a final implementation milestone requiring a
   documentation scrub for environment-specific local paths before the work can
   be closed out.
-- [ ] Await explicit approval before implementation.
+- [x] 2026-04-02 11:37 BST: began implementation after explicit user approval
+  to proceed with the plan.
+- [x] 2026-04-02 11:37 BST: completed Milestone 1 by importing the pagination
+  module tree, re-exporting the shared crate surface from `src/lib.rs`, and
+  adapting Wildside's pagination coverage into local BDD-backed integration
+  tests.
+- [x] 2026-04-02 11:37 BST: passed `make check-fmt`, `make lint`, and
+  `make test` for the pagination milestone. The first `make test` run took
+  17m 23s because `cargo nextest` had to compile the new `rstest-bdd`
+  dependency stack from a colder cache.
 - [ ] During implementation, keep this section updated after each milestone and
   after every gate run.
 
@@ -408,6 +415,10 @@ Implementation must not begin until the following gates are satisfied:
 - Corbusier already treats SSE as part of its planned stable API surface, so
   cross-application SSE helpers need a deliberate contract even if Wildside
   cannot yet donate an implementation.
+- The first `make test` run after adding `rstest-bdd` was substantially slower
+  than `make lint` because `cargo nextest` had to build the test-only
+  dependency graph. That looks like a one-time cold-cache cost rather than a
+  persistent slowdown in the imported pagination code.
 
 ## Decision Log
 
@@ -429,10 +440,14 @@ Implementation must not begin until the following gates are satisfied:
   replace environment-specific local paths in the finished docs with canonical
   upstream URLs, repository-relative references, or plain-language provenance
   notes.
+- 2026-04-02 11:37 BST: Milestone 1 kept the Wildside pagination crate
+  structure mostly intact, but the public examples, crate exports, and BDD test
+  harness were adapted to `actix-v2a` and this repository's lint policy.
 
 ## Outcomes & Retrospective
 
-This section is intentionally incomplete because implementation has not begun.
-When the work is finished, replace this note with a short factual summary of
-what shipped, which milestones were deferred, the final gate outcomes, and the
-main lessons learned from the extraction.
+Implementation is in progress. Milestone 1 is complete with green Rust gates,
+while Milestones 2 through 6 remain open. Replace this note at the end of the
+work with a short factual summary of what shipped, which milestones were
+deferred, the final gate outcomes, and the main lessons learned from the
+extraction.

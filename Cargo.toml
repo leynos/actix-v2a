@@ -4,6 +4,16 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+base64 = "0.22.1"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+thiserror = "2.0.17"
+url = "2.5.7"
+
+[dev-dependencies]
+rstest = "0.26.1"
+rstest-bdd = "0.5.0"
+rstest-bdd-macros = { version = "0.5.0", features = ["strict-compile-time-validation"] }
 
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }

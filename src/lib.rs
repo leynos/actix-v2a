@@ -1,8 +1,19 @@
-//! `Actix v2a components` library.
+//! Shared version 2a Actix components and HTTP primitives.
+//!
+//! This crate hosts reusable transport-facing building blocks extracted from
+//! application code so Wildside, Corbusier, and other services can share one
+//! stable set of contracts.
 
-// TODO: Remove this stub and implement actual library functionality.
-/// Returns a greeting for the library.
-#[must_use]
-pub const fn greet() -> &'static str {
-    "Hello from Actix v2a components!"
-}
+pub mod pagination;
+
+pub use pagination::{
+    Cursor,
+    CursorError,
+    DEFAULT_LIMIT,
+    Direction,
+    MAX_LIMIT,
+    PageParams,
+    PageParamsError,
+    Paginated,
+    PaginationLinks,
+};
