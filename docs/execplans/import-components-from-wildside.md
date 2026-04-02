@@ -395,9 +395,25 @@ Implementation must not begin until the following gates are satisfied:
   adapting Wildside's pagination coverage into local BDD-backed integration
   tests.
 - [x] 2026-04-02 11:37 BST: passed `make check-fmt`, `make lint`, and
-  `make test` for the pagination milestone. The first `make test` run took
-  17m 23s because `cargo nextest` had to compile the new `rstest-bdd`
-  dependency stack from a colder cache.
+  `make test` for the pagination milestone. The first `make test` run took 17m
+  23s because `cargo nextest` had to compile the new `rstest-bdd` dependency
+  stack from a colder cache.
+- [x] 2026-04-02 12:35 BST: completed Milestone 2 by extracting reusable
+  idempotency key validation, canonical payload hashing, mutation
+  discrimination, replay/conflict record types, and HTTP header helpers into
+  `src/idempotency/`.
+- [x] 2026-04-02 12:35 BST: completed Milestone 3 by adding a transport-agnostic
+  shared API error envelope in `src/error.rs` plus an Actix responder adapter
+  in `src/http/error.rs` with status mapping, trace identifier propagation, and
+  internal error redaction.
+- [x] 2026-04-02 12:35 BST: completed Milestone 4 by adding reusable `utoipa`
+  schema fragments in `src/openapi/schemas.rs` and BDD coverage that verifies
+  the registered component names and shared JSON field surfaces without pulling
+  in Wildside's application-specific `ApiDoc` assembly.
+- [x] 2026-04-02 12:35 BST: passed `make check-fmt`, `make lint`, and
+  `make test` for the idempotency, error, and OpenAPI milestone. The first
+  `make test` run for this slice again paid a cold-cache compile cost because
+  `cargo nextest` had to build the newly added Actix and `utoipa` dependencies.
 - [ ] During implementation, keep this section updated after each milestone and
   after every gate run.
 
@@ -419,6 +435,14 @@ Implementation must not begin until the following gates are satisfied:
   than `make lint` because `cargo nextest` had to build the test-only
   dependency graph. That looks like a one-time cold-cache cost rather than a
   persistent slowdown in the imported pagination code.
+- Clippy's `error_impl_error` lint fires on the exported `Error` type
+  declaration rather than on the `impl std::error::Error for Error` block, so
+  the narrow expectation has to live on the struct definition.
+- Using `#[derive(OpenApi)]` inside the OpenAPI BDD test triggered a
+  `needless_for_each` lint from `utoipa`'s generated code. Replacing the test
+  document assembly with a manual `OpenApiBuilder` and `ComponentsBuilder`
+  avoided a macro-generated lint exception while keeping the behavioural
+  coverage intact.
 
 ## Decision Log
 
@@ -443,6 +467,10 @@ Implementation must not begin until the following gates are satisfied:
 - 2026-04-02 11:37 BST: Milestone 1 kept the Wildside pagination crate
   structure mostly intact, but the public examples, crate exports, and BDD test
   harness were adapted to `actix-v2a` and this repository's lint policy.
+- 2026-04-02 12:35 BST: Milestones 2 through 4 stayed generic by extracting
+  only reusable idempotency contracts, the shared error envelope, the Actix
+  adapter, and `utoipa` schema fragments; no Wildside repository ports, service
+  logic, or application document assembly were imported.
 
 ## Outcomes & Retrospective
 
