@@ -298,10 +298,16 @@ fn serialized_links(world: &World) -> serde_json::Map<String, Value> {
 }
 
 #[given("pagination direction Next")]
-fn pagination_direction_next(world: &World) { world.direction.set(Direction::Next); }
+fn pagination_direction_next(world: &World) {
+    let direction = Direction::Next;
+    world.direction.set(direction);
+}
 
 #[given("pagination direction Prev")]
-fn pagination_direction_prev(world: &World) { world.direction.set(Direction::Prev); }
+fn pagination_direction_prev(world: &World) {
+    let direction = Direction::Prev;
+    world.direction.set(direction);
+}
 
 #[when("the key and direction are encoded into a cursor and decoded")]
 #[expect(
