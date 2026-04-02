@@ -299,6 +299,29 @@ SSE behaviour from the WebSocket implementation without explicit approval. In
 that case, the ADR becomes the deliverable that unblocks a later,
 source-independent implementation pass.
 
+### Milestone 6: remove environment-specific paths before closure
+
+Before marking the implementation complete, do one final documentation pass to
+remove machine-specific and checkout-specific paths from the finished
+deliverables. During planning it is acceptable to refer to
+`../wildside/backend` and
+`/data/leynos/Projects/corbusier.worktrees/plan-front-end-adoption` because
+they identify the local source material, but the completed implementation
+should not leave those paths as normative references in public-facing docs.
+
+This clean-up pass should cover at least the README, `docs/contents.md`, the
+SSE ADR, and this execplan. Replace environment-specific references with:
+
+- canonical upstream repository URLs when the point is provenance;
+- repository-relative paths when the point is navigation inside this
+  repository; or
+- short prose descriptions when neither a URL nor a path is required.
+
+This milestone is complete when a final
+`rg -n "/data/leynos/Projects|\\.\\./wildside/backend"` sweep over the finished
+documentation set shows no environment-specific paths outside deliberate
+historical notes that are clearly marked as planning-time context.
+
 ## Validation and evidence capture
 
 Use the repository Makefile targets and capture each gate with `tee` to a
@@ -364,6 +387,9 @@ Implementation must not begin until the following gates are satisfied:
 - [x] 2026-04-02 08:38 BST: revalidated the revised plan with
   `make markdownlint` and `make nixie` after confirming `utoipa` schema
   fragments are in scope.
+- [x] 2026-04-02 08:54 BST: added a final implementation milestone requiring a
+  documentation scrub for environment-specific local paths before the work can
+  be closed out.
 - [ ] Await explicit approval before implementation.
 - [ ] During implementation, keep this section updated after each milestone and
   after every gate run.
@@ -399,6 +425,10 @@ Implementation must not begin until the following gates are satisfied:
 - 2026-04-02 08:24 BST: because Corbusier already depends on replay-aware SSE
   semantics, the absence of reusable Wildside SSE code makes an ADR necessary
   rather than optional.
+- 2026-04-02 08:54 BST: completion now includes an explicit final pass to
+  replace environment-specific local paths in the finished docs with canonical
+  upstream URLs, repository-relative references, or plain-language provenance
+  notes.
 
 ## Outcomes & Retrospective
 
