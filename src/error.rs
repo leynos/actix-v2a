@@ -301,36 +301,32 @@ mod tests {
         assert_eq!(error.trace_id(), Some("trace-123"));
     }
 
-    #[test]
-    fn deserialization_rejects_blank_values_after_trimming() {
-        let error = serde_json::from_value::<Error>(json!({
-            "code": "invalid_request",
-            "message": "   ",
-            "traceId": " trace-123 "
-        }))
-        .expect_err("blank messages should fail validation");
+    #[rstest]
+    #[case("message", "   ", "error message must not be empty")]
+    #[case("traceId", "   ", "trace identifier must not be empty")]
+    fn deserialization_rejects_blank_values_after_trimming(
+        #[case] field_name: &str,
+        #[case] blank_value: &str,
+        #[case] expected_error_substring: &str,
+    ) {
+        let payload = match field_name {
+            "message" => json!({
+                "code": "invalid_request",
+                "message": blank_value,
+                "traceId": " trace-123 "
+            }),
+            "traceId" => json!({
+                "code": "invalid_request",
+                "message": "bad request",
+                "traceId": blank_value
+            }),
+            other => panic!("unexpected field name: {other}"),
+        };
 
-        assert!(
-            error
-                .to_string()
-                .contains("error message must not be empty")
-        );
-    }
+        let error = serde_json::from_value::<Error>(payload)
+            .expect_err("blank values should fail validation");
 
-    #[test]
-    fn deserialization_rejects_blank_trace_id_after_trimming() {
-        let error = serde_json::from_value::<Error>(json!({
-            "code": "invalid_request",
-            "message": "bad request",
-            "traceId": "   "
-        }))
-        .expect_err("blank trace identifiers should fail validation");
-
-        assert!(
-            error
-                .to_string()
-                .contains("trace identifier must not be empty")
-        );
+        assert!(error.to_string().contains(expected_error_substring));
     }
 
     #[test]

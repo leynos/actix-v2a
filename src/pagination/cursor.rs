@@ -7,6 +7,8 @@ use base64::{
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use thiserror::Error;
 
+const MAX_CURSOR_TOKEN_LEN: usize = 8 * 1024;
+
 /// Direction of pagination relative to the cursor.
 ///
 /// Indicates whether the cursor represents a position for fetching
@@ -81,6 +83,12 @@ pub enum CursorError {
     InvalidBase64 {
         /// Human-readable base64 decoding failure details.
         message: String,
+    },
+    /// The encoded token exceeded the accepted input size.
+    #[error("cursor token exceeds maximum length of {max_len} bytes")]
+    TokenTooLong {
+        /// The maximum accepted cursor token length in bytes.
+        max_len: usize,
     },
     /// The decoded JSON payload did not match the expected key shape.
     #[error("cursor JSON deserialization failed: {message}")]
@@ -180,6 +188,12 @@ where
     /// base64url and [`CursorError::Deserialize`] when the decoded JSON does
     /// not match the expected cursor shape.
     pub fn decode(value: &str) -> Result<Self, CursorError> {
+        if value.len() > MAX_CURSOR_TOKEN_LEN {
+            return Err(CursorError::TokenTooLong {
+                max_len: MAX_CURSOR_TOKEN_LEN,
+            });
+        }
+
         let payload = URL_SAFE_NO_PAD
             .decode(value)
             .or_else(|_| URL_SAFE.decode(value))
@@ -200,7 +214,7 @@ mod tests {
     use rstest::{fixture, rstest};
     use serde::{Deserialize, Serialize};
 
-    use super::{Cursor, CursorError, Direction};
+    use super::{Cursor, CursorError, Direction, MAX_CURSOR_TOKEN_LEN};
 
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
     struct FixtureKey {
@@ -251,5 +265,19 @@ mod tests {
         let result = Cursor::<FixtureKey>::decode(raw_input);
 
         assert!(matches!(result, Err(CursorError::InvalidBase64 { .. })));
+    }
+
+    #[test]
+    fn oversized_cursor_fails_decode_before_base64_decoding() {
+        let oversized = "a".repeat(MAX_CURSOR_TOKEN_LEN + 1);
+
+        let result = Cursor::<FixtureKey>::decode(&oversized);
+
+        assert_eq!(
+            result,
+            Err(CursorError::TokenTooLong {
+                max_len: MAX_CURSOR_TOKEN_LEN,
+            })
+        );
     }
 }
