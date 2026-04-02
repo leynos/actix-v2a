@@ -12,7 +12,7 @@
 - [Rust doctest DRY guide](rust-doctest-dry-guide.md): reference for writing
   maintainable Rust documentation tests without duplication.
 - [Rust testing with rstest fixtures](rust-testing-with-rstest-fixtures.md):
-  guidance for shared Rust test fixtures, parametrized cases, and scenario
+  guidance for shared Rust test fixtures, parameterized cases, and scenario
   setup.
 - [Scripting standards](scripting-standards.md): reference for Python and shell
   scripting conventions used in this repository.

@@ -28,6 +28,10 @@ If `actix-v2a` is going to provide SSE support for both Wildside and Corbusier,
 it needs a shared wire contract that is generic enough for both applications,
 specific enough to be testable, and small enough to avoid dragging
 application-specific event stores or transport assumptions into this library.
+This ADR complements the Wildside import
+[`execplan`](execplans/import-components-from-wildside.md): the execplan owns
+sequencing, milestones, and gates, while this ADR owns the normative SSE wire
+contract that downstream implementation must follow.
 
 ## Decision Drivers
 
@@ -112,6 +116,19 @@ Under this direction, the shared SSE surface should include:
 - a standard `stream_reset` helper for the case where replay cannot resume from
   the supplied identifier.
 
+The first implementation should adopt these defaults:
+
+- The default heartbeat interval is 20 seconds. This is a conservative middle
+  ground that is frequent enough to keep common proxies and browser connections
+  warm without generating unnecessary chatter on otherwise idle streams.
+- The standard `stream_reset` payload is a structured JSON object:
+  `{"reason":"replay_unavailable"}`. The event name stays `stream_reset`, while
+  the payload gives clients a machine-readable explanation that can be extended
+  later without redefining the event itself.
+- The first pass should expose wire helpers, header helpers, and framing
+  helpers only. It should not add a convenience Actix responder until both
+  applications demonstrate the same responder shape and lifecycle needs.
+
 The shared module should not own:
 
 - authentication policy;
@@ -161,15 +178,6 @@ event-store and endpoint orchestration code in their own repositories.
 - A shared default heartbeat interval will always be a compromise across
   deployments and proxy topologies.
 
-## Outstanding decisions
-
-- Whether the default heartbeat interval should be 15 seconds, 20 seconds, or
-  another value proven safe for both deployments
-- Whether `stream_reset` should be a bare event with an empty JSON object or a
-  structured payload that names the replay failure reason
-- Whether `actix-v2a` should expose a convenience Actix responder alongside the
-  lower-level wire helpers in its first pass
-
 ## Architectural rationale
 
 This direction keeps `actix-v2a` focused on reusable transport components
@@ -177,4 +185,7 @@ instead of becoming a shadow application framework. It also matches Corbusier’
 published SSE expectations around `Last-Event-ID`, replay, and stable event
 identifiers while acknowledging that Wildside does not yet provide a directly
 extractable SSE helper. A shared wire contract is therefore the narrowest
-stable seam that helps both applications without overfitting either one.
+stable seam that helps both applications without overfitting either one. The
+chosen 20-second heartbeat default and structured `stream_reset` payload reduce
+avoidable ambiguity for downstream implementation while still leaving
+application-specific retention and routing concerns outside the shared library.

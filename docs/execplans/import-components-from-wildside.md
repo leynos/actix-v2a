@@ -83,6 +83,11 @@ upstream: `https://github.com/leynos/corbusier`), especially in
 reconnection, global event streams, and explicit event identifiers are all part
 of the planned application contract.
 
+For SSE specifically, this execplan owns delivery sequencing, extraction
+boundaries, and gates. The normative shared SSE wire contract belongs in
+[`ADR 001`](../adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md),
+which must stay authoritative if the two documents ever diverge.
+
 ## Constraints
 
 - Treat `../wildside/backend` as the implementation source to extract from, not
@@ -102,8 +107,7 @@ of the planned application contract.
   then stop before implementation of the SSE module until that ADR is approved.
 - Treat the Wildside `utoipa` schema wrappers as in scope for the first
   implementation pass. The reusable target is shared schema fragments and
-  related tests, not Wildside's full application-specific `ApiDoc`
-  registration.
+  related tests, not Wildside's full application-specific `ApiDoc` registration.
 
 ## Tolerances (exception triggers)
 
@@ -116,7 +120,7 @@ of the planned application contract.
   sources is allowed, but any dependency beyond those directly justified by the
   imported modules requires escalation.
 - SSE source: if no authoritative SSE helper source is located in
-  `../wildside/backend` during implementation, do not improvize a production
+  `../wildside/backend` during implementation, do not improvise a production
   contract. Draft or update the SSE ADR instead, then stop after recording the
   discovery.
 - OpenAPI scope: if porting the shared `utoipa` fragments requires pulling in
@@ -194,7 +198,8 @@ crate into this repository. Copy the transport-neutral code from
 `../wildside/backend/crates/pagination/src/` with only the adjustments needed
 to satisfy this repository’s lint rules, file-size limits, and public API paths.
 
-Port the pagination tests next. Start with the Wildside BDD coverage in
+Port the pagination tests next. Start with the Wildside behaviour-driven
+development (BDD) coverage in
 `../wildside/backend/crates/pagination/tests/pagination_bdd.rs` and the
 associated `features/` files. If the BDD harness proves heavier than this crate
 needs, keep the behavioural assertions but collapse them into standard
