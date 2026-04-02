@@ -61,6 +61,16 @@ fn preserve_client_error(error: &actix_web::Error, status: StatusCode) -> Error 
     payload
 }
 
+fn adapt_server_error(error: &actix_web::Error, status: StatusCode) -> Error {
+    error!(error = %error, %status, "actix error promoted to shared API error");
+    redact_server_error(status)
+}
+
+fn adapt_client_error(error: &actix_web::Error, status: StatusCode) -> Error {
+    error!(%status, "actix error promoted to shared API error");
+    preserve_client_error(error, status)
+}
+
 impl ResponseError for Error {
     fn status_code(&self) -> StatusCode {
         self.http_status()
@@ -79,16 +89,18 @@ impl ResponseError for Error {
     }
 }
 
+fn adapt_actix_error(error: &actix_web::Error, status: StatusCode) -> Error {
+    if status.is_server_error() {
+        return adapt_server_error(error, status);
+    }
+
+    adapt_client_error(error, status)
+}
+
 impl From<actix_web::Error> for Error {
     fn from(error: actix_web::Error) -> Self {
         let status = error.as_response_error().status_code();
-        error!(error = %error, %status, "actix error promoted to shared API error");
-
-        if status.is_server_error() {
-            return redact_server_error(status);
-        }
-
-        preserve_client_error(&error, status)
+        adapt_actix_error(&error, status)
     }
 }
 
@@ -97,6 +109,7 @@ mod tests {
     //! Regression coverage for Actix error responders.
 
     use actix_web::{ResponseError, body::to_bytes, http::StatusCode};
+    use rstest::rstest;
     use serde_json::json;
 
     use crate::{Error, ErrorCode, TRACE_ID_HEADER};
@@ -198,66 +211,78 @@ mod tests {
         assert_eq!(payload.details(), Some(&json!({"field": "name"})));
     }
 
-    #[test]
-    fn actix_bad_request_preserves_message() {
-        let actix_error = actix_web::error::ErrorBadRequest("boom");
-        let error: Error = actix_error.into();
+    fn bad_request_error() -> actix_web::Error { actix_web::error::ErrorBadRequest("boom") }
 
-        assert_eq!(error.code(), ErrorCode::InvalidRequest);
-        assert_eq!(error.message(), "boom");
+    fn not_found_error() -> actix_web::Error { actix_web::error::ErrorNotFound("missing route") }
+
+    fn unmapped_client_error() -> actix_web::Error {
+        actix_web::error::InternalError::new("teapot", StatusCode::IM_A_TEAPOT).into()
+    }
+
+    fn service_unavailable_error() -> actix_web::Error {
+        actix_web::error::ErrorServiceUnavailable("db unavailable")
+    }
+
+    fn internal_server_error() -> actix_web::Error {
+        actix_web::error::ErrorInternalServerError("boom")
+    }
+
+    fn unmapped_server_error() -> actix_web::Error {
+        actix_web::error::InternalError::new("gateway timeout", StatusCode::GATEWAY_TIMEOUT).into()
+    }
+
+    #[rstest]
+    #[case(
+        bad_request_error,
+        ErrorCode::InvalidRequest,
+        Some("boom"),
+        Some(StatusCode::BAD_REQUEST)
+    )]
+    #[case(
+        not_found_error,
+        ErrorCode::NotFound,
+        Some("missing route"),
+        Some(StatusCode::NOT_FOUND)
+    )]
+    #[case(
+        unmapped_client_error,
+        ErrorCode::InvalidRequest,
+        Some("teapot"),
+        Some(StatusCode::IM_A_TEAPOT)
+    )]
+    #[case(
+        service_unavailable_error,
+        ErrorCode::ServiceUnavailable,
+        Some("Service unavailable"),
+        Some(StatusCode::SERVICE_UNAVAILABLE)
+    )]
+    #[case(
+        internal_server_error,
+        ErrorCode::InternalError,
+        Some("Internal server error"),
+        Some(StatusCode::INTERNAL_SERVER_ERROR)
+    )]
+    #[case(
+        unmapped_server_error,
+        ErrorCode::InternalError,
+        Some("Internal server error"),
+        Some(StatusCode::GATEWAY_TIMEOUT)
+    )]
+    fn actix_error_conversion(
+        #[case] make_error: fn() -> actix_web::Error,
+        #[case] expected_code: ErrorCode,
+        #[case] expected_public_message: Option<&str>,
+        #[case] expected_status: Option<StatusCode>,
+    ) {
+        let error: Error = make_error().into();
+
+        assert_eq!(error.code(), expected_code);
+        if let Some(expected_message) = expected_public_message {
+            assert_eq!(error.message(), expected_message);
+        }
+        if let Some(status) = expected_status {
+            assert_eq!(ResponseError::status_code(&error), status);
+        }
         assert_eq!(error.trace_id(), None);
-    }
-
-    #[test]
-    fn not_found_actix_errors_preserve_not_found_code() {
-        let actix_error = actix_web::error::ErrorNotFound("missing route");
-        let error: Error = actix_error.into();
-
-        assert_eq!(error.code(), ErrorCode::NotFound);
-        assert_eq!(error.message(), "missing route");
-    }
-
-    #[test]
-    fn unmapped_client_actix_errors_preserve_original_status() {
-        let actix_error: actix_web::Error =
-            actix_web::error::InternalError::new("teapot", StatusCode::IM_A_TEAPOT).into();
-        let error: Error = actix_error.into();
-
-        assert_eq!(error.code(), ErrorCode::InvalidRequest);
-        assert_eq!(error.message(), "teapot");
-        assert_eq!(ResponseError::status_code(&error), StatusCode::IM_A_TEAPOT);
-    }
-
-    #[test]
-    fn service_unavailable_actix_errors_preserve_service_code() {
-        let actix_error = actix_web::error::ErrorServiceUnavailable("db unavailable");
-        let error: Error = actix_error.into();
-
-        assert_eq!(error.code(), ErrorCode::ServiceUnavailable);
-        assert_eq!(error.message(), "Service unavailable");
-    }
-
-    #[test]
-    fn internal_actix_errors_are_redacted_to_internal_error() {
-        let actix_error = actix_web::error::ErrorInternalServerError("boom");
-        let error: Error = actix_error.into();
-
-        assert_eq!(error.code(), ErrorCode::InternalError);
-        assert_eq!(error.message(), "Internal server error");
-    }
-
-    #[test]
-    fn unmapped_server_actix_errors_preserve_original_status() {
-        let actix_error: actix_web::Error =
-            actix_web::error::InternalError::new("gateway timeout", StatusCode::GATEWAY_TIMEOUT)
-                .into();
-        let error: Error = actix_error.into();
-
-        assert_eq!(error.code(), ErrorCode::InternalError);
-        assert_eq!(error.message(), "Internal server error");
-        assert_eq!(
-            ResponseError::status_code(&error),
-            StatusCode::GATEWAY_TIMEOUT
-        );
     }
 }

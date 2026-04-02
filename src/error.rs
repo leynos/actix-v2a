@@ -252,13 +252,13 @@ impl Error {
         if matches!(self.code, ErrorCode::InternalError) {
             let mut redacted = Self::internal_static("Internal server error");
             redacted.trace_id.clone_from(&self.trace_id);
+            redacted.http_status = self.http_status;
             redacted
         } else {
             self.clone()
         }
     }
 }
-
 impl std::fmt::Display for Error {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter.write_str(self.message())
