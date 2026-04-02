@@ -24,7 +24,8 @@ this plan is `../wildside/backend`.
 Success is observable in five ways:
 
 1. `src/lib.rs` exposes reusable modules for pagination, idempotency, shared
-   error handling, and any approved OpenAPI or Server-Sent Events (SSE) helpers.
+   error handling, `utoipa` OpenAPI fragments, and any approved Server-Sent
+   Events (SSE) helpers.
 2. Tests copied or adapted from `../wildside/backend` prove cursor codec
    behaviour, limit validation, idempotency parsing and replay semantics, and
    error responder output.
@@ -99,9 +100,10 @@ of the planned application contract.
 - Do not invent SSE behaviour. If `../wildside/backend` does not contain a
   reusable SSE helper contract, define the shared contract first in an ADR,
   then stop before implementation of the SSE module until that ADR is approved.
-- The OpenAPI portion is conditional. Implement it only if this crate will
-  publish `utoipa` fragments in the same way as Wildside. If that assumption
-  fails, leave OpenAPI wrappers out of scope and note the decision.
+- Treat the Wildside `utoipa` schema wrappers as in scope for the first
+  implementation pass. The reusable target is shared schema fragments and
+  related tests, not Wildside's full application-specific `ApiDoc`
+  registration.
 
 ## Tolerances (exception triggers)
 
@@ -117,9 +119,9 @@ of the planned application contract.
   `../wildside/backend` during implementation, do not improvize a production
   contract. Draft or update the SSE ADR instead, then stop after recording the
   discovery.
-- OpenAPI parity: if `actix-v2a` is not going to expose `utoipa` schemas in a
-  way that both applications can consume consistently, skip the OpenAPI work
-  rather than shipping wrappers with no consumer.
+- OpenAPI scope: if porting the shared `utoipa` fragments requires pulling in
+  Wildside-specific endpoint registration or application DTOs, stop and narrow
+  the extraction back to reusable schema fragments only.
 - Iterations: if the same failing gate persists after three focused fix
   attempts, stop and document the blocker before continuing.
 
@@ -134,9 +136,9 @@ of the planned application contract.
   discovery milestone and treat a missing source implementation as a stop
   condition rather than silently inventing one.
 - Risk: OpenAPI wrappers may drag `utoipa` into a crate that otherwise wants to
-  stay framework-light. Severity: medium. Likelihood: medium. Mitigation: gate
-  OpenAPI work behind an explicit parity decision and isolate it in a dedicated
-  module.
+  stay framework-light. Severity: medium. Likelihood: medium. Mitigation:
+  isolate the `utoipa` work in a dedicated module and port only reusable schema
+  fragments, not Wildside's full document assembly.
 - Risk: idempotency replay behaviour is distributed across Wildside domain
   services and tests, so extracting only header parsing would miss the real
   contract. Severity: medium. Likelihood: high. Mitigation: capture both the
@@ -170,10 +172,10 @@ src/
     sse.rs            # only if a real SSE source contract is confirmed
   openapi/
     mod.rs
-    schemas.rs        # only if OpenAPI parity is approved
+    schemas.rs
 tests/
   pagination_bdd.rs
-  openapi_schemas_bdd.rs   # only if OpenAPI parity is approved
+  openapi_schemas_bdd.rs
   features/
     pagination.feature
     direction_aware_cursors.feature
@@ -249,25 +251,21 @@ This milestone is complete when downstream handlers could return
 `Result<T, actix_v2a::Error>` and get the exact JSON envelope expected by
 Wildside clients.
 
-### Milestone 4: decide whether OpenAPI fragments belong here
+### Milestone 4: extract shared OpenAPI fragments
 
-Before writing any `utoipa` code, verify that both Wildside and the consuming
-application(s) want `actix-v2a` to publish OpenAPI schema wrappers in the same
-style. If the answer is yes, add an `openapi` module that ports the shared
-error schema wrappers from Wildside:
+Add an `openapi` module that ports the shared `utoipa` schema wrappers from
+Wildside:
 
 - `ErrorCodeSchema`;
 - `ErrorSchema`;
 - any generic schema wrappers that are truly reusable across applications.
 
 Do not port Wildside-specific endpoint registration from `src/doc.rs`; this
-crate should export fragments, not a complete application document. If the
-answer is no, record the decision and leave this milestone intentionally
-unimplemented.
+crate should export fragments, not a complete application document.
 
-When approved, copy or adapt the relevant tests from
+Copy or adapt the relevant tests from
 `../wildside/backend/tests/openapi_schemas_bdd.rs` so they verify the fragment
-schema names and JSON field constraints without depending on Wildside’s full
+schema names and JSON field constraints without depending on Wildside's full
 route set.
 
 ### Milestone 5: resolve the SSE helper question explicitly
@@ -334,9 +332,7 @@ Implementation must not begin until the following gates are satisfied:
    and tolerances.
 2. Import strategy confirmed: extract code into `actix-v2a` rather than path
    depending on the Wildside application crate.
-3. OpenAPI decision made: either approve the shared `utoipa` fragments or mark
-   them out of scope for the first implementation pass.
-4. SSE source decision made: either confirm an authoritative SSE helper source
+3. SSE source decision made: either confirm an authoritative SSE helper source
    or accept that the first pass will stop short of SSE extraction.
 
 ## Progress
@@ -358,6 +354,11 @@ Implementation must not begin until the following gates are satisfied:
 - [x] 2026-04-02 08:29 BST: passed `make markdownlint` and `make nixie` for the
   planning artifacts. Rust gates are intentionally deferred for this doc-only
   turn until there is imported Rust code to validate.
+- [x] 2026-04-02 08:35 BST: updated the plan to treat shared `utoipa` schema
+  fragments as explicitly in scope for the first implementation pass.
+- [x] 2026-04-02 08:38 BST: revalidated the revised plan with
+  `make markdownlint` and `make nixie` after confirming `utoipa` schema
+  fragments are in scope.
 - [ ] Await explicit approval before implementation.
 - [ ] During implementation, keep this section updated after each milestone and
   after every gate run.
@@ -382,9 +383,11 @@ Implementation must not begin until the following gates are satisfied:
 - 2026-04-02 08:16 BST: this plan assumes extraction into local modules rather
   than adding a path dependency on the Wildside backend application crate,
   because `actix-v2a` is meant to become the shared component library.
-- 2026-04-02 08:16 BST: the OpenAPI work is deliberately conditional. The
-  reusable target is schema fragments only, not Wildside’s full `ApiDoc`
-  document assembly.
+- 2026-04-02 08:16 BST: the OpenAPI target is shared schema fragments only, not
+  Wildside's full `ApiDoc` document assembly.
+- 2026-04-02 08:35 BST: the user confirmed that `utoipa` schemata are in
+  scope, so Milestone 4 now assumes shared schema fragment extraction rather
+  than treating OpenAPI parity as an open decision.
 - 2026-04-02 08:16 BST: the SSE item remains unresolved because the planning
   investigation did not find authoritative reusable SSE code in
   `../wildside/backend`.
