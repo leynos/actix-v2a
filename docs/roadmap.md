@@ -12,7 +12,7 @@ without pulling event-store, routing, or authorization logic into this crate.
 
 ### 1.1. Build the shared wire-helper surface
 
-- [ ] 1.1.1. Implement validated SSE event identifier and replay cursor
+- [x] 1.1.1. Implement validated SSE event identifier and replay cursor
   helpers. See ADR 001 "Decision outcome / proposed direction".
   - Reject carriage return, line feed, and NULL in identifier values.
   - Parse and validate the `Last-Event-ID` request header into the shared

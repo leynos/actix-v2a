@@ -9,9 +9,9 @@ Status: DRAFT
 
 ## Purpose / big picture
 
-`actix-v2a` is the shared Actix component library for the v2a web stack.
-[ADR 001][adr-001] defines a wire-only Server-Sent Events (SSE) contract that
-both Wildside and Corbusier can adopt without surrendering control of their own
+`actix-v2a` is the shared Actix component library for the v2a web stack. [ADR
+001][adr-001] defines a wire-only Server-Sent Events (SSE) contract that both
+Wildside and Corbusier can adopt without surrendering control of their own
 event stores or stream routing. This plan delivers the first concrete piece of
 that contract: validated event identifiers for SSE `id:` lines and a replay
 cursor type that parses the `Last-Event-ID` request header.
@@ -46,9 +46,9 @@ These are hard invariants. Violation requires escalation, not workarounds.
   these concerns from the shared library.
 - The identifier validation must reject exactly three byte values: carriage
   return (U+000D), line feed (U+000A), and NULL (U+0000). These are the
-  characters that would break the SSE wire format per the
-  [WHATWG HTML specification][whatwg-sse] § 9.2.6. No other characters are
-  forbidden by the wire format.
+  characters that would break the SSE wire format per the [WHATWG HTML
+  specification][whatwg-sse] § 9.2.6. No other characters are forbidden by the
+  wire format.
 - The `Last-Event-ID` header parsing must follow the same single-header
   extraction pattern used by the existing `extract_idempotency_key` function in
   `src/idempotency/http.rs`: missing headers are `Ok(None)`, duplicate headers
@@ -93,65 +93,93 @@ escalation rather than improvisation.
 - Risk: the `Last-Event-ID` header value may contain characters that are valid
   per the SSE specification but unusual in practice (for example, non-ASCII
   Unicode or whitespace). The validation must not over-restrict: only CR, LF,
-  and NULL are forbidden.
-  Severity: medium. Likelihood: medium.
-  Mitigation: test with diverse Unicode inputs including emoji, accented
-  characters, and embedded spaces to confirm they pass validation. Only the
-  three explicitly forbidden bytes are rejected.
+  and NULL are forbidden. Severity: medium. Likelihood: medium. Mitigation:
+  test with diverse Unicode inputs including emoji, accented characters, and
+  embedded spaces to confirm they pass validation. Only the three explicitly
+  forbidden bytes are rejected.
 
 - Risk: the WHATWG specification notes that the `Last-Event-ID` header value is
   set by the browser from the most recent `id:` field and may be an empty
   string when no `id:` has been seen. An empty header value is distinct from a
-  missing header.
-  Severity: low. Likelihood: high.
-  Mitigation: treat an empty `Last-Event-ID` header value as `Ok(None)` (no
-  cursor), consistent with the specification's intent that an empty `id:` field
-  resets the last event identifier. Document this behaviour explicitly.
+  missing header. Severity: low. Likelihood: high. Mitigation: treat an empty
+  `Last-Event-ID` header value as `Ok(None)` (no cursor), consistent with the
+  specification's intent that an empty `id:` field resets the last event
+  identifier. Document this behaviour explicitly.
 
 - Risk: the existing `extract_idempotency_key` function rejects surrounding
   whitespace because UUIDs have a defined format. The SSE identifier has no
   such constraint; leading or trailing whitespace in the `Last-Event-ID` header
   value should be preserved verbatim because the identifier is opaque.
-  Severity: low. Likelihood: low.
-  Mitigation: do not trim the header value. Document that the identifier is
-  treated as an opaque string with only CR, LF, and NULL rejection. Test with
-  identifiers containing leading and trailing spaces.
+  Severity: low. Likelihood: low. Mitigation: do not trim the header value.
+  Document that the identifier is treated as an opaque string with only CR, LF,
+  and NULL rejection. Test with identifiers containing leading and trailing
+  spaces.
 
 ## Progress
 
-- [ ] Read and internalise all referenced documents and existing code patterns.
-- [ ] Write the execution plan draft.
-- [ ] Receive plan approval.
-- [ ] Create the `src/sse/` module directory with `mod.rs`.
-- [ ] Implement `EventId` validated newtype in `src/sse/event_id.rs`.
-- [ ] Implement `ReplayCursor` type and `Last-Event-ID` header parsing in
+- [x] Read and internalise all referenced documents and existing code patterns.
+- [x] Write the execution plan draft.
+- [x] Receive plan approval.
+- [x] Create the `src/sse/` module directory with `mod.rs`.
+- [x] Implement `EventId` validated newtype in `src/sse/event_id.rs`.
+- [x] Implement `ReplayCursor` type and `Last-Event-ID` header parsing in
   `src/sse/replay_cursor.rs`.
-- [ ] Wire the new `sse` module into `src/lib.rs` with public re-exports.
-- [ ] Write unit tests for `EventId` (happy paths, forbidden characters,
+- [x] Wire the new `sse` module into `src/lib.rs` with public re-exports.
+- [x] Write unit tests for `EventId` (happy paths, forbidden characters,
   edge cases).
-- [ ] Write unit tests for `ReplayCursor` and header extraction (happy paths,
+- [x] Write unit tests for `ReplayCursor` and header extraction (happy paths,
   missing/duplicate/empty headers, forbidden characters).
-- [ ] Write `rstest-bdd` behavioural tests where scenario structure adds
-  clarity.
-- [ ] Pass `make check-fmt`.
-- [ ] Pass `make lint`.
-- [ ] Pass `make test`.
-- [ ] Update `docs/roadmap.md` to mark task 1.1.1 as done.
-- [ ] Update `docs/contents.md` if new documents are added.
-- [ ] Update `docs/developers-guide.md` with SSE module internal guidance.
-- [ ] Update `docs/users-guide.md` with SSE identifier and replay cursor
+- [x] Write `rstest-bdd` behavioural tests where scenario structure adds
+  clarity. (Note: `rstest` parameterised tests were used instead of
+  `rstest-bdd` because the validation logic is straightforward and does not
+  benefit from Given/When/Then structure.)
+- [x] Pass `make check-fmt`.
+- [x] Pass `make lint`.
+- [x] Pass `make test`.
+- [x] Update `docs/roadmap.md` to mark task 1.1.1 as done.
+- [x] Update `docs/contents.md` if new documents are added.
+- [x] Update `docs/developers-guide.md` with SSE module internal guidance.
+- [x] Update `docs/users-guide.md` with SSE identifier and replay cursor
   documentation.
-- [ ] Pass `make markdownlint`.
-- [ ] Pass `make nixie`.
+- [x] Pass `make markdownlint`.
+- [x] Pass `make nixie`.
 
 ## Surprises & discoveries
 
-(No entries yet. This section will be updated as implementation proceeds.)
+- **HTTP header constraints and forbidden character testing**: During test
+  development, discovered that HTTP `HeaderValue` cannot contain control
+  characters (CR, LF, NULL) per HTTP specification, making it impossible to
+  construct test fixtures with these characters using `HeaderValue::from_str`.
+  Resolved by testing the forbidden character validation directly via `EventId`
+  construction rather than attempting to create invalid HTTP headers. This
+  aligns with reality: these characters cannot appear in valid HTTP headers, so
+  the `EventId` validation layer provides defence-in-depth rather than
+  primary validation.
+
+- **Octal escape warning in test fixtures**: Clippy's `octal-escapes` lint
+  flagged `\0123` as an ambiguous octal escape. Changed to `\x00123` to
+  explicitly denote the NULL byte followed by digits `123`. This ensures
+  test intent is unambiguous.
 
 ## Decision log
 
-(No entries yet. This section will be updated as decisions are made during
-implementation.)
+- **Test organisation**: Used `rstest` parameterised tests for forbidden
+  character validation rather than `rstest-bdd` behavioural tests. The
+  validation logic is straightforward (byte-level scan for three forbidden
+  values) and does not benefit from Given/When/Then scenario structure. This
+  keeps tests focused and readable.
+
+- **Documentation structure**: Created two new documentation files
+  (`users-guide.md` and `developers-guide.md`) to separate public API usage
+  documentation from internal implementation guidance. This follows the pattern
+  established in other mature Rust crates and provides clear entry points for
+  different audiences.
+
+- **Error variant naming**: Added `InvalidHeader` variant to
+  `EventIdValidationError` to distinguish "header is malformed (duplicate or
+  non-UTF-8)" from "identifier contains forbidden characters". This provides
+  clearer error messages and follows the pattern established by
+  `IdempotencyKeyValidationError`.
 
 ## Outcomes & retrospective
 
@@ -191,17 +219,16 @@ src/
 
 ### Key patterns to follow
 
-The `IdempotencyKey` type in `src/idempotency/key.rs` is the closest
-structural analogue to the new `EventId` type. Both are validated newtypes
-wrapping a string value with construction-time validation. The key
-differences are:
+The `IdempotencyKey` type in `src/idempotency/key.rs` is the closest structural
+analogue to the new `EventId` type. Both are validated newtypes wrapping a
+string value with construction-time validation. The key differences are:
 
 - `IdempotencyKey` validates that the string is a UUID. `EventId` validates
   that the string does not contain CR, LF, or NULL — a much simpler check.
 - `IdempotencyKey` trims whitespace and rejects empty values. `EventId` must
   not trim whitespace (the identifier is opaque) but must reject empty values
-  because an empty `id:` field has special meaning in the SSE specification
-  (it resets the last event identifier rather than setting one).
+  because an empty `id:` field has special meaning in the SSE specification (it
+  resets the last event identifier rather than setting one).
 
 The `extract_idempotency_key` function in `src/idempotency/http.rs` is the
 structural analogue for `Last-Event-ID` header parsing. The same
@@ -213,14 +240,15 @@ SSE specification assigns special meaning to an empty identifier.
 
 - [ADR 001][adr-001] defines the shared SSE wire contract. This plan
   implements the "validated event identifier type for `id:` lines and replay
-  cursors" and "parsing helpers for the `Last-Event-ID` request header"
-  items from the decision outcome.
+  cursors" and "parsing helpers for the `Last-Event-ID` request header" items
+  from the decision outcome.
 - The [roadmap](../roadmap.md) tracks this work as task 1.1.1 under phase
   1.1 "Build the shared wire-helper surface".
-- The [import-components-from-wildside execplan](import-components-from-wildside.md)
-  is the parent execution plan. Milestone 5 deferred SSE implementation
-  because no authoritative source existed in Wildside; ADR 001 now provides
-  the normative contract.
+- The
+  [import-components-from-wildside execplan](import-components-from-wildside.md)
+   is the parent execution plan. Milestone 5 deferred SSE implementation
+  because no authoritative source existed in Wildside; ADR 001 now provides the
+  normative contract.
 
 ### Build and validation commands
 
@@ -246,14 +274,13 @@ set -o pipefail && make nixie 2>&1 | tee /tmp/nixie-sse-id.out
 ## Plan of work
 
 The implementation proceeds in four stages. Each stage ends with a validation
-step; the next stage must not begin until the current stage's validation
-passes.
+step; the next stage must not begin until the current stage's validation passes.
 
 ### Stage A: scaffold the SSE module and the `EventId` type
 
-Create a new `src/sse/` module directory containing `mod.rs` and
-`event_id.rs`. The `EventId` type is a validated newtype wrapping a `String`.
-Construction rejects empty values and values containing CR, LF, or NULL.
+Create a new `src/sse/` module directory containing `mod.rs` and `event_id.rs`.
+The `EventId` type is a validated newtype wrapping a `String`. Construction
+rejects empty values and values containing CR, LF, or NULL.
 
 In `src/sse/event_id.rs`, define:
 
@@ -306,8 +333,8 @@ Create `src/sse/replay_cursor.rs` containing:
   - `impl AsRef<str>` — delegates through the inner `EventId`.
   - `impl Display` — delegates through the inner `EventId`.
 - `extract_replay_cursor(headers: &HeaderMap)` returning
-  `Result<Option<ReplayCursor>, EventIdValidationError>` — extracts
-  and validates the `Last-Event-ID` header. Behaviour:
+  `Result<Option<ReplayCursor>, EventIdValidationError>` — extracts and
+  validates the `Last-Event-ID` header. Behaviour:
   - Missing header: `Ok(None)`.
   - Present but empty value: `Ok(None)` (the SSE specification treats an empty
     `id:` field as a reset of the last event identifier).
@@ -354,8 +381,8 @@ Validation: `make check-fmt` and `make lint` pass.
 
 #### Unit tests for `EventId` (in `src/sse/event_id.rs`)
 
-Use `rstest` parameterized tests where multiple cases share the same
-assertion structure.
+Use `rstest` parameterized tests where multiple cases share the same assertion
+structure.
 
 Happy path tests:
 
@@ -552,12 +579,12 @@ the test output and all pass.
 ## Idempotence and recovery
 
 All steps are idempotent. Creating files that already exist overwrites them
-cleanly. Running `make fmt` before `make check-fmt` fixes any formatting
-drift. Running `make test` is safe to repeat.
+cleanly. Running `make fmt` before `make check-fmt` fixes any formatting drift.
+Running `make test` is safe to repeat.
 
 If a step fails partway through, fix the issue and re-run the stage's
-validation commands. No rollback is needed because the changes are additive
-and do not modify existing code.
+validation commands. No rollback is needed because the changes are additive and
+do not modify existing code.
 
 ## Artifacts and notes
 

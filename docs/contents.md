@@ -4,6 +4,12 @@
   set, including guides, references, and execution plans.
 - [Documentation style guide](documentation-style-guide.md): repository
   standards for structure, tone, formatting, and maintenance of documentation.
+- [User's guide](users-guide.md): usage documentation for the `actix-v2a`
+  crate's public API, including SSE helpers, error handling, and integration
+  patterns.
+- [Developer's guide](developers-guide.md): internal conventions, module
+  structure, quality gates, and contribution guidance for `actix-v2a`
+  maintainers.
 - [Roadmap](roadmap.md): phased implementation backlog for planned shared
   `actix-v2a` capabilities and follow-on delivery work.
 - [Complexity antipatterns and refactoring strategies](complexity-antipatterns-and-refactoring-strategies.md):
@@ -27,3 +33,7 @@
   - [Import components from Wildside](execplans/import-components-from-wildside.md):
     draft plan for extracting shared HTTP and API primitives from
     `../wildside/backend` into this crate.
+  - [Implement SSE identifier and replay cursor
+    helpers](execplans/1-1-1-implement-sse-identifier-and-replay-cursor-helpers.md):
+    execution plan for validated SSE event identifiers and `Last-Event-ID`
+    header parsing (task 1.1.1).
