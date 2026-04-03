@@ -9,7 +9,7 @@ Status: DRAFT
 
 ## Purpose / big picture
 
-`actix-v2a` is the shared component library for version 2a Actix services.
+`actix-v2a` is the shared Actix component library for the v2a web stack.
 [ADR 001][adr-001] defines a wire-only Server-Sent Events (SSE) contract that
 both Wildside and Corbusier can adopt without surrendering control of their own
 event stores or stream routing. This plan delivers the first concrete piece of
