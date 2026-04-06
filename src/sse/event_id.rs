@@ -13,9 +13,6 @@ pub enum EventIdValidationError {
     /// The identifier value contained a forbidden character (CR, LF, or NULL).
     #[error("event identifier must not contain carriage return, line feed, or null")]
     ForbiddenCharacter,
-    /// The HTTP header was malformed (duplicate or non-UTF-8).
-    #[error("last-event-id header is malformed")]
-    InvalidHeader,
 }
 
 /// Validated SSE event identifier for `id:` lines and replay cursors.
@@ -61,26 +58,39 @@ impl EventId {
     /// ```
     pub fn new(value: impl AsRef<str>) -> Result<Self, EventIdValidationError> {
         let value_str = value.as_ref();
-
-        if value_str.is_empty() {
-            return Err(EventIdValidationError::Empty);
-        }
-
-        // Scan for forbidden bytes: CR (0x0D), LF (0x0A), NULL (0x00).
-        // Use byte iteration for efficiency since all three are single-byte
-        // values in UTF-8.
-        for byte in value_str.as_bytes() {
-            if matches!(byte, b'\r' | b'\n' | b'\0') {
-                return Err(EventIdValidationError::ForbiddenCharacter);
-            }
-        }
-
+        Self::validate(value_str)?;
         Ok(Self(value_str.to_owned()))
     }
 
     /// Access the identifier as a string slice.
     #[must_use]
     pub const fn as_str(&self) -> &str { self.0.as_str() }
+
+    /// Validate an identifier string without allocating.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EventIdValidationError::Empty`] when the input is empty and
+    /// [`EventIdValidationError::ForbiddenCharacter`] when the input contains
+    /// carriage return (CR), line feed (LF), or NULL.
+    fn validate(value: &str) -> Result<(), EventIdValidationError> {
+        if value.is_empty() {
+            return Err(EventIdValidationError::Empty);
+        }
+
+        // Scan for forbidden bytes: CR (0x0D), LF (0x0A), NULL (0x00).
+        // Use byte iteration for efficiency since all three are single-byte
+        // values in UTF-8.
+        if value
+            .as_bytes()
+            .iter()
+            .any(|b| matches!(b, b'\r' | b'\n' | b'\0'))
+        {
+            return Err(EventIdValidationError::ForbiddenCharacter);
+        }
+
+        Ok(())
+    }
 }
 
 impl AsRef<str> for EventId {
@@ -100,7 +110,10 @@ impl From<EventId> for String {
 impl TryFrom<String> for EventId {
     type Error = EventIdValidationError;
 
-    fn try_from(value: String) -> Result<Self, Self::Error> { Self::new(value) }
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::validate(&value)?;
+        Ok(Self(value))
+    }
 }
 
 #[cfg(test)]

@@ -5,8 +5,8 @@
 - [Documentation style guide](documentation-style-guide.md): repository
   standards for structure, tone, formatting, and maintenance of documentation.
 - [User's guide](users-guide.md): usage documentation for the `actix-v2a`
-  crate's public API, including SSE helpers, error handling, and integration
-  patterns.
+  crate's public API, including Server-Sent Events (SSE) helpers, error
+  handling, and integration patterns.
 - [Developer's guide](developers-guide.md): internal conventions, module
   structure, quality gates, and contribution guidance for `actix-v2a`
   maintainers.

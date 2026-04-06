@@ -5,16 +5,17 @@ This ExecPlan (execution plan) is a living document. The sections
 `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work
 proceeds.
 
-Status: DRAFT
+Status: COMPLETE
 
 ## Purpose / big picture
 
-`actix-v2a` is the shared Actix component library for the v2a web stack. [ADR
-001][adr-001] defines a wire-only Server-Sent Events (SSE) contract that both
-Wildside and Corbusier can adopt without surrendering control of their own
-event stores or stream routing. This plan delivers the first concrete piece of
-that contract: validated event identifiers for SSE `id:` lines and a replay
-cursor type that parses the `Last-Event-ID` request header.
+`actix-v2a` is the shared Actix component library for the v2a web stack.
+[Architecture Decision Record (ADR) 001][adr-001] defines a wire-only
+Server-Sent Events (SSE) contract that both Wildside and Corbusier can adopt
+without surrendering control of their own event stores or stream routing. This
+plan delivers the first concrete piece of that contract: validated event
+identifiers for SSE `id:` lines and a replay cursor type that parses the
+`Last-Event-ID` request header.
 
 After this change, downstream services gain two capabilities:
 
@@ -66,7 +67,7 @@ These are hard invariants. Violation requires escalation, not workarounds.
 - Tests must use `rstest` fixtures and parameterized cases. Behavioural tests
   must use `rstest-bdd` where the scenario structure adds clarity.
 - The `Last-Event-ID` header name constant must follow the
-  [WHATWG HTML specification][whatwg-sse] capitalisation: `Last-Event-ID`.
+  [WHATWG HTML specification][whatwg-sse] capitalization: `Last-Event-ID`.
 
 [whatwg-sse]: https://html.spec.whatwg.org/multipage/server-sent-events.html
 
@@ -117,7 +118,7 @@ escalation rather than improvisation.
 
 ## Progress
 
-- [x] Read and internalise all referenced documents and existing code patterns.
+- [x] Read and internalize all referenced documents and existing code patterns.
 - [x] Write the execution plan draft.
 - [x] Receive plan approval.
 - [x] Create the `src/sse/` module directory with `mod.rs`.
@@ -130,7 +131,7 @@ escalation rather than improvisation.
 - [x] Write unit tests for `ReplayCursor` and header extraction (happy paths,
   missing/duplicate/empty headers, forbidden characters).
 - [x] Write `rstest-bdd` behavioural tests where scenario structure adds
-  clarity. (Note: `rstest` parameterised tests were used instead of
+  clarity. (Note: `rstest` parameterized tests were used instead of
   `rstest-bdd` because the validation logic is straightforward and does not
   benefit from Given/When/Then structure.)
 - [x] Pass `make check-fmt`.
@@ -163,7 +164,7 @@ escalation rather than improvisation.
 
 ## Decision log
 
-- **Test organisation**: Used `rstest` parameterised tests for forbidden
+- **Test organization**: Used `rstest` parameterized tests for forbidden
   character validation rather than `rstest-bdd` behavioural tests. The
   validation logic is straightforward (byte-level scan for three forbidden
   values) and does not benefit from Given/When/Then scenario structure. This
@@ -183,8 +184,15 @@ escalation rather than improvisation.
 
 ## Outcomes & retrospective
 
-(Not yet applicable. This section will be completed when the plan reaches
-COMPLETE status.)
+Task 1.1.1 delivered validated SSE event identifiers and replay cursor helpers
+with all quality gates passing. Key learnings: (1) separating header-specific
+errors (`ReplayCursorError`) from identifier content errors
+(`EventIdValidationError`) improved API clarity and followed existing patterns;
+(2) optimizing `TryFrom<String>` to avoid allocation reinforced zero-copy
+principles; (3) UTF-8 decoding via `std::str::from_utf8` instead of
+`HeaderValue::to_str` fixed rejection of valid Unicode identifiers. Follow-up:
+monitor for Unicode normalization issues in identifier comparison; next tasks
+are SSE frame helpers (1.1.2) and heartbeat policy (1.1.3).
 
 ## Context and orientation
 
@@ -477,7 +485,7 @@ documentation set. Then run the full Rust gate set one final time:
 
 ## Concrete steps
 
-All commands are run from the repository root `/home/user/project`.
+All commands are run from the repository root.
 
 ### Stage A
 

@@ -111,7 +111,7 @@ messages suitable for client responses.
 
 ### Header constant
 
-The `LAST_EVENT_ID_HEADER` constant provides the standardised header name:
+The `LAST_EVENT_ID_HEADER` constant provides the standardized header name:
 
 ```rust
 use actix_v2a::LAST_EVENT_ID_HEADER;

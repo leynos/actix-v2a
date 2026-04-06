@@ -3,6 +3,7 @@
 use std::fmt;
 
 use actix_web::http::header::HeaderMap;
+use thiserror::Error;
 
 use crate::{
     Error,
@@ -11,6 +12,29 @@ use crate::{
 
 /// HTTP header name for the SSE reconnection identifier.
 pub const LAST_EVENT_ID_HEADER: &str = "Last-Event-ID";
+
+/// Errors encountered when parsing the `Last-Event-ID` header.
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum ReplayCursorError {
+    /// The HTTP header was malformed (duplicate or non-UTF-8).
+    #[error("last-event-id header is malformed")]
+    InvalidHeader,
+    /// The identifier value was empty.
+    #[error("event identifier must not be empty")]
+    Empty,
+    /// The identifier value contained a forbidden character (CR, LF, or NULL).
+    #[error("event identifier must not contain carriage return, line feed, or null")]
+    ForbiddenCharacter,
+}
+
+impl From<EventIdValidationError> for ReplayCursorError {
+    fn from(error: EventIdValidationError) -> Self {
+        match error {
+            EventIdValidationError::Empty => Self::Empty,
+            EventIdValidationError::ForbiddenCharacter => Self::ForbiddenCharacter,
+        }
+    }
+}
 
 /// Replay cursor extracted from the `Last-Event-ID` request header.
 ///
@@ -64,9 +88,9 @@ impl fmt::Display for ReplayCursor {
 ///
 /// # Errors
 ///
-/// Returns [`EventIdValidationError::InvalidHeader`] when the header cannot be
+/// Returns [`ReplayCursorError::InvalidHeader`] when the header cannot be
 /// decoded as UTF-8 or when duplicate `Last-Event-ID` headers are present.
-/// Returns [`EventIdValidationError::ForbiddenCharacter`] when the header
+/// Returns [`ReplayCursorError::ForbiddenCharacter`] when the header
 /// value contains carriage return (CR), line feed (LF), or NULL.
 ///
 /// # Examples
@@ -89,37 +113,50 @@ impl fmt::Display for ReplayCursor {
 /// ```
 pub fn extract_replay_cursor(
     headers: &HeaderMap,
-) -> Result<Option<ReplayCursor>, EventIdValidationError> {
+) -> Result<Option<ReplayCursor>, ReplayCursorError> {
     let mut header_values = headers.get_all(LAST_EVENT_ID_HEADER);
     let Some(header_value) = header_values.next() else {
         return Ok(None);
     };
     if header_values.next().is_some() {
-        return Err(EventIdValidationError::InvalidHeader);
+        return Err(ReplayCursorError::InvalidHeader);
     }
 
-    let header_text = header_value
-        .to_str()
-        .map_err(|_| EventIdValidationError::InvalidHeader)?;
+    let header_text = std::str::from_utf8(header_value.as_bytes())
+        .map_err(|_| ReplayCursorError::InvalidHeader)?;
 
     if header_text.is_empty() {
         return Ok(None);
     }
 
-    EventId::new(header_text).map(|id| Some(ReplayCursor::new(id)))
+    EventId::new(header_text)
+        .map(|id| Some(ReplayCursor::new(id)))
+        .map_err(Into::into)
 }
 
 /// Map replay cursor validation failures to the shared API error envelope.
+///
+/// # Examples
+///
+/// ```
+/// use actix_v2a::{ErrorCode, ReplayCursorError, map_replay_cursor_error};
+///
+/// let error = ReplayCursorError::InvalidHeader;
+/// let api_error = map_replay_cursor_error(&error);
+///
+/// assert_eq!(api_error.code(), ErrorCode::InvalidRequest);
+/// assert_eq!(api_error.message(), "last-event-id header is malformed");
+/// ```
 #[must_use]
-pub fn map_replay_cursor_error(error: &EventIdValidationError) -> Error {
+pub fn map_replay_cursor_error(error: &ReplayCursorError) -> Error {
     match error {
-        EventIdValidationError::Empty => {
+        ReplayCursorError::Empty => {
             Error::invalid_request_static("last-event-id must not be empty")
         }
-        EventIdValidationError::ForbiddenCharacter => Error::invalid_request_static(
+        ReplayCursorError::ForbiddenCharacter => Error::invalid_request_static(
             "last-event-id must not contain carriage return, line feed, or null",
         ),
-        EventIdValidationError::InvalidHeader => {
+        ReplayCursorError::InvalidHeader => {
             Error::invalid_request_static("last-event-id header is malformed")
         }
     }
@@ -130,10 +167,12 @@ mod tests {
     //! Regression coverage for the SSE replay cursor and header extraction.
 
     use actix_web::http::header::{HeaderMap, HeaderName, HeaderValue};
+    use rstest::rstest;
 
     use super::{
         LAST_EVENT_ID_HEADER,
         ReplayCursor,
+        ReplayCursorError,
         extract_replay_cursor,
         map_replay_cursor_error,
     };
@@ -188,7 +227,7 @@ mod tests {
 
         let error = extract_replay_cursor(&headers).expect_err("duplicate headers should fail");
 
-        assert_eq!(error, EventIdValidationError::InvalidHeader);
+        assert_eq!(error, ReplayCursorError::InvalidHeader);
     }
 
     #[test]
@@ -205,25 +244,21 @@ mod tests {
 
         let error = extract_replay_cursor(&headers).expect_err("non-UTF-8 value should fail");
 
-        assert_eq!(error, EventIdValidationError::InvalidHeader);
+        assert_eq!(error, ReplayCursorError::InvalidHeader);
     }
 
-    #[test]
-    fn event_id_validation_rejects_forbidden_characters() {
+    #[rstest]
+    #[case("evt\n123")]
+    #[case("evt\r123")]
+    #[case("evt\x00123")]
+    fn event_id_validation_rejects_forbidden_characters(#[case] forbidden: &str) {
         // HeaderValue cannot contain CR, LF, or NULL per HTTP specification, so
         // these characters cannot appear in a valid Last-Event-ID header. The
         // EventId validation layer is tested separately to ensure these
         // characters are rejected if they somehow reach the validation logic.
-        let id_with_lf = EventId::new("evt\n123");
-        let id_with_cr = EventId::new("evt\r123");
-        let id_with_null = EventId::new("evt\x00123");
+        let result = EventId::new(forbidden);
 
-        assert_eq!(id_with_lf, Err(EventIdValidationError::ForbiddenCharacter));
-        assert_eq!(id_with_cr, Err(EventIdValidationError::ForbiddenCharacter));
-        assert_eq!(
-            id_with_null,
-            Err(EventIdValidationError::ForbiddenCharacter)
-        );
+        assert_eq!(result, Err(EventIdValidationError::ForbiddenCharacter));
     }
 
     #[test]
@@ -239,6 +274,22 @@ mod tests {
             .expect("header should be present");
 
         assert_eq!(cursor.as_ref(), "  evt-001  ");
+    }
+
+    #[test]
+    fn extract_replay_cursor_accepts_utf8_identifier() {
+        let mut headers = HeaderMap::new();
+        let utf8_id = "événement-🎉-123";
+        headers.insert(
+            HeaderName::from_static("last-event-id"),
+            HeaderValue::from_str(utf8_id).expect("UTF-8 should be valid header value"),
+        );
+
+        let cursor = extract_replay_cursor(&headers)
+            .expect("UTF-8 header should parse")
+            .expect("header should be present");
+
+        assert_eq!(cursor.as_ref(), utf8_id);
     }
 
     #[test]
@@ -273,37 +324,21 @@ mod tests {
         assert_eq!(cursor.to_string(), id.as_str());
     }
 
-    #[test]
-    fn map_replay_cursor_error_produces_invalid_request_for_empty() {
-        let error = EventIdValidationError::Empty;
-
+    #[rstest]
+    #[case(ReplayCursorError::Empty, "last-event-id must not be empty")]
+    #[case(
+        ReplayCursorError::ForbiddenCharacter,
+        "last-event-id must not contain carriage return, line feed, or null"
+    )]
+    #[case(ReplayCursorError::InvalidHeader, "last-event-id header is malformed")]
+    fn map_replay_cursor_error_produces_invalid_request(
+        #[case] error: ReplayCursorError,
+        #[case] expected_message: &str,
+    ) {
         let mapped = map_replay_cursor_error(&error);
 
         assert_eq!(mapped.code(), ErrorCode::InvalidRequest);
-        assert_eq!(mapped.message(), "last-event-id must not be empty");
-    }
-
-    #[test]
-    fn map_replay_cursor_error_produces_invalid_request_for_forbidden_character() {
-        let error = EventIdValidationError::ForbiddenCharacter;
-
-        let mapped = map_replay_cursor_error(&error);
-
-        assert_eq!(mapped.code(), ErrorCode::InvalidRequest);
-        assert_eq!(
-            mapped.message(),
-            "last-event-id must not contain carriage return, line feed, or null"
-        );
-    }
-
-    #[test]
-    fn map_replay_cursor_error_produces_invalid_request_for_invalid_header() {
-        let error = EventIdValidationError::InvalidHeader;
-
-        let mapped = map_replay_cursor_error(&error);
-
-        assert_eq!(mapped.code(), ErrorCode::InvalidRequest);
-        assert_eq!(mapped.message(), "last-event-id header is malformed");
+        assert_eq!(mapped.message(), expected_message);
     }
 
     #[test]

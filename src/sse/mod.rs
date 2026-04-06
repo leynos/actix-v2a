@@ -12,6 +12,7 @@ pub use event_id::{EventId, EventIdValidationError};
 pub use replay_cursor::{
     LAST_EVENT_ID_HEADER,
     ReplayCursor,
+    ReplayCursorError,
     extract_replay_cursor,
     map_replay_cursor_error,
 };

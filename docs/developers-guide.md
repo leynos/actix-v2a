@@ -190,7 +190,7 @@ or split behavioural test suites to a dedicated `tests/` subdirectory.
 
 ### Unit tests
 
-Use `rstest` for parameterised test cases where multiple inputs share the same
+Use `rstest` for parameterized test cases where multiple inputs share the same
 assertion structure:
 
 ```rust
@@ -213,7 +213,7 @@ Use `rstest-bdd` when the scenario structure adds clarity. The SSE module
 currently uses only unit tests because the validation logic is straightforward
 and does not benefit from Given/When/Then structure.
 
-### Test organisation
+### Test organization
 
 Tests live in `#[cfg(test)] mod tests` blocks within the implementation file.
 Module-level tests use `//!` comments to describe coverage scope:
@@ -251,5 +251,5 @@ See [`roadmap.md`](roadmap.md) for the full delivery plan.
   normative specification for the SSE module
 - [ExecPlan: Implement SSE identifier and replay cursor
   helpers](execplans/1-1-1-implement-sse-identifier-and-replay-cursor-helpers.md)
-   — implementation plan for task 1.1.1
+  — implementation plan for task 1.1.1
 - [AGENTS.md](../AGENTS.md) — code style, testing, and commit conventions
