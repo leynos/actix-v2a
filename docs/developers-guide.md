@@ -251,5 +251,5 @@ See [`roadmap.md`](roadmap.md) for the full delivery plan.
   normative specification for the SSE module
 - [ExecPlan: Implement SSE identifier and replay cursor
   helpers](execplans/1-1-1-implement-sse-identifier-and-replay-cursor-helpers.md)
-  — implementation plan for task 1.1.1
+   — implementation plan for task 1.1.1
 - [AGENTS.md](../AGENTS.md) — code style, testing, and commit conventions
