@@ -9,6 +9,7 @@ pub mod http;
 pub mod idempotency;
 pub mod openapi;
 pub mod pagination;
+pub mod sse;
 
 pub use error::{Error, ErrorCode, ErrorValidationError, TRACE_ID_HEADER};
 pub use idempotency::{
@@ -40,4 +41,13 @@ pub use pagination::{
     PageParamsError,
     Paginated,
     PaginationLinks,
+};
+pub use sse::{
+    EventId,
+    EventIdValidationError,
+    LAST_EVENT_ID_HEADER,
+    ReplayCursor,
+    ReplayCursorError,
+    extract_replay_cursor,
+    map_replay_cursor_error,
 };
