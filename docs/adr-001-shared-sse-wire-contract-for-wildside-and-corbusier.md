@@ -120,6 +120,16 @@ The first implementation should adopt these defaults:
 - The default heartbeat interval is 20 seconds. This is a conservative middle
   ground that is frequent enough to keep common proxies and browser connections
   warm without generating unnecessary chatter on otherwise idle streams.
+- Event-frame `data:` payloads and comment payloads normalize `\r`, `\n`, and
+  `\r\n` into logical line breaks. Each logical line is rendered as its own
+  `data:` or comment line so browsers reconstruct the original payload
+  correctly, including embedded blank lines and trailing newlines.
+- The `event:` field is optional. Omitting it preserves the browser-default
+  `message` event semantics, while an explicitly empty event name is rejected
+  to avoid ambiguous framing.
+- Live event-stream responses use the canonical cache policy
+  `Cache-Control: no-cache, no-store, must-revalidate`. This milestone does not
+  add vendor-specific buffering headers or a convenience Actix responder.
 - The standard `stream_reset` payload is a structured JSON object:
   `{"reason":"replay_unavailable"}`. The event name stays `stream_reset`, while
   the payload gives clients a machine-readable explanation that can be extended

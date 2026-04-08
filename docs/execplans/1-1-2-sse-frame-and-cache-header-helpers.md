@@ -5,7 +5,7 @@ This ExecPlan (execution plan) is a living document. The sections
 `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work
 proceeds.
 
-Status: DRAFT
+Status: COMPLETED
 
 ## Purpose / big picture
 
@@ -119,13 +119,13 @@ Success is observable when:
 - [x] Read `docs/roadmap.md`, ADR 001, the existing SSE module, and the prior
   task 1.1.1 execplan.
 - [x] Draft this execution plan.
-- [ ] Receive user approval for the plan.
-- [ ] Implement the SSE frame helper module.
-- [ ] Implement the SSE cache-header helper module.
-- [ ] Add unit tests and any justified behavioural tests.
-- [ ] Update ADR 001, `docs/users-guide.md`, and `docs/developers-guide.md`.
-- [ ] Mark roadmap task 1.1.2 done after the implementation passes all gates.
-- [ ] Run `make check-fmt`, `make lint`, `make test`, `make fmt`,
+- [x] Receive user approval for the plan.
+- [x] Implement the SSE frame helper module.
+- [x] Implement the SSE cache-header helper module.
+- [x] Add unit tests and any justified behavioural tests.
+- [x] Update ADR 001, `docs/users-guide.md`, and `docs/developers-guide.md`.
+- [x] Mark roadmap task 1.1.2 done after the implementation passes all gates.
+- [x] Run `make check-fmt`, `make lint`, `make test`, `make fmt`,
   `make markdownlint`, and `make nixie` with `tee` logs.
 
 ## Context and orientation
@@ -368,6 +368,9 @@ scope.
 - 2026-04-08: no `execplans` skill was available in this session, so this plan
   was drafted using the repository's existing execplan pattern and local
   documentation guidance.
+- 2026-04-08: `rstest-bdd` was not needed for task 1.1.2 because the new
+  behaviour is deterministic string rendering and `HeaderMap` mutation, which
+  is clearer as focused unit coverage.
 
 ## Decision log
 
@@ -377,7 +380,29 @@ scope.
 - 2026-04-08: recommended keeping task 1.1.2 strictly below the responder
   boundary so task 1.1.3 can build heartbeat policy and `stream_reset` on top
   of stable frame primitives rather than forcing a premature lifecycle API.
+- 2026-04-08: implemented newline normalization for event `data:` payloads and
+  comment payloads by treating `\r`, `\n`, and `\r\n` as logical line breaks.
+- 2026-04-08: implemented `event_name: None` as the only supported route to
+  default browser `message` semantics and rejected explicitly empty event names.
+- 2026-04-08: implemented the canonical live-stream cache policy as
+  `Cache-Control: no-cache, no-store, must-revalidate` without adding
+  vendor-specific buffering headers.
 
 ## Outcomes & retrospective
 
-Not started. Populate this section after implementation and gate completion.
+Task 1.1.2 completed with two new SSE helper modules:
+
+- `src/sse/frame.rs` renders deterministic event frames and heartbeat comment
+  frames while reusing `EventId` for `id:` output.
+- `src/sse/cache_control.rs` applies the shared event-stream cache policy to an
+  Actix `HeaderMap`.
+
+The implementation stayed within the planned wire-only scope: no responder,
+stream lifecycle abstraction, event-store interface, or authorization logic was
+introduced.
+
+Validation outcome:
+
+- `make check-fmt`, `make lint`, and `make test` passed.
+- `make fmt`, `make markdownlint`, and `make nixie` were run as part of the
+  final documentation gate set.

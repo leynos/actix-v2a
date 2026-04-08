@@ -19,7 +19,7 @@ without pulling event-store, routing, or authorization logic into this crate.
     replay cursor type.
   - Keep the identifier helpers transport-focused and independent of any
     application-specific persistence model.
-- [ ] 1.1.2. Implement SSE frame and cache-header helpers. Requires 1.1.1. See
+- [x] 1.1.2. Implement SSE frame and cache-header helpers. Requires 1.1.1. See
   ADR 001 "Functional requirements" and "Technical requirements".
   - Format `id:`, `event:`, `data:`, and comment heartbeat frames for
     event-stream responses.
