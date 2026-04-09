@@ -124,8 +124,8 @@ The framing helpers stay deliberately small:
   represented safely in the shared wire contract.
 
 The implementation intentionally uses pure string rendering helpers rather than
-an Actix responder so downstream applications keep control of stream lifecycle,
-heartbeats, authorization, and replay orchestration.
+an Actix responder, so downstream applications keep control of stream
+lifecycle, heartbeats, authorization, and replay orchestration.
 
 ### Cache-control policy
 

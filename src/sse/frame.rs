@@ -248,7 +248,10 @@ mod tests {
     #[case("first\nsecond", ": first\n: second\n\n")]
     #[case("first\rsecond", ": first\n: second\n\n")]
     #[case("first\r\nsecond", ": first\n: second\n\n")]
+    #[case("first\n", ": first\n:\n\n")]
     #[case("", ":\n\n")]
+    #[case("\n", ":\n:\n\n")]
+    #[case("\r\n", ":\n:\n\n")]
     fn render_comment_frame_normalizes_logical_comment_lines(
         #[case] comment: &str,
         #[case] expected: &str,
