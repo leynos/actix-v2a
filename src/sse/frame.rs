@@ -1,5 +1,7 @@
 //! Rendering helpers for SSE event and comment frames.
 
+use std::borrow::Cow;
+
 use thiserror::Error;
 
 use crate::sse::EventId;
@@ -71,7 +73,7 @@ pub fn render_event_frame(
         frame.push('\n');
     }
 
-    append_prefixed_lines(&mut frame, "data", data);
+    append_sse_lines(&mut frame, "data:", data);
     frame.push('\n');
 
     Ok(frame)
@@ -101,7 +103,7 @@ pub fn render_comment_frame(comment: &str) -> Result<String, SseFrameError> {
     validate_comment(comment)?;
 
     let mut frame = String::new();
-    append_comment_lines(&mut frame, comment);
+    append_sse_lines(&mut frame, ":", comment);
     frame.push('\n');
 
     Ok(frame)
@@ -146,40 +148,40 @@ fn contains_wire_breaking_byte(value: &str) -> bool {
         .any(|byte| matches!(byte, b'\r' | b'\n' | b'\0'))
 }
 
-fn append_prefixed_lines(buffer: &mut String, field_name: &str, value: &str) {
-    for line in logical_lines(value) {
-        buffer.push_str(field_name);
-        buffer.push(':');
+fn append_sse_lines(buffer: &mut String, prefix: &str, value: &str) {
+    let normalized = normalize_newlines(value);
+    for line in normalized.split('\n') {
+        buffer.push_str(prefix);
         if line.is_empty() {
             buffer.push('\n');
         } else {
             buffer.push(' ');
-            buffer.push_str(&line);
+            buffer.push_str(line);
             buffer.push('\n');
         }
     }
 }
 
-fn append_comment_lines(buffer: &mut String, comment: &str) {
-    for line in logical_lines(comment) {
-        buffer.push(':');
-        if line.is_empty() {
-            buffer.push('\n');
+fn normalize_newlines(value: &str) -> Cow<'_, str> {
+    if !value.contains('\r') {
+        return Cow::Borrowed(value);
+    }
+
+    let mut normalized = String::with_capacity(value.len());
+    let mut chars = value.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        if ch == '\r' {
+            if chars.peek().copied() == Some('\n') {
+                let _ = chars.next();
+            }
+            normalized.push('\n');
         } else {
-            buffer.push(' ');
-            buffer.push_str(&line);
-            buffer.push('\n');
+            normalized.push(ch);
         }
     }
-}
 
-fn logical_lines(value: &str) -> Vec<String> {
-    value
-        .replace("\r\n", "\n")
-        .replace('\r', "\n")
-        .split('\n')
-        .map(ToOwned::to_owned)
-        .collect()
+    Cow::Owned(normalized)
 }
 
 #[cfg(test)]

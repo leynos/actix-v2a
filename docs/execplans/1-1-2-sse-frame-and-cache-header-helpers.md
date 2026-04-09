@@ -10,11 +10,11 @@ Status: COMPLETED
 ## Purpose / big picture
 
 `actix-v2a` already exposes the first slice of the shared Server-Sent Events
-(SSE) contract from [ADR 001][adr-001]: validated `EventId` values and
-`Last-Event-ID` replay cursor parsing. Roadmap task 1.1.2 is the next delivery
-unit in that contract. It adds the wire helpers that downstream applications
-need to emit browser-compatible SSE frames and to mark live event-stream
-responses as non-reusable by intermediaries.
+(SSE) contract from [Architecture Decision Record (ADR) 001][adr-001]:
+validated `EventId` values and `Last-Event-ID` replay cursor parsing. Roadmap
+task 1.1.2 is the next delivery unit in that contract. It adds the wire helpers
+that downstream applications need to emit browser-compatible SSE frames and to
+mark live event-stream responses as non-reusable by intermediaries.
 
 After this change, downstream services should be able to do three things
 without reimplementing wire details:
@@ -102,7 +102,7 @@ Success is observable when:
   cases could produce subtly invalid SSE output. Severity: high. Likelihood:
   medium. Mitigation: add explicit unit coverage for empty payloads, embedded
   blank lines, Unicode data, and trailing newline cases, and document any
-  chosen normalisation rule in ADR 001.
+  chosen normalization rule in ADR 001.
 
 - Risk: cache-control helpers may be either too weak (shared caches still
   reuse streams) or broader than the ADR intends. Severity: medium. Likelihood:
@@ -134,7 +134,7 @@ Success is observable when:
 
 The repository already contains:
 
-```text
+```plaintext
 src/sse/
   mod.rs            # module docs and re-exports
   event_id.rs       # EventId validation
@@ -162,7 +162,7 @@ module elsewhere.
 
 Unless a sharper split appears during implementation, add:
 
-```text
+```plaintext
 src/sse/
   frame.rs          # SSE event/comment frame rendering helpers
   cache_control.rs  # event-stream cache header helpers
@@ -215,7 +215,7 @@ recommended direction is:
 This stage must also settle any framing details that ADR 001 leaves implicit:
 
 - how multi-line `data:` payloads are split into repeated `data:` lines;
-- whether bare `\r`, `\n`, and `\r\n` in data are normalised as logical line
+- whether bare `\r`, `\n`, and `\r\n` in data are normalized as logical line
   breaks or rejected;
 - whether an explicitly empty event name is permitted, or omission is the only
   supported way to express the default browser `message` event;

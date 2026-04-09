@@ -95,7 +95,7 @@ let Some(header_value) = header_values.next() else {
     return Ok(None);  // Missing header is allowed
 };
 if header_values.next().is_some() {
-    return Err(EventIdValidationError::InvalidHeader);  // Duplicate header fails
+    return Err(ReplayCursorError::InvalidHeader);  // Duplicate header fails
 }
 ```
 
@@ -139,13 +139,13 @@ not add proxy-vendor-specific buffering headers.
 
 ### Error mapping
 
-The `map_replay_cursor_error` function maps each `EventIdValidationError`
-variant to an `ErrorCode::InvalidRequest` error with a descriptive message:
+The `map_replay_cursor_error` function maps each `ReplayCursorError` variant to
+an `ErrorCode::InvalidRequest` error with a descriptive message:
 
-- `Empty` → "last-event-id must not be empty"
-- `ForbiddenCharacter` → "last-event-id must not contain carriage return, line
-  feed, or null"
-- `InvalidHeader` → "last-event-id header is malformed"
+- `ReplayCursorError::Empty` → "last-event-id must not be empty"
+- `ReplayCursorError::ForbiddenCharacter` → "last-event-id must not contain
+  carriage return, line feed, or null"
+- `ReplayCursorError::InvalidHeader` → "last-event-id header is malformed"
 
 These messages are suitable for client-facing error responses and follow the
 same pattern as `map_idempotency_key_error`.
