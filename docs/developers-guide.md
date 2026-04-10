@@ -70,6 +70,8 @@ identifier generation strategy.
   - `Empty` — identifier was empty
   - `ForbiddenCharacter` — identifier contained CR, LF, or NULL
 - `ReplayCursorError` — replay cursor extraction error enum:
+  - `Empty` — replay cursor value was empty after validation
+  - `ForbiddenCharacter` — replay cursor contained CR, LF, or NULL
   - `InvalidHeader` — `Last-Event-ID` header was malformed (duplicate or
     non-UTF-8)
 - `SseFrameError` — event/comment frame rendering error enum:

@@ -148,6 +148,8 @@ Rendering rules:
   line.
 - `\r`, `\n`, and `\r\n` are normalized as logical line breaks.
 - `Some("")` for `event_name` is rejected with `SseFrameError::EmptyEventName`.
+- Event names containing CR, LF, or NULL are rejected with
+  `SseFrameError::InvalidEventName`.
 - NULL is rejected in `data` with `SseFrameError::InvalidData`.
 
 Use `render_comment_frame` for heartbeat traffic or other comment frames:
