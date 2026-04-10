@@ -83,10 +83,10 @@ fn handle_sse_request(req: HttpRequest) -> Result<(), Error> {
 - Empty `Last-Event-ID` value: `Ok(None)` (consistent with WHATWG specification
   treatment of empty `id:` fields as a reset)
 - Valid non-empty value: `Ok(Some(ReplayCursor))`
-- Duplicate headers: `Err(EventIdValidationError::InvalidHeader)`
-- Non-UTF-8 value: `Err(EventIdValidationError::InvalidHeader)`
+- Duplicate headers: `Err(ReplayCursorError::InvalidHeader)`
+- Non-UTF-8 value: `Err(ReplayCursorError::InvalidHeader)`
 - Forbidden characters (CR, LF, NULL):
-  `Err(EventIdValidationError::ForbiddenCharacter)`
+  `Err(ReplayCursorError::ForbiddenCharacter)`
 
 #### Error mapping
 
@@ -119,6 +119,72 @@ use actix_v2a::LAST_EVENT_ID_HEADER;
 assert_eq!(LAST_EVENT_ID_HEADER, "Last-Event-ID");
 ```
 
+### Frame rendering
+
+Use `render_event_frame` to emit complete SSE event frames terminated by a
+blank line:
+
+```rust
+use actix_v2a::{EventId, render_event_frame};
+
+let id = EventId::new("evt-001")?;
+let frame = render_event_frame(
+    Some(&id),
+    Some("message_created"),
+    "first line\nsecond line",
+)?;
+
+assert_eq!(
+    frame,
+    "id: evt-001\nevent: message_created\ndata: first line\ndata: second line\n\n"
+);
+```
+
+Rendering rules:
+
+- `event_id` and `event_name` are optional.
+- Omitting `event_name` preserves the browser-default `message` event.
+- `data` is always emitted and is split into one `data:` line per logical
+  line.
+- `\r`, `\n`, and `\r\n` are normalized as logical line breaks.
+- `Some("")` for `event_name` is rejected with `SseFrameError::EmptyEventName`.
+- Event names containing CR, LF, or NULL are rejected with
+  `SseFrameError::InvalidEventName`.
+- NULL is rejected in `data` with `SseFrameError::InvalidData`.
+
+Use `render_comment_frame` for heartbeat traffic or other comment frames:
+
+```rust
+use actix_v2a::render_comment_frame;
+
+let heartbeat = render_comment_frame("")?;
+assert_eq!(heartbeat, ":\n\n");
+```
+
+Comment rendering also normalizes `\r`, `\n`, and `\r\n` into logical line
+breaks and rejects NULL with `SseFrameError::InvalidComment`.
+
+### Live-stream cache headers
+
+Use `apply_event_stream_cache_control` to set the canonical anti-reuse policy
+for a live event stream:
+
+```rust
+use actix_v2a::{EVENT_STREAM_CACHE_CONTROL, apply_event_stream_cache_control};
+use actix_web::http::header::{CACHE_CONTROL, HeaderMap};
+
+let mut headers = HeaderMap::new();
+apply_event_stream_cache_control(&mut headers);
+
+assert_eq!(
+    headers.get(CACHE_CONTROL).expect("cache header should be present"),
+    EVENT_STREAM_CACHE_CONTROL
+);
+```
+
+The helper sets `Cache-Control` to `no-cache, no-store, must-revalidate` and
+leaves unrelated headers untouched.
+
 ## Identifier generation strategies
 
 The SSE helpers do not prescribe how identifiers are generated. Downstream
@@ -140,6 +206,8 @@ or generation strategy.
   schemes where whitespace may be meaningful.
 - Validation occurs at construction time; once an `EventId` is created, it is
   guaranteed wire-safe.
+- This crate still does not provide a convenience Actix responder or stream
+  lifecycle abstraction for SSE endpoints.
 - The `Last-Event-ID` header extraction follows the same single-header-or-error
   pattern used by the `extract_idempotency_key` function in the idempotency
   module.

@@ -37,3 +37,7 @@
     helpers](execplans/1-1-1-implement-sse-identifier-and-replay-cursor-helpers.md):
     execution plan for validated SSE event identifiers and `Last-Event-ID`
     header parsing (task 1.1.1).
+  - [Implement SSE frame and cache-header
+    helpers](execplans/1-1-2-sse-frame-and-cache-header-helpers.md):
+    execution plan for shared SSE frame rendering and live event-stream
+    cache-control helpers (task 1.1.2).

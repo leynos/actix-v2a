@@ -43,11 +43,16 @@ pub use pagination::{
     PaginationLinks,
 };
 pub use sse::{
+    EVENT_STREAM_CACHE_CONTROL,
     EventId,
     EventIdValidationError,
     LAST_EVENT_ID_HEADER,
     ReplayCursor,
     ReplayCursorError,
+    SseFrameError,
+    apply_event_stream_cache_control,
     extract_replay_cursor,
     map_replay_cursor_error,
+    render_comment_frame,
+    render_event_frame,
 };

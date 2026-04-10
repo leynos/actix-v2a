@@ -154,13 +154,13 @@ escalation rather than improvisation.
   Resolved by testing the forbidden character validation directly via `EventId`
   construction rather than attempting to create invalid HTTP headers. This
   aligns with reality: these characters cannot appear in valid HTTP headers, so
-  the `EventId` validation layer provides defence-in-depth rather than
-  primary validation.
+  the `EventId` validation layer provides defence-in-depth rather than primary
+  validation.
 
 - **Octal escape warning in test fixtures**: Clippy's `octal-escapes` lint
   flagged `\0123` as an ambiguous octal escape. Changed to `\x00123` to
-  explicitly denote the NULL byte followed by digits `123`. This ensures
-  test intent is unambiguous.
+  explicitly denote the NULL byte followed by digits `123`. This ensures test
+  intent is unambiguous.
 
 ## Decision log
 
