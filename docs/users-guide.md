@@ -164,6 +164,66 @@ assert_eq!(heartbeat, ":\n\n");
 Comment rendering also normalizes `\r`, `\n`, and `\r\n` into logical line
 breaks and rejects NULL with `SseFrameError::InvalidComment`.
 
+### Shared heartbeat helper
+
+Use `HeartbeatPolicy` when your endpoint needs the shared heartbeat cadence in
+typed form:
+
+```rust
+use std::time::Duration;
+use actix_v2a::{DEFAULT_HEARTBEAT_INTERVAL, HeartbeatPolicy};
+
+let default_policy = HeartbeatPolicy::default();
+assert_eq!(default_policy.interval(), DEFAULT_HEARTBEAT_INTERVAL);
+
+let custom_policy = HeartbeatPolicy::new(Duration::from_secs(5))?;
+assert_eq!(custom_policy.interval(), Duration::from_secs(5));
+```
+
+The default interval is 20 seconds. `HeartbeatPolicy::new` rejects
+`Duration::ZERO`, so applications must make an explicit choice if they want to
+disable heartbeat scheduling entirely.
+
+Use `render_heartbeat_frame` to emit the canonical heartbeat wire frame:
+
+```rust
+use actix_v2a::render_heartbeat_frame;
+
+let frame = render_heartbeat_frame()?;
+assert_eq!(frame, ":\n\n");
+```
+
+This crate still does not schedule heartbeats for you. Applications remain
+responsible for timer ownership, background tasks, and stream lifecycle.
+
+### Shared `stream_reset` helper
+
+Use `render_stream_reset_frame` when replay cannot resume from the supplied
+cursor:
+
+```rust
+use actix_v2a::{
+    STREAM_RESET_EVENT_NAME,
+    STREAM_RESET_REPLAY_UNAVAILABLE_PAYLOAD,
+    render_stream_reset_frame,
+};
+
+let frame = render_stream_reset_frame()?;
+
+assert_eq!(STREAM_RESET_EVENT_NAME, "stream_reset");
+assert_eq!(
+    STREAM_RESET_REPLAY_UNAVAILABLE_PAYLOAD,
+    "{\"reason\":\"replay_unavailable\"}"
+);
+assert_eq!(
+    frame,
+    "event: stream_reset\ndata: {\"reason\":\"replay_unavailable\"}\n\n"
+);
+```
+
+The helper is fixed to the shared control event and does not expose a generic
+application-event builder.
+
 ### Live-stream cache headers
 
 Use `apply_event_stream_cache_control` to set the canonical anti-reuse policy
@@ -211,6 +271,8 @@ or generation strategy.
 - The `Last-Event-ID` header extraction follows the same single-header-or-error
   pattern used by the `extract_idempotency_key` function in the idempotency
   module.
+- The heartbeat helper surface is intentionally wire-only: this crate exposes
+  interval data and rendered frames, not timer orchestration.
 
 For implementation guidance and internal conventions, see
 [`developers-guide.md`](developers-guide.md).

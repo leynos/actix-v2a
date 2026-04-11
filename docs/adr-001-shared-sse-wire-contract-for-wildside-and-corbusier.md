@@ -120,6 +120,10 @@ The first implementation should adopt these defaults:
 - The default heartbeat interval is 20 seconds. This is a conservative middle
   ground that is frequent enough to keep common proxies and browser connections
   warm without generating unnecessary chatter on otherwise idle streams.
+- Heartbeat policy overrides are explicit and typed. The shared helper rejects
+  a zero-length interval because disabling heartbeats is application policy,
+  not a wire-helper concern, and a zero interval would not represent a useful
+  scheduling cadence.
 - Event-frame `data:` payloads and comment payloads normalize `\r`, `\n`, and
   `\r\n` into logical line breaks. Each logical line is rendered as its own
   `data:` or comment line so browsers reconstruct the original payload
@@ -134,6 +138,9 @@ The first implementation should adopt these defaults:
   `{"reason":"replay_unavailable"}`. The event name stays `stream_reset`, while
   the payload gives clients a machine-readable explanation that can be extended
   later without redefining the event itself.
+- The shared heartbeat and `stream_reset` helpers reuse the lower-level frame
+  rendering helpers. They standardize the wire contract without broadening the
+  crate into a generic application-event API or scheduler abstraction.
 - The first pass should expose wire helpers, header helpers, and framing
   helpers only. It should not add a convenience Actix responder until both
   applications demonstrate the same responder shape and lifecycle needs.

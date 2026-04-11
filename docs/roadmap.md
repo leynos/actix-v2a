@@ -27,7 +27,7 @@ without pulling event-store, routing, or authorization logic into this crate.
     streams.
   - Exclude any convenience responder until both downstream applications prove
     the same lifecycle needs.
-- [ ] 1.1.3. Implement the shared heartbeat and `stream_reset` helpers.
+- [x] 1.1.3. Implement the shared heartbeat and `stream_reset` helpers.
   Requires 1.1.2. See ADR 001 "Decision outcome / proposed direction".
   - Provide the ADR default 20-second heartbeat policy with an explicit
     override path.

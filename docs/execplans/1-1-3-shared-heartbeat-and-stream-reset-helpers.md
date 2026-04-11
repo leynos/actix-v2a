@@ -5,7 +5,7 @@ This ExecPlan (execution plan) is a living document. The sections
 `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work
 proceeds.
 
-Status: PENDING APPROVAL
+Status: COMPLETED
 
 ## Purpose / big picture
 
@@ -123,13 +123,13 @@ Success is observable when:
   execplans for tasks 1.1.1 and 1.1.2.
 - [x] Review the referenced testing and documentation guidance.
 - [x] Draft this execution plan.
-- [ ] Receive user approval for the plan.
-- [ ] Implement the heartbeat policy helper.
-- [ ] Implement the `stream_reset` helper.
-- [ ] Add unit tests and any justified behavioural tests.
-- [ ] Update ADR 001, `docs/users-guide.md`, and `docs/developers-guide.md`.
-- [ ] Mark roadmap task 1.1.3 done after the implementation passes all gates.
-- [ ] Run `make check-fmt`, `make lint`, `make test`, `make fmt`,
+- [x] Receive user approval for the plan.
+- [x] Implement the heartbeat policy helper.
+- [x] Implement the `stream_reset` helper.
+- [x] Add unit tests and any justified behavioural tests.
+- [x] Update ADR 001, `docs/users-guide.md`, and `docs/developers-guide.md`.
+- [x] Mark roadmap task 1.1.3 done after the implementation passes all gates.
+- [x] Run `make check-fmt`, `make lint`, `make test`, `make fmt`,
   `make markdownlint`, and `make nixie` with `tee` logs for the implementation
   change.
 
@@ -380,6 +380,10 @@ scope.
 - 2026-04-10: no `execplans` skill was available in this session, so this plan
   was drafted using the repository's existing execplan pattern and local
   documentation guidance.
+- 2026-04-11: `make fmt` depends on `mdformat-all`, which shells out to `fd`.
+  This environment lacked `fd` on `PATH`, so validation used a temporary
+  session-local `fd` shim to satisfy the existing Make target without changing
+  repository code.
 
 ## Decision log
 
@@ -392,8 +396,33 @@ scope.
 - 2026-04-10: recommend implementing `stream_reset` as a fixed helper that
   reuses `render_event_frame` and does not broaden into a generic
   application-event surface.
+- 2026-04-11: approved `HeartbeatPolicy::new(Duration)` as the explicit
+  override path and rejected `Duration::ZERO` with a dedicated validation error
+  so the shared helper surface does not silently encode "disable heartbeats".
+- 2026-04-11: kept coverage at the `rstest` unit-test layer because the landed
+  behaviour is typed interval validation plus deterministic frame rendering;
+  `rstest-bdd` would add ceremony without clarifying additional runtime
+  behaviour.
 
 ## Outcomes & retrospective
 
-Pending implementation. Update this section after the feature lands and all
-quality gates pass.
+- Landed `src/sse/heartbeat.rs` with:
+  - `DEFAULT_HEARTBEAT_INTERVAL` set to 20 seconds;
+  - `HeartbeatPolicy` with `Default` and validated explicit overrides;
+  - `render_heartbeat_frame()` as the canonical empty-comment heartbeat helper.
+- Landed `src/sse/stream_reset.rs` with:
+  - `STREAM_RESET_EVENT_NAME`;
+  - `STREAM_RESET_REPLAY_UNAVAILABLE_PAYLOAD`;
+  - `render_stream_reset_frame()` built on `render_event_frame`.
+- Updated crate-root and `src/sse/mod.rs` re-exports so downstream callers can
+  use the helpers directly from `actix_v2a`.
+- Updated ADR 001, the user's guide, the developer's guide, and the roadmap to
+  describe the heartbeat override semantics and the fixed `stream_reset`
+  surface.
+- Passed the mandated quality gates with `tee` logs:
+  - `make fmt`
+  - `make check-fmt`
+  - `make lint`
+  - `make test`
+  - `make markdownlint`
+  - `make nixie`
