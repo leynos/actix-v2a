@@ -166,7 +166,7 @@ breaks and rejects NULL with `SseFrameError::InvalidComment`.
 
 ### Shared heartbeat helper
 
-Use `HeartbeatPolicy` when your endpoint needs the shared heartbeat cadence in
+Use `HeartbeatPolicy` when an endpoint needs the shared heartbeat cadence in
 typed form:
 
 ```rust
@@ -193,8 +193,8 @@ let frame = render_heartbeat_frame()?;
 assert_eq!(frame, ":\n\n");
 ```
 
-This crate still does not schedule heartbeats for you. Applications remain
-responsible for timer ownership, background tasks, and stream lifecycle.
+This crate still does not schedule heartbeats. Applications remain responsible
+for timer ownership, background tasks, and stream lifecycle.
 
 ### Shared `stream_reset` helper
 

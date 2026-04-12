@@ -1,6 +1,6 @@
 //! Shared replay-reset helper for SSE streams.
 
-use crate::sse::{SseFrameError, render_event_frame};
+use crate::sse::{SseFrameError, frame::render_event_frame};
 
 /// Canonical event name for replay-reset control messages.
 pub const STREAM_RESET_EVENT_NAME: &str = "stream_reset";
@@ -31,6 +31,7 @@ pub const STREAM_RESET_REPLAY_UNAVAILABLE_PAYLOAD: &str = r#"{"reason":"replay_u
 ///     "event: stream_reset\ndata: {\"reason\":\"replay_unavailable\"}\n\n"
 /// );
 /// ```
+#[must_use = "stream reset frames must be written to the response stream to notify clients"]
 pub fn render_stream_reset_frame() -> Result<String, SseFrameError> {
     render_event_frame(
         None,

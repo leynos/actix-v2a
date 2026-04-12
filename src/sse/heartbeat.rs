@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use thiserror::Error;
 
-use crate::sse::{SseFrameError, render_comment_frame};
+use crate::sse::{SseFrameError, frame::render_comment_frame};
 
 /// Default interval for SSE heartbeat traffic.
 pub const DEFAULT_HEARTBEAT_INTERVAL: Duration = Duration::from_secs(20);
@@ -61,6 +61,7 @@ impl HeartbeatPolicy {
     ///
     /// assert_eq!(policy.interval(), Duration::from_secs(15));
     /// ```
+    #[must_use = "ignoring heartbeat policy construction can hide an invalid interval override"]
     pub const fn new(interval: Duration) -> Result<Self, HeartbeatPolicyError> {
         if interval.is_zero() {
             return Err(HeartbeatPolicyError::ZeroInterval);
@@ -102,6 +103,7 @@ impl Default for HeartbeatPolicy {
 ///
 /// assert_eq!(frame, ":\n\n");
 /// ```
+#[must_use = "heartbeat frames must be written to the response stream to keep the connection warm"]
 pub fn render_heartbeat_frame() -> Result<String, SseFrameError> { render_comment_frame("") }
 
 #[cfg(test)]
