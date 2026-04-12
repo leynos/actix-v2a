@@ -41,3 +41,7 @@
     helpers](execplans/1-1-2-sse-frame-and-cache-header-helpers.md):
     execution plan for shared SSE frame rendering and live event-stream
     cache-control helpers (task 1.1.2).
+  - [Implement shared heartbeat and `stream_reset`
+    helpers](execplans/1-1-3-shared-heartbeat-and-stream-reset-helpers.md):
+    execution plan for the shared 20-second heartbeat policy and standard
+    replay-reset SSE helper (task 1.1.3).

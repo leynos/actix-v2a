@@ -17,7 +17,9 @@ src/sse/
   cache_control.rs     # Live event-stream cache policy helper
   event_id.rs          # EventId validated newtype and validation error
   frame.rs             # SSE event and comment frame rendering
+  heartbeat.rs         # Heartbeat interval policy and canonical heartbeat frame
   replay_cursor.rs     # ReplayCursor type and Last-Event-ID header extraction
+  stream_reset.rs      # Standard replay-unavailable control event helper
 ```
 
 ### Validation strategy
@@ -79,6 +81,10 @@ identifier generation strategy.
   - `InvalidEventName` — event name contained CR, LF, or NULL
   - `InvalidData` — event payload contained NULL
   - `InvalidComment` — comment payload contained NULL
+- `HeartbeatPolicy` — typed heartbeat interval wrapper with a 20-second default
+  and explicit non-zero override path
+- `HeartbeatPolicyError` — heartbeat policy validation error enum:
+  - `ZeroInterval` — explicit override used `Duration::ZERO`
 
 The `ReplayCursor` wrapping is semantic, not functional. Both types expose the
 same string via `as_ref()` and `Display`. The distinction allows type
@@ -128,6 +134,23 @@ The framing helpers stay deliberately small:
 The implementation intentionally uses pure string rendering helpers rather than
 an Actix responder, so downstream applications keep control of stream
 lifecycle, heartbeats, authorization, and replay orchestration.
+
+### Heartbeat and stream-reset helpers
+
+Task 1.1.3 adds two higher-level helpers on top of `frame.rs`:
+
+- `render_heartbeat_frame` delegates to `render_comment_frame("")` so the
+  approved heartbeat frame stays aligned with the lower-level comment framing
+  rules.
+- `render_stream_reset_frame` delegates to `render_event_frame` with the fixed
+  event name `stream_reset` and the fixed payload
+  `{"reason":"replay_unavailable"}`.
+
+The heartbeat policy remains data-only. `HeartbeatPolicy::default()` exposes
+the ADR default of 20 seconds, while `HeartbeatPolicy::new` accepts explicit
+non-zero overrides and rejects `Duration::ZERO`. This keeps "disable
+heartbeats" outside the shared wire contract and avoids smuggling scheduler
+policy into the crate.
 
 ### Cache-control policy
 
@@ -205,6 +228,8 @@ tests cover:
 - Data and comment newline normalization, including blank lines and trailing
   newlines
 - Cache-control helper behaviour, replacement semantics, and determinism
+- Heartbeat policy defaults, override validation, and heartbeat frame output
+- Standard `stream_reset` event output and constant alignment
 - Conversion traits (`AsRef<str>`, `Display`, `From`, `TryFrom`)
 - Error mapping to API error envelope
 
@@ -281,11 +306,12 @@ mod tests {
 
 ## Next steps
 
-After completing the SSE identifier, replay cursor, frame, and cache-header
-implementation (tasks 1.1.1 and 1.1.2), the next roadmap task is:
+The initial SSE wire-helper milestone from roadmap tasks 1.1.1 through 1.1.3 is
+now complete:
 
-- **1.1.3** — Heartbeat and `stream_reset` helpers (20-second heartbeat policy,
-  `replay_unavailable` event)
+- validated event identifiers and replay cursors;
+- deterministic frame and cache-header helpers;
+- typed heartbeat policy plus canonical heartbeat and `stream_reset` helpers.
 
 See [`roadmap.md`](roadmap.md) for the full delivery plan.
 

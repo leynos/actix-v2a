@@ -43,16 +43,23 @@ pub use pagination::{
     PaginationLinks,
 };
 pub use sse::{
+    DEFAULT_HEARTBEAT_INTERVAL,
     EVENT_STREAM_CACHE_CONTROL,
     EventId,
     EventIdValidationError,
+    HeartbeatPolicy,
+    HeartbeatPolicyError,
     LAST_EVENT_ID_HEADER,
     ReplayCursor,
     ReplayCursorError,
+    STREAM_RESET_EVENT_NAME,
+    STREAM_RESET_REPLAY_UNAVAILABLE_PAYLOAD,
     SseFrameError,
     apply_event_stream_cache_control,
     extract_replay_cursor,
     map_replay_cursor_error,
     render_comment_frame,
     render_event_frame,
+    render_heartbeat_frame,
+    render_stream_reset_frame,
 };
