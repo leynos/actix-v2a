@@ -45,3 +45,7 @@
     helpers](execplans/1-1-3-shared-heartbeat-and-stream-reset-helpers.md):
     execution plan for the shared 20-second heartbeat policy and standard
     replay-reset SSE helper (task 1.1.3).
+  - [Add unit and integration tests for the shared SSE
+    module](execplans/1-2-1-unit-and-integration-tests-for-the-shared-sse-module.md):
+    execution plan for proving the shared SSE wire contract with unit and
+    downstream-facing integration coverage (task 1.2.1).
