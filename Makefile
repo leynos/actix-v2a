@@ -13,7 +13,12 @@ CARGO_FLAGS ?= --all-targets --all-features
 CLIPPY_FLAGS ?= $(CARGO_FLAGS) -- $(RUST_FLAGS)
 TEST_FLAGS ?= $(CARGO_FLAGS)
 TEST_CMD := $(if $(shell $(CARGO) nextest --version 2>/dev/null),nextest run,test)
-MDLINT ?= markdownlint-cli2
+MDLINT ?= $(shell command -v markdownlint-cli2 2>/dev/null || \
+	if [ -x "$$HOME/.bun/bin/markdownlint-cli2" ]; then \
+		printf '%s\n' "$$HOME/.bun/bin/markdownlint-cli2"; \
+	else \
+		printf '%s\n' markdownlint-cli2; \
+	fi)
 NIXIE ?= nixie
 
 build: target/debug/$(TARGET) ## Build debug binary
