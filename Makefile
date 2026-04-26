@@ -13,12 +13,8 @@ CARGO_FLAGS ?= --all-targets --all-features
 CLIPPY_FLAGS ?= $(CARGO_FLAGS) -- $(RUST_FLAGS)
 TEST_FLAGS ?= $(CARGO_FLAGS)
 TEST_CMD := $(if $(shell $(CARGO) nextest --version 2>/dev/null),nextest run,test)
-MDLINT ?= $(shell command -v markdownlint-cli2 2>/dev/null || \
-	if [ -x "$$HOME/.bun/bin/markdownlint-cli2" ]; then \
-		printf '%s\n' "$$HOME/.bun/bin/markdownlint-cli2"; \
-	else \
-		printf '%s\n' markdownlint-cli2; \
-	fi)
+MDLINT ?= markdownlint-cli2
+BUN_BIN ?= $(HOME)/.bun/bin
 NIXIE ?= nixie
 
 build: target/debug/$(TARGET) ## Build debug binary
@@ -58,7 +54,7 @@ check-fmt: ## Verify formatting
 	$(CARGO) fmt --all -- --check
 
 markdownlint: ## Lint Markdown files
-	$(MDLINT) '**/*.md'
+	PATH="$(BUN_BIN):$$PATH" $(MDLINT) '**/*.md'
 
 nixie: ## Validate Mermaid diagrams
 	$(NIXIE) --no-sandbox
