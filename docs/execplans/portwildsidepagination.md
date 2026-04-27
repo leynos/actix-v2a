@@ -5,7 +5,7 @@ This ExecPlan (execution plan) is a living document. The sections
 `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work
 proceeds.
 
-Status: DRAFT
+Status: IN PROGRESS
 
 ## Purpose / big picture
 
@@ -124,7 +124,8 @@ and documentation port itself starts only after approval.
 - [-] (2026-04-26 23:33Z) Attempted `make fmt`; `cargo +nightly fmt --all`
   completed, but the target failed because `mdformat-all` is not installed in
   this environment.
-- [ ] Await explicit approval before implementing the port.
+- [x] (2026-04-27 00:46Z) Received explicit user approval to proceed with the
+  implementation as set out in this ExecPlan.
 - [ ] Implement approved documentation and test changes.
 - [ ] Run and record the full validation gates.
 - [ ] Commit the implementation after the gates pass.
@@ -198,6 +199,8 @@ pagination documentation hardening from Wildside-specific application cleanup.
 The planning-only documentation change passed `make check-fmt`,
 `make markdownlint`, and `make nixie`; `make fmt` is partially blocked by a
 missing `mdformat-all` command after Rust formatting completes.
+Implementation is now in progress after explicit user approval on
+2026-04-27.
 
 ## Context and orientation
 
@@ -448,3 +451,8 @@ pagination surface. The plan was then updated with planning-gate evidence and
 the local `mdformat-all` limitation. The remaining work is blocked on explicit
 approval because this plan recommends implementation changes beyond the
 planning phase.
+
+Revision note: Implementation began on 2026-04-27 after explicit user approval.
+The plan status changed from `DRAFT` to `IN PROGRESS`; the remaining work is to
+ship the approved documentation and test changes, run the gates, and record the
+outcome.
