@@ -1,4 +1,10 @@
 //! Query parameter parsing and normalization for paginated endpoints.
+//!
+//! [`PageParams`] is the shared query DTO for `cursor` and `limit`. Its custom
+//! `Deserialize` implementation applies the same normalization as
+//! [`PageParams::new`]: missing limits default to [`DEFAULT_LIMIT`], oversized
+//! limits clamp to [`MAX_LIMIT`], and zero limits are rejected. This keeps
+//! Actix Web query extractors and hand-built parameters aligned.
 
 use serde::{Deserialize, Deserializer, Serialize};
 use thiserror::Error;

@@ -3,6 +3,106 @@
 This guide provides usage documentation for the `actix-v2a` crate's public API.
 It assumes familiarity with Rust, Actix Web, and HTTP fundamentals.
 
+## Cursor pagination helpers
+
+The `pagination` module provides shared cursor, query parameter, response
+envelope, and link-building primitives for keyset pagination. Keyset
+pagination means that each page uses an opaque cursor containing an ordered
+boundary key rather than a numeric offset.
+
+### Query parameters (`PageParams`)
+
+Use `PageParams` with Actix Web's query extractor to parse the shared
+`cursor` and `limit` query parameters:
+
+```rust
+use actix_v2a::pagination::{PageParams, Paginated, PaginationLinks};
+use actix_web::{HttpRequest, get, web};
+use url::Url;
+
+#[get("/users")]
+async fn list_users(
+    req: HttpRequest,
+    params: web::Query<PageParams>,
+) -> Result<web::Json<Paginated<String>>, actix_v2a::Error> {
+    let params = params.into_inner();
+    let request_url = Url::parse(&req.uri().to_string())
+        .map_err(|_| actix_v2a::Error::invalid_request_static("invalid request URI"))?;
+
+    // Application code applies the cursor predicates and stable ordering.
+    let users = vec!["Ada Lovelace".to_owned()];
+    let next_cursor = None;
+    let prev_cursor = None;
+
+    Ok(web::Json(Paginated::new(
+        users,
+        params.limit(),
+        PaginationLinks::from_request(&request_url, &params, next_cursor, prev_cursor),
+    )))
+}
+```
+
+`PageParams` normalizes page sizes consistently:
+
+- Missing `limit`: uses `DEFAULT_LIMIT` (`20`).
+- `limit` greater than `MAX_LIMIT`: clamps to `MAX_LIMIT` (`100`).
+- `limit=0`: fails with `PageParamsError::InvalidLimit`.
+
+### Cursor keys (`Cursor`)
+
+Cursor keys must match the endpoint's stable ordering. A typical key contains a
+sortable field followed by a unique tie-breaker:
+
+```rust
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+struct UserCursorKey {
+    created_at: String,
+    id: String,
+}
+```
+
+The backing query must use the same fields in the same order for every page.
+If the ordering changes between requests, clients may see skipped or duplicated
+records. `actix-v2a` validates cursor encoding and decoding, but it cannot
+prove that a downstream database index or query predicate is correct. Consumers
+should cover those ordering invariants in their own repository or integration
+tests.
+
+### Pagination error mapping
+
+HTTP adapters should map caller-controlled pagination failures to
+`ErrorCode::InvalidRequest`:
+
+- `CursorError::InvalidBase64`
+- `CursorError::Deserialize`
+- `CursorError::TokenTooLong`
+- `PageParamsError::InvalidLimit`
+
+`CursorError::Serialize` indicates that the server could not encode its own
+cursor key type. Map that failure to `ErrorCode::InternalError` and log the
+underlying serialization error for investigation.
+
+### OpenAPI notes
+
+Pagination query parameters are endpoint-local API details. Document them on
+each endpoint rather than exposing a shared schema wrapper:
+
+```rust
+#[utoipa::path(
+    params(
+        ("cursor" = Option<String>, Query, description = "Opaque pagination cursor"),
+        ("limit" = Option<usize>, Query, description = "Page size, capped at 100")
+    )
+)]
+async fn list_users() {}
+```
+
+Endpoint response schemata should describe the concrete item type carried in
+`Paginated<T>`, because each endpoint owns its item schema and cursor key
+shape.
+
 ## Server-Sent Events (SSE) helpers
 
 The `sse` module provides wire-level helpers for implementing Server-Sent

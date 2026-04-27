@@ -1,4 +1,9 @@
 //! Opaque cursor encoding and decoding helpers.
+//!
+//! A cursor is a base64url-encoded JSON representation of one ordering key and
+//! a pagination direction. The token is URL-safe and opaque to clients, but it
+//! is not signed or encrypted. Do not place secrets in cursor keys, and treat
+//! decoded cursor data as caller-controlled input.
 
 use base64::{
     Engine as _,

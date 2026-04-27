@@ -10,6 +10,77 @@
 //! Cursors are opaque tokens that encode a position within an ordered dataset.
 //! They support bidirectional navigation via [`Direction`] (`Next` or `Prev`).
 //!
+//! # Ordering requirements
+//!
+//! Key types used with [`Cursor`] must satisfy strict ordering guarantees so
+//! that pagination remains stable across all pages of one endpoint:
+//!
+//! - The key type must implement `Serialize` and `DeserializeOwned` so cursors can be encoded into
+//!   and decoded from opaque base64url JSON tokens.
+//! - The key fields must correspond to a total ordering in the backing store. A common pattern is
+//!   ordering by a filterable field such as `created_at`, followed by a unique tie-breaker such as
+//!   a UUID primary key.
+//! - The ordering must remain consistent between requests for the same endpoint. If a query changes
+//!   ordering between pages, clients may see skipped or duplicated records.
+//!
+//! Consumers are responsible for applying the same ordering and cursor
+//! predicates in their repositories or query adapters. This module does not
+//! validate database ordering at runtime because that guarantee depends on the
+//! consumer's key type, filters, and indexes. Property-based tests for ordering
+//! invariants therefore belong in the consuming application.
+//!
+//! # Default and maximum limits
+//!
+//! Page size limits are controlled by two shared constants:
+//!
+//! - [`DEFAULT_LIMIT`]: 20 records per page when no limit is supplied.
+//! - [`MAX_LIMIT`]: 100 records per page as the shared upper bound.
+//!
+//! [`PageParams`] normalizes limits during construction and deserialization.
+//! Missing limits use [`DEFAULT_LIMIT`], oversized limits clamp to
+//! [`MAX_LIMIT`], and zero limits return [`PageParamsError::InvalidLimit`].
+//!
+//! ```
+//! use actix_v2a::pagination::{DEFAULT_LIMIT, MAX_LIMIT, PageParams};
+//!
+//! let default_page = PageParams::new(None, None).expect("default page params are valid");
+//! assert_eq!(default_page.limit(), DEFAULT_LIMIT);
+//!
+//! let capped_page = PageParams::new(None, Some(200)).expect("oversized limit should clamp");
+//! assert_eq!(capped_page.limit(), MAX_LIMIT);
+//!
+//! let zero_limit = PageParams::new(None, Some(0));
+//! assert_eq!(
+//!     zero_limit,
+//!     Err(actix_v2a::pagination::PageParamsError::InvalidLimit)
+//! );
+//! ```
+//!
+//! # Error mapping
+//!
+//! HTTP adapters should map pagination errors into the shared API error
+//! envelope according to whether the caller or server caused the failure:
+//!
+//! | Error type          | Variant         | HTTP status | Error code                   |
+//! |---------------------|-----------------|-------------|------------------------------|
+//! | [`CursorError`]     | `InvalidBase64` | 400         | [`crate::ErrorCode::InvalidRequest`] |
+//! | [`CursorError`]     | `Deserialize`   | 400         | [`crate::ErrorCode::InvalidRequest`] |
+//! | [`CursorError`]     | `TokenTooLong`  | 400         | [`crate::ErrorCode::InvalidRequest`] |
+//! | [`CursorError`]     | `Serialize`     | 500         | [`crate::ErrorCode::InternalError`]  |
+//! | [`PageParamsError`] | `InvalidLimit`  | 400         | [`crate::ErrorCode::InvalidRequest`] |
+//!
+//! `CursorError::Serialize` is a server-side failure because the endpoint's own
+//! key type could not be encoded. It should be logged and investigated rather
+//! than reported as a malformed client cursor.
+//!
+//! # Scope boundaries
+//!
+//! This module intentionally does not provide database filters, connection
+//! pooling, endpoint-specific `OpenAPI` schemata, or framework extractors.
+//! Inbound adapters can deserialize [`PageParams`] with framework facilities
+//! such as Actix Web's query extractor, and outbound adapters must apply the
+//! endpoint-specific ordering and cursor predicates.
+//!
 //! # Example
 //!
 //! ```

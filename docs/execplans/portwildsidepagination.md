@@ -126,6 +126,11 @@ and documentation port itself starts only after approval.
   this environment.
 - [x] (2026-04-27 00:46Z) Received explicit user approval to proceed with the
   implementation as set out in this ExecPlan.
+- [x] (2026-04-27 00:46Z) Completed Stage A documentation changes by expanding
+  pagination module docs and adding pagination integration guidance to
+  `docs/users-guide.md`.
+- [x] (2026-04-27 00:46Z) Validated Stage A with `make check-fmt`,
+  `make lint`, `make markdownlint`, and `make nixie`.
 - [ ] Implement approved documentation and test changes.
 - [ ] Run and record the full validation gates.
 - [ ] Commit the implementation after the gates pass.
@@ -169,6 +174,14 @@ and documentation port itself starts only after approval.
   `make markdownlint`, and `make nixie`, but the implementation phase should
   either install `mdformat-all` or record the same environmental limitation.
 
+- Observation: Adding a pagination "Error mapping" heading to
+  `docs/users-guide.md` conflicted with the existing SSE "Error mapping"
+  heading under Markdown lint's duplicate-heading rule.
+  Evidence: `make markdownlint` reported `MD024/no-duplicate-heading` for
+  `docs/users-guide.md`.
+  Impact: The pagination heading was renamed to "Pagination error mapping",
+  preserving the intended content while keeping the guide lint-clean.
+
 ## Decision Log
 
 - Decision: Treat this as a documentation and test hardening port, not an
@@ -191,6 +204,13 @@ and documentation port itself starts only after approval.
   constraint.
   Date/Author: 2026-04-26 23:31Z / Codex.
 
+- Decision: Document endpoint-local `utoipa::path` query parameters in the user
+  guide instead of adding reusable pagination schema wrappers.
+  Rationale: The plan's compatibility constraint forbids public API expansion
+  without approval, and pagination response schemata depend on each endpoint's
+  concrete item type.
+  Date/Author: 2026-04-27 00:46Z / Codex.
+
 ## Outcomes & Retrospective
 
 This plan is currently a draft. No port implementation has started. The
@@ -201,6 +221,9 @@ The planning-only documentation change passed `make check-fmt`,
 missing `mdformat-all` command after Rust formatting completes.
 Implementation is now in progress after explicit user approval on
 2026-04-27.
+Stage A has landed locally and shows users how to consume `PageParams`, build
+`Paginated<T>` responses, map pagination errors, and document endpoint-local
+OpenAPI query parameters.
 
 ## Context and orientation
 
@@ -456,3 +479,7 @@ Revision note: Implementation began on 2026-04-27 after explicit user approval.
 The plan status changed from `DRAFT` to `IN PROGRESS`; the remaining work is to
 ship the approved documentation and test changes, run the gates, and record the
 outcome.
+
+Revision note: Stage A documentation changes were completed and validated on
+2026-04-27. The remaining work is Stage B documentation-invariant BDD coverage,
+Stage C unit test hardening, final validation, and completion notes.
