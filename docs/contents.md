@@ -31,9 +31,9 @@
   streaming helpers in `actix-v2a`.
 - `execplans/`: living execution plans for non-trivial change work.
   - [Port Wildside pagination documentation
-    hardening](execplans/portwildsidepagination.md): draft plan for adapting
-    Wildside commit `9d6b7655` pagination documentation and invariant tests
-    into `actix-v2a`.
+    hardening](execplans/portwildsidepagination.md): completed execution plan
+    and retrospective for porting Wildside commit `9d6b7655` pagination
+    documentation hardening and invariant tests into `actix-v2a`.
   - [Import components from Wildside](execplans/import-components-from-wildside.md):
     draft plan for extracting shared HTTP and API primitives from
     `../wildside/backend` into this crate.

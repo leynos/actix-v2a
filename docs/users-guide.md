@@ -111,8 +111,7 @@ async fn list_users() {}
 ```
 
 Endpoint response schemata should describe the concrete item type carried in
-`Paginated<T>`, because each endpoint owns its item schema and cursor key
-shape.
+`Paginated<T>` because each endpoint owns its item schema and cursor key shape.
 
 ## Server-Sent Events (SSE) helpers
 

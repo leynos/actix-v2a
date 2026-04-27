@@ -159,6 +159,9 @@ and documentation port itself starts only after approval.
 - [x] (2026-04-27 02:03Z) Tightened the user-guide URL example to build the
   absolute URL from Actix connection scheme, host, and `path_and_query()`
   explicitly.
+- [x] (2026-04-27 02:05Z) Verified the latest inline review findings, updated
+  the contents index and `Paginated<T>` sentence, and confirmed the URL example
+  already constructs an absolute URL before parsing.
 
 ## Surprises & Discoveries
 
@@ -344,6 +347,10 @@ documentation-invariant BDD test inspects `CursorError` variants and fields
 instead of message substrings, and uncommon acronyms are expanded on first use.
 The URL example was then tightened to show explicit `path_and_query()` handling
 instead of interpolating the full request URI.
+Later inline review findings were verified against the current code. The
+contents index now describes the plan as complete, the `Paginated<T>` OpenAPI
+sentence no longer has a comma before its "because" clause, and the URL example
+already builds an absolute URL before parsing.
 The stricter lint run also exposed test helper `expect` calls; these were
 converted to fallible helpers and the review-response change passed
 `cargo test --test pagination_documentation_bdd`, `make check-fmt`,
