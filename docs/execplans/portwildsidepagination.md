@@ -142,7 +142,11 @@ and documentation port itself starts only after approval.
   `make nixie`.
 - [x] (2026-04-27 00:52Z) Implemented all approved documentation and test
   changes.
-- [ ] Commit the completed implementation after this final plan update.
+- [x] (2026-04-27 00:52Z) Committed the completed implementation and plan
+  update.
+- [x] (2026-04-27 01:00Z) Fixed the post-turn hook environment issue where
+  `cargo` was absent from `PATH` by making Cargo recipes prepend the existing
+  `$HOME/.cargo/bin` directory while still invoking `cargo` by name.
 
 ## Surprises & Discoveries
 
@@ -207,6 +211,15 @@ and documentation port itself starts only after approval.
   Impact: The focused red/green run validated the new suite before the full
   repository gates.
 
+- Observation: The post-turn hook runs with a reduced `PATH` that did not
+  include the existing Cargo installation directory.
+  Evidence: The hook reported `make: cargo: No such file or directory` while
+  running `make check-fmt lint`; `env PATH=/usr/bin:/bin make check-fmt lint`
+  reproduced the same environment shape.
+  Impact: The Makefile now prepends `$HOME/.cargo/bin` to Cargo recipe `PATH`
+  values while continuing to call `cargo` by name. No shim, install step, or
+  recreated system script was introduced.
+
 ## Decision Log
 
 - Decision: Treat this as a documentation and test hardening port, not an
@@ -242,6 +255,12 @@ and documentation port itself starts only after approval.
   limit, and the new suite needed only small state and helper functions.
   Date/Author: 2026-04-27 00:52Z / Codex.
 
+- Decision: Make Cargo discovery recipe-local, not global, in the Makefile.
+  Rationale: The hook needed the existing Cargo binary directory on `PATH`, but
+  the repository should still call `cargo` directly and avoid shims or
+  generated wrapper scripts.
+  Date/Author: 2026-04-27 01:00Z / Codex.
+
 ## Outcomes & Retrospective
 
 This plan is complete. The port delivered pagination module and user-guide
@@ -257,6 +276,13 @@ Wildside application-specific code. Full validation passed with
 `make nixie`. `make fmt` remains partially blocked in this environment because
 `mdformat-all` is not installed, but `cargo fmt --all` and
 `make check-fmt` both succeeded.
+
+After completion, the post-turn hook exposed a reduced-`PATH` environment that
+could not find `cargo`. The Makefile now prepends the existing Cargo bin
+directory for Cargo recipes and the existing Bun bin directory for
+`markdownlint-cli2`, without installing or creating any replacement scripts.
+The reduced-`PATH` reproductions passed for `make check-fmt lint` and
+`make markdownlint`.
 
 ## Context and orientation
 
@@ -520,3 +546,8 @@ Stage C unit test hardening, final validation, and completion notes.
 Revision note: Stages B and C were completed on 2026-04-27, full validation
 passed, and the plan status changed to `COMPLETE`. The only remaining workflow
 step is to commit this final implementation and plan update.
+
+Revision note: Post-completion hook hardening was added on 2026-04-27 after a
+reduced-`PATH` hook could not find `cargo`. This does not change the pagination
+implementation; it keeps the documented validation commands runnable in the
+hook environment.
