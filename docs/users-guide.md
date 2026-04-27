@@ -27,12 +27,17 @@ async fn list_users(
 ) -> Result<web::Json<Paginated<String>>, actix_v2a::Error> {
     let params = params.into_inner();
     let connection = req.connection_info();
-    let request_url = Url::parse(&format!(
+    let path_and_query = req
+        .uri()
+        .path_and_query()
+        .map_or("/", |value| value.as_str());
+    let absolute_url = format!(
         "{}://{}{}",
         connection.scheme(),
         connection.host(),
-        req.uri()
-    ))
+        path_and_query
+    );
+    let request_url = Url::parse(&absolute_url)
         .map_err(|_| actix_v2a::Error::invalid_request_static("invalid request URI"))?;
 
     // Application code applies the cursor predicates and stable ordering.

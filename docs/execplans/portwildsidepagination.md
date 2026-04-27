@@ -156,6 +156,9 @@ and documentation port itself starts only after approval.
   `Result` values instead of using `expect`, then validated the review fixes
   with `cargo test --test pagination_documentation_bdd`, `make check-fmt`,
   `make lint`, `make markdownlint`, and `make test`.
+- [x] (2026-04-27 02:03Z) Tightened the user-guide URL example to build the
+  absolute URL from Actix connection scheme, host, and `path_and_query()`
+  explicitly.
 
 ## Surprises & Discoveries
 
@@ -234,8 +237,8 @@ and documentation port itself starts only after approval.
   paths.
   Evidence: Code review noted that `Url::parse` expects an absolute URL for
   this use, so the example would normally fail at runtime.
-  Impact: The example now combines Actix connection information with the
-  request URI before parsing the URL used for pagination links.
+  Impact: The example now combines Actix connection information with
+  `path_and_query()` before parsing the URL used for pagination links.
 
 - Observation: Checking `CursorError` display text made the documentation BDD
   coverage sensitive to wording-only changes.
@@ -298,8 +301,8 @@ and documentation port itself starts only after approval.
 - Decision: Use Actix connection information for the user-guide pagination URL
   example.
   Rationale: `PaginationLinks::from_request` needs an absolute `Url`, while
-  `HttpRequest::uri()` is commonly relative. Combining scheme, host, and URI
-  documents a runtime-valid pattern.
+  `HttpRequest::uri()` is commonly relative. Combining scheme, host, and
+  `path_and_query()` documents a runtime-valid pattern.
   Date/Author: 2026-04-27 01:54Z / Codex.
 
 - Decision: Keep documentation-invariant tests structural.
@@ -339,6 +342,8 @@ Review feedback was incorporated after completion. The user-guide example now
 constructs an absolute URL from Actix connection information, the
 documentation-invariant BDD test inspects `CursorError` variants and fields
 instead of message substrings, and uncommon acronyms are expanded on first use.
+The URL example was then tightened to show explicit `path_and_query()` handling
+instead of interpolating the full request URI.
 The stricter lint run also exposed test helper `expect` calls; these were
 converted to fallible helpers and the review-response change passed
 `cargo test --test pagination_documentation_bdd`, `make check-fmt`,
