@@ -217,7 +217,7 @@ mod tests {
 
     use base64::Engine as _;
     use rstest::{fixture, rstest};
-    use serde::{Deserialize, Serialize};
+    use serde::{Deserialize, Serialize, Serializer};
 
     use super::{Cursor, CursorError, Direction, MAX_CURSOR_TOKEN_LEN};
 
@@ -225,6 +225,17 @@ mod tests {
     struct FixtureKey {
         created_at: String,
         id: String,
+    }
+
+    struct FailingKey;
+
+    impl Serialize for FailingKey {
+        fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            Err(serde::ser::Error::custom("fixture serialization failed"))
+        }
     }
 
     #[fixture]
@@ -262,6 +273,20 @@ mod tests {
             Cursor::<FixtureKey>::decode(&encoded).expect("cursor decoding should succeed");
 
         assert_eq!(decoded, cursor);
+    }
+
+    #[test]
+    fn cursor_encode_reports_serialization_failure() {
+        let cursor = Cursor::new(FailingKey);
+
+        let result = cursor.encode();
+
+        assert_eq!(
+            result,
+            Err(CursorError::Serialize {
+                message: "fixture serialization failed".to_owned(),
+            })
+        );
     }
 
     #[rstest]

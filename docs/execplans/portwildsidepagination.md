@@ -5,7 +5,7 @@ This ExecPlan (execution plan) is a living document. The sections
 `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work
 proceeds.
 
-Status: IN PROGRESS
+Status: COMPLETE
 
 ## Purpose / big picture
 
@@ -131,9 +131,18 @@ and documentation port itself starts only after approval.
   `docs/users-guide.md`.
 - [x] (2026-04-27 00:46Z) Validated Stage A with `make check-fmt`,
   `make lint`, `make markdownlint`, and `make nixie`.
-- [ ] Implement approved documentation and test changes.
-- [ ] Run and record the full validation gates.
-- [ ] Commit the implementation after the gates pass.
+- [x] (2026-04-27 00:52Z) Completed Stage B by adding
+  `tests/features/pagination_documentation.feature` and
+  `tests/pagination_documentation_bdd.rs`.
+- [x] (2026-04-27 00:52Z) Completed Stage C by adding
+  `CursorError::Serialize` unit coverage and `PageParams` limit-boundary
+  coverage around `MAX_LIMIT`.
+- [x] (2026-04-27 00:52Z) Ran the full implementation gates:
+  `make check-fmt`, `make lint`, `make test`, `make markdownlint`, and
+  `make nixie`.
+- [x] (2026-04-27 00:52Z) Implemented all approved documentation and test
+  changes.
+- [ ] Commit the completed implementation after this final plan update.
 
 ## Surprises & Discoveries
 
@@ -182,6 +191,22 @@ and documentation port itself starts only after approval.
   Impact: The pagination heading was renamed to "Pagination error mapping",
   preserving the intended content while keeping the guide lint-clean.
 
+- Observation: A self-contained documentation-invariant BDD suite avoided
+  pushing the existing `tests/pagination_bdd.rs` file over the repository's
+  400-line limit.
+  Evidence: `tests/pagination_bdd.rs` was already 367 lines before Stage B, and
+  the new scenarios fit cleanly in `tests/pagination_documentation_bdd.rs`.
+  Impact: No shared fixture extraction was needed for this port, keeping the
+  change smaller than the optional common-fixture path in the plan.
+
+- Observation: The first isolated run of the new BDD suite caught a borrowed
+  `Err(...)` comparison and a macro-expanded unused-braces warning in the
+  `world` fixture.
+  Evidence: `cargo test --test pagination_documentation_bdd` failed before
+  those local issues were fixed, then passed after the targeted correction.
+  Impact: The focused red/green run validated the new suite before the full
+  repository gates.
+
 ## Decision Log
 
 - Decision: Treat this as a documentation and test hardening port, not an
@@ -211,19 +236,27 @@ and documentation port itself starts only after approval.
   concrete item type.
   Date/Author: 2026-04-27 00:46Z / Codex.
 
+- Decision: Keep the documentation-invariant BDD suite self-contained rather
+  than extracting shared pagination BDD fixtures.
+  Rationale: The existing pagination BDD file was already near the line-count
+  limit, and the new suite needed only small state and helper functions.
+  Date/Author: 2026-04-27 00:52Z / Codex.
+
 ## Outcomes & Retrospective
 
-This plan is currently a draft. No port implementation has started. The
-planning outcome is a bounded, reviewable path that separates portable
-pagination documentation hardening from Wildside-specific application cleanup.
-The planning-only documentation change passed `make check-fmt`,
-`make markdownlint`, and `make nixie`; `make fmt` is partially blocked by a
-missing `mdformat-all` command after Rust formatting completes.
-Implementation is now in progress after explicit user approval on
-2026-04-27.
-Stage A has landed locally and shows users how to consume `PageParams`, build
-`Paginated<T>` responses, map pagination errors, and document endpoint-local
-OpenAPI query parameters.
+This plan is complete. The port delivered pagination module and user-guide
+documentation for ordering requirements, limit normalization, error mapping,
+scope boundaries, Actix query extraction, and endpoint-local OpenAPI parameter
+documentation. It also added documentation-invariant BDD coverage plus unit
+tests for `CursorError::Serialize` and `PageParams` behaviour around
+`MAX_LIMIT`.
+
+The implementation deliberately did not add public API, new dependencies, or
+Wildside application-specific code. Full validation passed with
+`make check-fmt`, `make lint`, `make test`, `make markdownlint`, and
+`make nixie`. `make fmt` remains partially blocked in this environment because
+`mdformat-all` is not installed, but `cargo fmt --all` and
+`make check-fmt` both succeeded.
 
 ## Context and orientation
 
@@ -483,3 +516,7 @@ outcome.
 Revision note: Stage A documentation changes were completed and validated on
 2026-04-27. The remaining work is Stage B documentation-invariant BDD coverage,
 Stage C unit test hardening, final validation, and completion notes.
+
+Revision note: Stages B and C were completed on 2026-04-27, full validation
+passed, and the plan status changed to `COMPLETE`. The only remaining workflow
+step is to commit this final implementation and plan update.
