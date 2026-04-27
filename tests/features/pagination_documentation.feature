@@ -30,6 +30,6 @@ Feature: Pagination documentation invariants
     When the documentation cursor is decoded
     Then decoding fails with TokenTooLong error
 
-  Scenario: Error display strings are human-readable
+  Scenario: Documented cursor error variants are represented
     Given pagination errors of different documented variants
-    Then each pagination error display string contains a descriptive message
+    Then each documented cursor error variant is represented

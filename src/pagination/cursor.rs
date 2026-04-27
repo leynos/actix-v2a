@@ -250,13 +250,15 @@ mod tests {
     const _CONST_DIRECTIONAL_CURSOR: Cursor<&str> =
         Cursor::with_direction("compile-time-test", Direction::Prev);
 
-    fn encode_without_padding(cursor: &Cursor<FixtureKey>) -> String {
-        cursor.encode().expect("cursor encoding should succeed")
+    fn encode_without_padding(cursor: &Cursor<FixtureKey>) -> Result<String, CursorError> {
+        cursor.encode()
     }
 
-    fn encode_with_padding(cursor: &Cursor<FixtureKey>) -> String {
-        let payload = serde_json::to_vec(cursor).expect("cursor should serialize");
-        base64::engine::general_purpose::URL_SAFE.encode(payload)
+    fn encode_with_padding(cursor: &Cursor<FixtureKey>) -> Result<String, CursorError> {
+        let payload = serde_json::to_vec(cursor).map_err(|error| CursorError::Serialize {
+            message: error.to_string(),
+        })?;
+        Ok(base64::engine::general_purpose::URL_SAFE.encode(payload))
     }
 
     #[rstest]
@@ -264,10 +266,10 @@ mod tests {
     #[case::padded(encode_with_padding)]
     fn cursor_decodes_successfully(
         fixture_key: FixtureKey,
-        #[case] encode: for<'a> fn(&'a Cursor<FixtureKey>) -> String,
+        #[case] encode: for<'a> fn(&'a Cursor<FixtureKey>) -> Result<String, CursorError>,
     ) {
         let cursor = Cursor::new(fixture_key);
-        let encoded = encode(&cursor);
+        let encoded = encode(&cursor).expect("cursor encoding should succeed");
 
         let decoded =
             Cursor::<FixtureKey>::decode(&encoded).expect("cursor decoding should succeed");

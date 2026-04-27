@@ -20,8 +20,9 @@ The goal is to port the parts of that commit that improve the reusable
 `actix-v2a` library without importing Wildside application code. Success is
 observable when a maintainer can read `src/pagination/mod.rs` and
 `docs/users-guide.md` to understand how to integrate cursor pagination, run a
-dedicated documentation-invariant BDD suite, and see the same repository gates
-pass with the new tests and documentation in place.
+dedicated documentation-invariant behaviour-driven development (BDD) suite, and
+see the same repository gates pass with the new tests and documentation in
+place.
 
 Do not begin implementation from this draft until the user explicitly approves
 the plan. The planning phase may create and commit this document, but the code
@@ -112,8 +113,8 @@ and documentation port itself starts only after approval.
   branch is `feat/portwildsidepagination`.
 - [x] (2026-04-26 23:31Z) Used a wyvern agent team for read-only
   reconnaissance: one agent analysed Wildside commit `9d6b7655`, and one agent
-  mapped the relevant `actix-v2a` pagination, OpenAPI, query DTO, test, and
-  gate surfaces.
+  mapped the relevant `actix-v2a` pagination, OpenAPI, query data transfer
+  object (DTO), test, and gate surfaces.
 - [x] (2026-04-26 23:31Z) Cloned Wildside commit `9d6b7655` into
   `/tmp/wildside-9d6b7655-read` and reviewed the upstream pagination docs,
   feature file, BDD documentation tests, and shared test fixture.
@@ -147,6 +148,14 @@ and documentation port itself starts only after approval.
 - [x] (2026-04-27 01:00Z) Fixed the post-turn hook environment issue where
   `cargo` was absent from `PATH` by making Cargo recipes prepend the existing
   `$HOME/.cargo/bin` directory while still invoking `cargo` by name.
+- [x] (2026-04-27 01:54Z) Addressed review comments by expanding first-use
+  acronyms, fixing the user-guide URL example, and changing documentation BDD
+  coverage to inspect structured `CursorError` variants instead of display
+  message substrings.
+- [x] (2026-04-27 02:01Z) Converted lint-exposed test helpers to return
+  `Result` values instead of using `expect`, then validated the review fixes
+  with `cargo test --test pagination_documentation_bdd`, `make check-fmt`,
+  `make lint`, `make markdownlint`, and `make test`.
 
 ## Surprises & Discoveries
 
@@ -220,6 +229,31 @@ and documentation port itself starts only after approval.
   values while continuing to call `cargo` by name. No shim, install step, or
   recreated system script was introduced.
 
+- Observation: The original user-guide pagination example parsed
+  `req.uri().to_string()` directly, but Actix request URIs are usually relative
+  paths.
+  Evidence: Code review noted that `Url::parse` expects an absolute URL for
+  this use, so the example would normally fail at runtime.
+  Impact: The example now combines Actix connection information with the
+  request URI before parsing the URL used for pagination links.
+
+- Observation: Checking `CursorError` display text made the documentation BDD
+  coverage sensitive to wording-only changes.
+  Evidence: Code review highlighted that substring checks were too tightly
+  coupled to error message prose.
+  Impact: The BDD step now asserts the documented variants and structured
+  fields instead of matching display strings.
+
+- Observation: The stricter lint toolchain now detects `expect` in helper
+  functions that are compiled only for tests but are not themselves test
+  functions.
+  Evidence: `make lint` reported `no_expect_outside_tests` for helper
+  functions in `src/http/error.rs`, `src/openapi/schemas.rs`, and
+  `src/pagination/cursor.rs`.
+  Impact: Those helpers now return `Result` where they perform fallible work,
+  and the actual test functions keep the assertion and failure-message
+  responsibility.
+
 ## Decision Log
 
 - Decision: Treat this as a documentation and test hardening port, not an
@@ -261,6 +295,23 @@ and documentation port itself starts only after approval.
   generated wrapper scripts.
   Date/Author: 2026-04-27 01:00Z / Codex.
 
+- Decision: Use Actix connection information for the user-guide pagination URL
+  example.
+  Rationale: `PaginationLinks::from_request` needs an absolute `Url`, while
+  `HttpRequest::uri()` is commonly relative. Combining scheme, host, and URI
+  documents a runtime-valid pattern.
+  Date/Author: 2026-04-27 01:54Z / Codex.
+
+- Decision: Keep documentation-invariant tests structural.
+  Rationale: The purpose is to verify documented error classes, not freeze
+  human-facing error wording.
+  Date/Author: 2026-04-27 01:54Z / Codex.
+
+- Decision: Fix the lint-exposed test helpers without adding suppressions.
+  Rationale: Returning `Result` from helpers keeps failure causes structured
+  while avoiding broad lint allowances or new test-only wrapper scripts.
+  Date/Author: 2026-04-27 02:01Z / Codex.
+
 ## Outcomes & Retrospective
 
 This plan is complete. The port delivered pagination module and user-guide
@@ -283,6 +334,15 @@ directory for Cargo recipes and the existing Bun bin directory for
 `markdownlint-cli2`, without installing or creating any replacement scripts.
 The reduced-`PATH` reproductions passed for `make check-fmt lint` and
 `make markdownlint`.
+
+Review feedback was incorporated after completion. The user-guide example now
+constructs an absolute URL from Actix connection information, the
+documentation-invariant BDD test inspects `CursorError` variants and fields
+instead of message substrings, and uncommon acronyms are expanded on first use.
+The stricter lint run also exposed test helper `expect` calls; these were
+converted to fallible helpers and the review-response change passed
+`cargo test --test pagination_documentation_bdd`, `make check-fmt`,
+`make lint`, `make markdownlint`, and `make test`.
 
 ## Context and orientation
 
@@ -551,3 +611,7 @@ Revision note: Post-completion hook hardening was added on 2026-04-27 after a
 reduced-`PATH` hook could not find `cargo`. This does not change the pagination
 implementation; it keeps the documented validation commands runnable in the
 hook environment.
+
+Revision note: Review comments were addressed on 2026-04-27 by correcting the
+pagination URL example, removing message-substring coupling from the
+documentation BDD test, and expanding first-use acronyms.

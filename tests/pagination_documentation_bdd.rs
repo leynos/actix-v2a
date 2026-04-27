@@ -198,31 +198,33 @@ fn assert_decode_error(world: &World, matches_error: impl FnOnce(&CursorError) -
     assert!(matches_error(error));
 }
 
-#[then("each pagination error display string contains a descriptive message")]
+#[then("each documented cursor error variant is represented")]
 #[expect(
     clippy::expect_used,
     reason = "BDD steps use expect for clear failures"
 )]
-fn each_pagination_error_display_string_contains_a_descriptive_message(world: &World) {
+fn each_documented_cursor_error_variant_is_represented(world: &World) {
     let errors = world
         .cursor_errors
         .get()
         .expect("cursor errors should be set");
 
-    for error in errors {
-        let display = format!("{error}");
-        assert!(
-            has_descriptive_error_text(&display),
-            "error display string should be descriptive; got: {display}"
-        );
-    }
-}
-
-fn has_descriptive_error_text(display: &str) -> bool {
-    display.contains("base64")
-        || display.contains("deserialization")
-        || display.contains("exceeds maximum length")
-        || display.contains("serialization")
+    assert!(errors.iter().any(
+        |error| matches!(error, CursorError::InvalidBase64 { message } if !message.is_empty())
+    ));
+    assert!(
+        errors.iter().any(
+            |error| matches!(error, CursorError::Deserialize { message } if !message.is_empty())
+        )
+    );
+    assert!(errors.iter().any(
+        |error| matches!(error, CursorError::TokenTooLong { max_len } if *max_len == 8 * 1024)
+    ));
+    assert!(
+        errors.iter().any(
+            |error| matches!(error, CursorError::Serialize { message } if !message.is_empty())
+        )
+    );
 }
 
 #[scenario(path = "tests/features/pagination_documentation.feature")]

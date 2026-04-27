@@ -129,7 +129,7 @@ mod tests {
         error: Error,
         expected_status: StatusCode,
         expected_trace_id: Option<&str>,
-    ) -> Error {
+    ) -> Result<Error, Box<dyn std::error::Error>> {
         let response = error.error_response();
         assert_eq!(response.status(), expected_status);
 
@@ -137,19 +137,16 @@ mod tests {
         match expected_trace_id {
             Some(expected) => {
                 let trace_id = trace_header
-                    .expect("trace header should be present")
-                    .to_str()
-                    .expect("trace header should be UTF-8");
+                    .ok_or_else(|| std::io::Error::other("trace header should be present"))?
+                    .to_str()?;
                 assert_eq!(trace_id, expected);
             }
             None => assert!(trace_header.is_none()),
         }
 
-        let body = to_bytes(response.into_body())
-            .await
-            .expect("response body should be readable");
+        let body = to_bytes(response.into_body()).await?;
 
-        serde_json::from_slice(&body).expect("error payload should deserialize")
+        Ok(serde_json::from_slice(&body)?)
     }
 
     #[test]
@@ -198,8 +195,9 @@ mod tests {
             .expect("trace identifier should be valid")
             .with_details(json!({"secret": true}));
 
-        let payload =
-            decode_response(error, StatusCode::INTERNAL_SERVER_ERROR, Some("trace-123")).await;
+        let payload = decode_response(error, StatusCode::INTERNAL_SERVER_ERROR, Some("trace-123"))
+            .await
+            .expect("response should decode");
 
         assert_eq!(payload.code(), ErrorCode::InternalError);
         assert_eq!(payload.message(), "Internal server error");
@@ -213,7 +211,9 @@ mod tests {
             .try_with_trace_id("trace\n123")
             .expect("trace identifier should be stored before HTTP validation");
 
-        let payload = decode_response(error, StatusCode::INTERNAL_SERVER_ERROR, None).await;
+        let payload = decode_response(error, StatusCode::INTERNAL_SERVER_ERROR, None)
+            .await
+            .expect("response should decode");
 
         assert_eq!(payload.trace_id(), Some("trace\n123"));
     }
@@ -225,7 +225,9 @@ mod tests {
             .expect("trace identifier should be valid")
             .with_details(json!({"field": "name"}));
 
-        let payload = decode_response(error, StatusCode::BAD_REQUEST, Some("trace-456")).await;
+        let payload = decode_response(error, StatusCode::BAD_REQUEST, Some("trace-456"))
+            .await
+            .expect("response should decode");
 
         assert_eq!(payload.code(), ErrorCode::InvalidRequest);
         assert_eq!(payload.message(), "bad");
