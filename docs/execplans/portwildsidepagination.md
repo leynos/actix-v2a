@@ -327,7 +327,7 @@ and documentation port itself starts only after approval.
 This plan is complete. The port delivered pagination module and user-guide
 documentation for ordering requirements, limit normalization, error mapping,
 scope boundaries, Actix query extraction, and endpoint-local OpenAPI parameter
-documentation. It also added documentation-invariant BDD coverage plus unit
+documentation. It also added documentation-invariant BDD coverage, plus unit
 tests for `CursorError::Serialize` and `PageParams` behaviour around
 `MAX_LIMIT`.
 
