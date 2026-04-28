@@ -236,7 +236,7 @@ and documentation port itself starts only after approval.
   running `make check-fmt lint`; `env PATH=/usr/bin:/bin make check-fmt lint`
   reproduced the same environment shape.
   Impact: The Makefile now prepends `$HOME/.cargo/bin` to Cargo recipe `PATH`
-  values while continuing to call `cargo` by name. No shim, install step, or
+  values, while continuing to call `cargo` by name. No shim, install step, or
   recreated system script was introduced.
 
 - Observation: The original user-guide pagination example parsed
@@ -255,7 +255,7 @@ and documentation port itself starts only after approval.
   fields instead of matching display strings.
 
 - Observation: The stricter lint toolchain now detects `expect` in helper
-  functions that are compiled only for tests but are not themselves test
+  functions that are compiled only for tests, but are not themselves test
   functions.
   Evidence: `make lint` reported `no_expect_outside_tests` for helper
   functions in `src/http/error.rs`, `src/openapi/schemas.rs`, and
