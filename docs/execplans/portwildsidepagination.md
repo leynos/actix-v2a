@@ -162,6 +162,10 @@ and documentation port itself starts only after approval.
 - [x] (2026-04-27 02:05Z) Verified the latest inline review findings, updated
   the contents index and `Paginated<T>` sentence, and confirmed the URL example
   already constructs an absolute URL before parsing.
+- [x] (2026-04-28 12:38Z) Verified the latest inline findings, updated the
+  stale Stage B plan text to match variant-and-field error assertions, and made
+  `decode_response` return observed status, trace header, and payload values
+  for caller-side assertions.
 
 ## Surprises & Discoveries
 
@@ -351,6 +355,10 @@ Later inline review findings were verified against the current code. The
 contents index now describes the plan as complete, the `Paginated<T>` OpenAPI
 sentence no longer has a comma before its "because" clause, and the URL example
 already builds an absolute URL before parsing.
+The remaining stale Stage B wording now describes documented cursor error
+variants and structured fields instead of display-string checks. The HTTP error
+test helper now decodes observed response values and leaves status and trace
+header assertions to the individual tests.
 The stricter lint run also exposed test helper `expect` calls; these were
 converted to fallible helpers and the review-response change passed
 `cargo test --test pagination_documentation_bdd`, `make check-fmt`,
@@ -410,9 +418,10 @@ schema wrappers in this stage.
 Stage B adds documentation-invariant coverage. Create
 `tests/features/pagination_documentation.feature` with scenarios for default
 limits, maximum limits, zero-limit rejection, invalid base64 cursor errors,
-invalid JSON cursor errors, token-too-long errors, and human-readable display
-strings. Create `tests/pagination_documentation_bdd.rs` to implement those
-scenarios. If shared state duplication becomes material, create
+invalid JSON cursor errors, token-too-long errors, and documented cursor error
+variants with their structured fields. Create
+`tests/pagination_documentation_bdd.rs` to implement those scenarios. If shared
+state duplication becomes material, create
 `tests/pagination_common.rs` or `tests/common/pagination.rs` and move only
 shared `World`, `FixtureKey`, and limit setup helpers there, then update
 `tests/pagination_bdd.rs` to use that helper module. Keep this extraction small
