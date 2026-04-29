@@ -24,9 +24,8 @@ dedicated documentation-invariant behaviour-driven development (BDD) suite, and
 see the same repository gates pass with the new tests and documentation in
 place.
 
-Do not begin implementation from this draft until the user explicitly approves
-the plan. The planning phase may create and commit this document, but the code
-and documentation port itself starts only after approval.
+This plan was created and committed during the planning phase. Implementation
+began after user approval.
 
 ## Constraints
 

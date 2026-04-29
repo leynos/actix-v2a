@@ -185,7 +185,7 @@ fn absolute_request_url(request: &HttpRequest) -> Result<Url, Error> {
         path_and_query
     );
 
-    Url::parse(&absolute_url).map_err(|_| Error::internal_static("invalid request URI"))
+    Url::parse(&absolute_url).map_err(|_| Error::invalid_request_static("invalid request URI"))
 }
 
 fn fixture_items() -> Vec<FixtureItem> {
