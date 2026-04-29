@@ -200,6 +200,9 @@ began after user approval.
   failure tracing coverage for caller-controlled cursor errors.
 - [x] (2026-04-30 01:02Z) Extracted shared normalized-limit BDD assertions and
   extended decode-failure tracing coverage to include the `Deserialize` variant.
+- [x] (2026-04-30 01:10Z) Aligned the normalized-limit helper name, argument
+  order, and en-GB error text with review guidance, and used a structurally
+  invalid JSON payload for deserialize tracing coverage.
 
 ## Surprises & Discoveries
 

@@ -133,18 +133,15 @@ fn pagination_documentation_parameters_are_created_with_limit(
 
 #[then("the documented normalized limit equals DEFAULT_LIMIT")]
 fn the_documented_normalized_limit_equals_default_limit(world: &World) -> StepResult<(), String> {
-    assert_documented_normalized_limit_equals(DEFAULT_LIMIT, world)
+    assert_normalized_limit(world, DEFAULT_LIMIT)
 }
 
 #[then("the documented normalized limit equals MAX_LIMIT")]
 fn the_documented_normalized_limit_equals_max_limit(world: &World) -> StepResult<(), String> {
-    assert_documented_normalized_limit_equals(MAX_LIMIT, world)
+    assert_normalized_limit(world, MAX_LIMIT)
 }
 
-fn assert_documented_normalized_limit_equals(
-    expected: usize,
-    world: &World,
-) -> StepResult<(), String> {
+fn assert_normalized_limit(world: &World, expected: usize) -> StepResult<(), String> {
     let params = world
         .page_params
         .get()
@@ -154,7 +151,7 @@ fn assert_documented_normalized_limit_equals(
         Ok(())
     } else {
         Err(format!(
-            "expected normalized limit {expected}, got {}",
+            "expected normalised limit {expected}, got {}",
             params.limit()
         ))
     }

@@ -85,7 +85,8 @@ fn successful_decode_produces_span_without_error_events() {
 fn failing_decode_produces_no_error_events() {
     let recorder = TraceRecorder::default();
     let subscriber = RecordingSubscriber::new(recorder.clone());
-    let invalid_json = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(b"{not-json");
+    let invalid_json_payload =
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(b"not valid json {{{");
 
     with_default(subscriber, || {
         assert!(matches!(
@@ -97,7 +98,7 @@ fn failing_decode_produces_no_error_events() {
             Err(CursorError::TokenTooLong { .. })
         ));
         assert!(matches!(
-            Cursor::<serde_json::Value>::decode(&invalid_json),
+            Cursor::<String>::decode(&invalid_json_payload),
             Err(CursorError::Deserialize { .. })
         ));
     });
