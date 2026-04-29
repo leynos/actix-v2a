@@ -195,6 +195,9 @@ began after user approval.
 - [x] (2026-04-30 00:24Z) Replaced the documentation BDD synthetic serialize
   error with `Cursor::new(FailingKey).encode()` and added tracing capture
   coverage for cursor encode/decode spans and serialization error events.
+- [x] (2026-04-30 00:46Z) Converted pagination documentation BDD steps from
+  panic-based `expect` calls to `StepResult` error propagation and added decode
+  failure tracing coverage for caller-controlled cursor errors.
 
 ## Surprises & Discoveries
 

@@ -80,6 +80,25 @@ fn successful_decode_produces_span_without_error_events() {
     assert!(recorder.error_events().is_empty());
 }
 
+#[test]
+fn failing_decode_produces_no_error_events() {
+    let recorder = TraceRecorder::default();
+    let subscriber = RecordingSubscriber::new(recorder.clone());
+
+    with_default(subscriber, || {
+        assert!(matches!(
+            Cursor::<String>::decode("not!valid"),
+            Err(CursorError::InvalidBase64 { .. })
+        ));
+        assert!(matches!(
+            Cursor::<String>::decode(&"a".repeat(8 * 1024 + 1)),
+            Err(CursorError::TokenTooLong { .. })
+        ));
+    });
+
+    assert!(recorder.error_events().is_empty());
+}
+
 #[derive(Clone, Default)]
 struct TraceRecorder {
     spans: Arc<Mutex<Vec<String>>>,

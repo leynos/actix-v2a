@@ -10,7 +10,7 @@ use actix_v2a::pagination::{
 };
 use base64::Engine as _;
 use rstest::fixture;
-use rstest_bdd::Slot;
+use rstest_bdd::{Slot, StepResult};
 use rstest_bdd_macros::{ScenarioState, given, scenario, then, when};
 use serde::{Deserialize, Serialize, Serializer};
 
@@ -49,24 +49,24 @@ fn world() -> World {
 }
 
 #[given("pagination documentation parameters without a limit")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
-fn pagination_documentation_parameters_without_a_limit(world: &World) {
-    let params = PageParams::new(None, None).expect("default params should be valid");
+fn pagination_documentation_parameters_without_a_limit(world: &World) -> StepResult<(), String> {
+    let params = PageParams::new(None, None)
+        .map_err(|error| format!("default params should be valid: {error}"))?;
     world.page_params.set(params);
+    Ok(())
 }
 
 #[given("pagination documentation parameters with limit {limit:u64}")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
-fn pagination_documentation_parameters_with_limit(world: &World, limit: u64) {
-    let requested_limit = usize::try_from(limit).expect("fixture limit should fit usize");
-    let params = PageParams::new(None, Some(requested_limit)).expect("params should be valid");
+fn pagination_documentation_parameters_with_limit(
+    world: &World,
+    limit: u64,
+) -> StepResult<(), String> {
+    let requested_limit = usize::try_from(limit)
+        .map_err(|error| format!("fixture limit should fit usize: {error}"))?;
+    let params = PageParams::new(None, Some(requested_limit))
+        .map_err(|error| format!("params should be valid: {error}"))?;
     world.page_params.set(params);
+    Ok(())
 }
 
 #[given("an invalid base64 cursor token {token}")]
@@ -107,130 +107,153 @@ fn collect_cursor_error(errors: &mut Vec<CursorError>, result: Result<impl Sized
 }
 
 #[when("the documentation cursor is decoded")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
-fn the_documentation_cursor_is_decoded(world: &World) {
+fn the_documentation_cursor_is_decoded(world: &World) -> StepResult<(), String> {
     let token = world
         .cursor_token
         .get()
-        .expect("cursor token should be set")
+        .ok_or_else(|| "cursor token should be set".to_owned())?
         .clone();
     world
         .decode_result
         .set(Cursor::<FixtureKey>::decode(&token));
+    Ok(())
 }
 
 #[when("pagination documentation parameters are created with limit {limit:u64}")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
-fn pagination_documentation_parameters_are_created_with_limit(world: &World, limit: u64) {
-    let requested_limit = usize::try_from(limit).expect("fixture limit should fit usize");
+fn pagination_documentation_parameters_are_created_with_limit(
+    world: &World,
+    limit: u64,
+) -> StepResult<(), String> {
+    let requested_limit = usize::try_from(limit)
+        .map_err(|error| format!("fixture limit should fit usize: {error}"))?;
     let result = PageParams::new(None, Some(requested_limit));
     world.page_params_result.set(result);
+    Ok(())
 }
 
 #[then("the documented normalized limit equals DEFAULT_LIMIT")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
-fn the_documented_normalized_limit_equals_default_limit(world: &World) {
-    let params = world.page_params.get().expect("page params should be set");
+fn the_documented_normalized_limit_equals_default_limit(world: &World) -> StepResult<(), String> {
+    let params = world
+        .page_params
+        .get()
+        .ok_or_else(|| "page params should be set".to_owned())?;
 
-    assert_eq!(params.limit(), DEFAULT_LIMIT);
+    if params.limit() == DEFAULT_LIMIT {
+        Ok(())
+    } else {
+        Err(format!(
+            "expected normalized limit {DEFAULT_LIMIT}, got {}",
+            params.limit()
+        ))
+    }
 }
 
 #[then("the documented normalized limit equals MAX_LIMIT")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
-fn the_documented_normalized_limit_equals_max_limit(world: &World) {
-    let params = world.page_params.get().expect("page params should be set");
+fn the_documented_normalized_limit_equals_max_limit(world: &World) -> StepResult<(), String> {
+    let params = world
+        .page_params
+        .get()
+        .ok_or_else(|| "page params should be set".to_owned())?;
 
-    assert_eq!(params.limit(), MAX_LIMIT);
+    if params.limit() == MAX_LIMIT {
+        Ok(())
+    } else {
+        Err(format!(
+            "expected normalized limit {MAX_LIMIT}, got {}",
+            params.limit()
+        ))
+    }
 }
 
 #[then("page parameter creation fails with InvalidLimit error")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
-fn page_parameter_creation_fails_with_invalid_limit_error(world: &World) {
+fn page_parameter_creation_fails_with_invalid_limit_error(world: &World) -> StepResult<(), String> {
     let result = world
         .page_params_result
         .get()
-        .expect("page params result should be set");
+        .ok_or_else(|| "page params result should be set".to_owned())?;
 
-    assert_eq!(result, Err(PageParamsError::InvalidLimit));
+    if result == Err(PageParamsError::InvalidLimit) {
+        Ok(())
+    } else {
+        Err(format!("expected InvalidLimit error, got {result:?}"))
+    }
 }
 
 #[then("decoding fails with InvalidBase64 error")]
-fn decoding_fails_with_invalid_base64_error(world: &World) {
+fn decoding_fails_with_invalid_base64_error(world: &World) -> StepResult<(), String> {
     assert_decode_error(world, |error| {
         matches!(error, CursorError::InvalidBase64 { .. })
-    });
+    })
 }
 
 #[then("decoding fails with Deserialize error")]
-fn decoding_fails_with_deserialize_error(world: &World) {
+fn decoding_fails_with_deserialize_error(world: &World) -> StepResult<(), String> {
     assert_decode_error(world, |error| {
         matches!(error, CursorError::Deserialize { .. })
-    });
+    })
 }
 
 #[then("decoding fails with TokenTooLong error")]
-fn decoding_fails_with_token_too_long_error(world: &World) {
+fn decoding_fails_with_token_too_long_error(world: &World) -> StepResult<(), String> {
     assert_decode_error(world, |error| {
         matches!(error, CursorError::TokenTooLong { .. })
-    });
+    })
 }
 
-#[expect(
-    clippy::expect_used,
-    reason = "BDD helpers use expect for clear failures"
-)]
-fn assert_decode_error(world: &World, matches_error: impl FnOnce(&CursorError) -> bool) {
+fn assert_decode_error(
+    world: &World,
+    matches_error: impl FnOnce(&CursorError) -> bool,
+) -> StepResult<(), String> {
     let result = world
         .decode_result
         .get()
-        .expect("decode result should be set");
-    let error = result.as_ref().expect_err("cursor decoding should fail");
+        .ok_or_else(|| "decode result should be set".to_owned())?;
 
-    assert!(matches_error(error));
+    match result {
+        Err(error) if matches_error(&error) => Ok(()),
+        Err(error) => Err(format!(
+            "cursor decoding failed with unexpected error: {error:?}"
+        )),
+        Ok(cursor) => Err(format!("cursor decoding should fail, got {cursor:?}")),
+    }
 }
 
 #[then("each documented cursor error variant is represented")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
-fn each_documented_cursor_error_variant_is_represented(world: &World) {
+fn each_documented_cursor_error_variant_is_represented(world: &World) -> StepResult<(), String> {
     let errors = world
         .cursor_errors
         .get()
-        .expect("cursor errors should be set");
+        .ok_or_else(|| "cursor errors should be set".to_owned())?;
 
-    assert!(errors.iter().any(
-        |error| matches!(error, CursorError::InvalidBase64 { message } if !message.is_empty())
-    ));
-    assert!(
-        errors.iter().any(
-            |error| matches!(error, CursorError::Deserialize { message } if !message.is_empty())
-        )
+    let has_invalid_base64 = errors.iter().any(
+        |error| matches!(error, CursorError::InvalidBase64 { message } if !message.is_empty()),
     );
-    assert!(errors.iter().any(
-        |error| matches!(error, CursorError::TokenTooLong { max_len } if *max_len == 8 * 1024)
-    ));
-    assert!(
-        errors.iter().any(
-            |error| matches!(error, CursorError::Serialize { message } if !message.is_empty())
-        )
+    let has_deserialize = errors
+        .iter()
+        .any(|error| matches!(error, CursorError::Deserialize { message } if !message.is_empty()));
+    let has_token_too_long = errors.iter().any(
+        |error| matches!(error, CursorError::TokenTooLong { max_len } if *max_len == 8 * 1024),
     );
+    let has_serialize = errors
+        .iter()
+        .any(|error| matches!(error, CursorError::Serialize { message } if !message.is_empty()));
+
+    let all_variants_represented = [
+        has_invalid_base64,
+        has_deserialize,
+        has_token_too_long,
+        has_serialize,
+    ]
+    .into_iter()
+    .all(std::convert::identity);
+
+    if all_variants_represented {
+        Ok(())
+    } else {
+        Err(format!(
+            "expected every documented cursor error variant, got {errors:?}"
+        ))
+    }
 }
 
 #[test]
