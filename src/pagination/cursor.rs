@@ -175,7 +175,11 @@ where
     /// Returns [`CursorError::Serialize`] when the cursor key cannot be
     /// serialized into JSON.
     #[instrument(skip(self))]
-    pub fn encode(&self) -> Result<String, CursorError> { encode_cursor(self) }
+    pub fn encode(&self) -> Result<String, CursorError> {
+        encode_cursor(self).inspect_err(|error| {
+            tracing::error!(error = %error, "cursor serialization failed");
+        })
+    }
 }
 
 impl<Key> Cursor<Key>
@@ -198,11 +202,8 @@ fn encode_cursor<Key>(cursor: &Cursor<Key>) -> Result<String, CursorError>
 where
     Key: Serialize,
 {
-    let payload = serde_json::to_vec(cursor).map_err(|e| {
-        tracing::error!(error = %e, "cursor serialization failed");
-        CursorError::Serialize {
-            message: e.to_string(),
-        }
+    let payload = serde_json::to_vec(cursor).map_err(|error| CursorError::Serialize {
+        message: error.to_string(),
     })?;
     Ok(URL_SAFE_NO_PAD.encode(payload))
 }

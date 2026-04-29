@@ -186,6 +186,9 @@ began after user approval.
   `markdownlint` path clause, documented `CursorError::TokenTooLong` on
   `Cursor::decode`, and collapsed pagination HTTP error cases into one
   parameterized `rstest`.
+- [x] (2026-04-30 00:06Z) Moved the cursor serialization error event from the
+  private `encode_cursor` helper to the public `Cursor::encode` boundary and
+  updated the module observability contract.
 
 ## Surprises & Discoveries
 
