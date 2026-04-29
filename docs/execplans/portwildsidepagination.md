@@ -203,6 +203,8 @@ began after user approval.
 - [x] (2026-04-30 01:10Z) Aligned the normalized-limit helper name, argument
   order, and en-GB error text with review guidance, and used a structurally
   invalid JSON payload for deserialize tracing coverage.
+- [x] (2026-04-30 01:18Z) Documented the `Cursor::decode` parameter rename
+  from `value` to `token` in the user guide API changes section.
 
 ## Surprises & Discoveries
 

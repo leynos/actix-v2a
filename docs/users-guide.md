@@ -113,6 +113,14 @@ async fn list_users() {}
 Endpoint response schemata should describe the concrete item type carried in
 `Paginated<T>` because each endpoint owns its item schema and cursor key shape.
 
+## API changes
+
+### `Cursor::decode` parameter rename
+
+The `value` parameter of `Cursor::decode` has been renamed to `token` to better
+reflect its role as an opaque cursor token. Call sites are unaffected; no
+source changes are required.
+
 ## Server-Sent Events (SSE) helpers
 
 The `sse` module provides wire-level helpers for implementing Server-Sent
