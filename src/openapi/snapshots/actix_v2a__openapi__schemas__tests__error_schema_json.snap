@@ -1,0 +1,5 @@
+---
+source: src/openapi/schemas.rs
+expression: schema
+---
+{"type":"object","description":"`OpenAPI` schema for [`crate::Error`].","required":["code","message"],"properties":{"code":{"$ref":"#/components/schemas/crate.ErrorCode","description":"Stable machine-readable error code."},"details":{"description":"Supplementary error details for clients."},"message":{"type":"string","description":"Human-readable message returned to clients.","example":"Something went wrong"},"traceId":{"type":["string","null"],"description":"Correlation identifier for tracing this error across systems.","example":"trace-123"}}}

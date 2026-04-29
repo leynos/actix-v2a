@@ -1,4 +1,9 @@
 //! Opaque cursor encoding and decoding helpers.
+//!
+//! A cursor is a base64url-encoded JSON representation of one ordering key and
+//! a pagination direction. The token is URL-safe and opaque to clients, but it
+//! is not signed or encrypted. Do not place secrets in cursor keys, and treat
+//! decoded cursor data as caller-controlled input.
 
 use base64::{
     Engine as _,
@@ -6,6 +11,7 @@ use base64::{
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use thiserror::Error;
+use tracing::instrument;
 
 const MAX_CURSOR_TOKEN_LEN: usize = 8 * 1024;
 
@@ -168,11 +174,11 @@ where
     ///
     /// Returns [`CursorError::Serialize`] when the cursor key cannot be
     /// serialized into JSON.
+    #[instrument(skip(self))]
     pub fn encode(&self) -> Result<String, CursorError> {
-        let payload = serde_json::to_vec(self).map_err(|error| CursorError::Serialize {
-            message: error.to_string(),
-        })?;
-        Ok(URL_SAFE_NO_PAD.encode(payload))
+        encode_cursor(self).inspect_err(|error| {
+            tracing::error!(error = %error, "cursor serialization failed");
+        })
     }
 }
 
@@ -184,26 +190,43 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`CursorError::InvalidBase64`] when `value` is not valid
-    /// base64url and [`CursorError::Deserialize`] when the decoded JSON does
+    /// Returns [`CursorError::TokenTooLong`] when `token` exceeds the accepted
+    /// input size, [`CursorError::InvalidBase64`] when `token` is not valid
+    /// base64url, and [`CursorError::Deserialize`] when the decoded JSON does
     /// not match the expected cursor shape.
-    pub fn decode(value: &str) -> Result<Self, CursorError> {
-        if value.len() > MAX_CURSOR_TOKEN_LEN {
-            return Err(CursorError::TokenTooLong {
-                max_len: MAX_CURSOR_TOKEN_LEN,
-            });
-        }
+    #[instrument(skip(token))]
+    pub fn decode(token: &str) -> Result<Self, CursorError> { decode_cursor(token) }
+}
 
-        let payload = URL_SAFE_NO_PAD
-            .decode(value)
-            .or_else(|_| URL_SAFE.decode(value))
-            .map_err(|error| CursorError::InvalidBase64 {
-                message: error.to_string(),
-            })?;
-        serde_json::from_slice(&payload).map_err(|error| CursorError::Deserialize {
-            message: error.to_string(),
-        })
+fn encode_cursor<Key>(cursor: &Cursor<Key>) -> Result<String, CursorError>
+where
+    Key: Serialize,
+{
+    let payload = serde_json::to_vec(cursor).map_err(|error| CursorError::Serialize {
+        message: error.to_string(),
+    })?;
+    Ok(URL_SAFE_NO_PAD.encode(payload))
+}
+
+fn decode_cursor<Key>(token: &str) -> Result<Cursor<Key>, CursorError>
+where
+    Key: DeserializeOwned,
+{
+    if token.len() > MAX_CURSOR_TOKEN_LEN {
+        return Err(CursorError::TokenTooLong {
+            max_len: MAX_CURSOR_TOKEN_LEN,
+        });
     }
+
+    let payload = URL_SAFE_NO_PAD
+        .decode(token)
+        .or_else(|_| URL_SAFE.decode(token))
+        .map_err(|error| CursorError::InvalidBase64 {
+            message: error.to_string(),
+        })?;
+    serde_json::from_slice(&payload).map_err(|error| CursorError::Deserialize {
+        message: error.to_string(),
+    })
 }
 
 #[cfg(test)]
@@ -212,7 +235,7 @@ mod tests {
 
     use base64::Engine as _;
     use rstest::{fixture, rstest};
-    use serde::{Deserialize, Serialize};
+    use serde::{Deserialize, Serialize, Serializer};
 
     use super::{Cursor, CursorError, Direction, MAX_CURSOR_TOKEN_LEN};
 
@@ -220,6 +243,17 @@ mod tests {
     struct FixtureKey {
         created_at: String,
         id: String,
+    }
+
+    struct FailingKey;
+
+    impl Serialize for FailingKey {
+        fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            Err(serde::ser::Error::custom("fixture serialization failed"))
+        }
     }
 
     #[fixture]
@@ -234,13 +268,15 @@ mod tests {
     const _CONST_DIRECTIONAL_CURSOR: Cursor<&str> =
         Cursor::with_direction("compile-time-test", Direction::Prev);
 
-    fn encode_without_padding(cursor: &Cursor<FixtureKey>) -> String {
-        cursor.encode().expect("cursor encoding should succeed")
+    fn encode_without_padding(cursor: &Cursor<FixtureKey>) -> Result<String, CursorError> {
+        cursor.encode()
     }
 
-    fn encode_with_padding(cursor: &Cursor<FixtureKey>) -> String {
-        let payload = serde_json::to_vec(cursor).expect("cursor should serialize");
-        base64::engine::general_purpose::URL_SAFE.encode(payload)
+    fn encode_with_padding(cursor: &Cursor<FixtureKey>) -> Result<String, CursorError> {
+        let payload = serde_json::to_vec(cursor).map_err(|error| CursorError::Serialize {
+            message: error.to_string(),
+        })?;
+        Ok(base64::engine::general_purpose::URL_SAFE.encode(payload))
     }
 
     #[rstest]
@@ -248,15 +284,29 @@ mod tests {
     #[case::padded(encode_with_padding)]
     fn cursor_decodes_successfully(
         fixture_key: FixtureKey,
-        #[case] encode: for<'a> fn(&'a Cursor<FixtureKey>) -> String,
+        #[case] encode: for<'a> fn(&'a Cursor<FixtureKey>) -> Result<String, CursorError>,
     ) {
         let cursor = Cursor::new(fixture_key);
-        let encoded = encode(&cursor);
+        let encoded = encode(&cursor).expect("cursor encoding should succeed");
 
         let decoded =
             Cursor::<FixtureKey>::decode(&encoded).expect("cursor decoding should succeed");
 
         assert_eq!(decoded, cursor);
+    }
+
+    #[test]
+    fn cursor_encode_reports_serialization_failure() {
+        let cursor = Cursor::new(FailingKey);
+
+        let result = cursor.encode();
+
+        assert_eq!(
+            result,
+            Err(CursorError::Serialize {
+                message: "fixture serialization failed".to_owned(),
+            })
+        );
     }
 
     #[rstest]

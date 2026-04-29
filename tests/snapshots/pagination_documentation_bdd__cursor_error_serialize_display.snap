@@ -1,0 +1,5 @@
+---
+source: tests/pagination_documentation_bdd.rs
+expression: "CursorError::Serialize\n{ message: \"fixture serialization failed\".to_owned(), }.to_string()"
+---
+cursor JSON serialization failed: fixture serialization failed

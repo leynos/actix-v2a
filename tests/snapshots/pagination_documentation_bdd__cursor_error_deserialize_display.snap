@@ -1,0 +1,5 @@
+---
+source: tests/pagination_documentation_bdd.rs
+expression: "CursorError::Deserialize\n{ message: \"expected ident at line 1 column 2\".to_owned(), }.to_string()"
+---
+cursor JSON deserialization failed: expected ident at line 1 column 2

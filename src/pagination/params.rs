@@ -1,4 +1,10 @@
 //! Query parameter parsing and normalization for paginated endpoints.
+//!
+//! [`PageParams`] is the shared query DTO for `cursor` and `limit`. Its custom
+//! `Deserialize` implementation applies the same normalization as
+//! [`PageParams::new`]: missing limits default to [`DEFAULT_LIMIT`], oversized
+//! limits clamp to [`MAX_LIMIT`], and zero limits are rejected. This keeps
+//! Actix Web query extractors and hand-built parameters aligned.
 
 use serde::{Deserialize, Deserializer, Serialize};
 use thiserror::Error;
@@ -94,6 +100,7 @@ fn normalize_limit(limit: Option<usize>) -> Result<usize, PageParamsError> {
 mod tests {
     //! Unit tests for page parameter normalization.
 
+    use rstest::rstest;
     use serde_json::json;
 
     use super::{DEFAULT_LIMIT, MAX_LIMIT, PageParams, PageParamsError};
@@ -106,12 +113,19 @@ mod tests {
         assert_eq!(params.cursor(), None);
     }
 
-    #[test]
-    fn page_params_cap_limit_to_shared_maximum() {
-        let params = PageParams::new(Some("opaque".to_owned()), Some(MAX_LIMIT + 50))
-            .expect("oversized limit should clamp");
+    #[rstest]
+    #[case::one_below_max(MAX_LIMIT - 1, MAX_LIMIT - 1)]
+    #[case::exact_max(MAX_LIMIT, MAX_LIMIT)]
+    #[case::one_above_max(MAX_LIMIT + 1, MAX_LIMIT)]
+    #[case::far_above_max(MAX_LIMIT + 50, MAX_LIMIT)]
+    fn page_params_normalize_limits_around_shared_maximum(
+        #[case] requested_limit: usize,
+        #[case] expected_limit: usize,
+    ) {
+        let params = PageParams::new(Some("opaque".to_owned()), Some(requested_limit))
+            .expect("limit should normalize");
 
-        assert_eq!(params.limit(), MAX_LIMIT);
+        assert_eq!(params.limit(), expected_limit);
         assert_eq!(params.cursor(), Some("opaque"));
     }
 
