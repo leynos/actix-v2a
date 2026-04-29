@@ -195,7 +195,7 @@ Cargo's default install directory. The `clean`, `test`, `build`, `release`,
 environment.
 
 The `test` target also detects `cargo-nextest` through `CARGO_ENV`. Install
-`cargo-nextest` under `~/.cargo/bin` when you want `make test` to use nextest:
+`cargo-nextest` to `~/.cargo/bin` to enable `make test` to use nextest.
 
 ```bash
 cargo install cargo-nextest
@@ -212,7 +212,7 @@ BUN_BIN ?= $(HOME)/.bun/bin
 
 Unlike Cargo-based targets, `markdownlint` does not use a shared environment
 variable such as `CARGO_ENV`. Its recipe prepends `$(BUN_BIN)` directly to
-`PATH`, which resolves to `$(HOME)/.bun/bin`, because `markdownlint-cli2` is
+`PATH`, which resolves to `$(HOME)/.bun/bin` because `markdownlint-cli2` is
 installed there in the standard development environment:
 
 ```bash

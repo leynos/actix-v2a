@@ -186,8 +186,9 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`CursorError::InvalidBase64`] when `token` is not valid
-    /// base64url and [`CursorError::Deserialize`] when the decoded JSON does
+    /// Returns [`CursorError::TokenTooLong`] when `token` exceeds the accepted
+    /// input size, [`CursorError::InvalidBase64`] when `token` is not valid
+    /// base64url, and [`CursorError::Deserialize`] when the decoded JSON does
     /// not match the expected cursor shape.
     #[instrument(skip(token))]
     pub fn decode(token: &str) -> Result<Self, CursorError> { decode_cursor(token) }

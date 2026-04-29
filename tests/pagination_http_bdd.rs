@@ -10,10 +10,11 @@ use actix_web::{
     HttpRequest,
     HttpResponse,
     Responder,
-    test,
+    test as actix_test,
     web::{self, ServiceConfig},
 };
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+use rstest::rstest;
 use serde::{Deserialize, Serialize, Serializer};
 use url::Url;
 
@@ -58,66 +59,44 @@ impl Serialize for FailingKey {
     }
 }
 
+#[rstest]
+#[case::zero_limit(
+    "/items?limit=0".to_owned(),
+    actix_web::http::StatusCode::BAD_REQUEST,
+    ErrorCode::InvalidRequest
+)]
+#[case::malformed_base64_cursor(
+    "/items?cursor=not!valid".to_owned(),
+    actix_web::http::StatusCode::BAD_REQUEST,
+    ErrorCode::InvalidRequest
+)]
+#[case::json_invalid_cursor(
+    format!(
+        "/items?cursor={}",
+        URL_SAFE_NO_PAD.encode(b"{}")
+    ),
+    actix_web::http::StatusCode::BAD_REQUEST,
+    ErrorCode::InvalidRequest
+)]
+#[case::oversized_cursor(
+    format!("/items?cursor={}", "a".repeat(OVERSIZED_CURSOR_LEN)),
+    actix_web::http::StatusCode::BAD_REQUEST,
+    ErrorCode::InvalidRequest
+)]
+#[case::cursor_serialize(
+    "/items?forceSerializeFailure=true".to_owned(),
+    actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
+    ErrorCode::InternalError
+)]
 #[actix_web::test]
-async fn zero_limit_maps_to_invalid_request() {
-    let response = dispatch("/items?limit=0").await;
+async fn pagination_errors_map_to_documented_http_envelopes(
+    #[case] uri: String,
+    #[case] expected_status: actix_web::http::StatusCode,
+    #[case] expected_code: ErrorCode,
+) {
+    let response = dispatch(&uri).await;
 
-    assert_error_response(
-        response,
-        actix_web::http::StatusCode::BAD_REQUEST,
-        ErrorCode::InvalidRequest,
-    )
-    .await;
-}
-
-#[actix_web::test]
-async fn malformed_base64_cursor_maps_to_invalid_request() {
-    let response = dispatch("/items?cursor=not!valid").await;
-
-    assert_error_response(
-        response,
-        actix_web::http::StatusCode::BAD_REQUEST,
-        ErrorCode::InvalidRequest,
-    )
-    .await;
-}
-
-#[actix_web::test]
-async fn json_invalid_cursor_maps_to_invalid_request() {
-    let token = URL_SAFE_NO_PAD.encode(b"{}");
-    let response = dispatch(&format!("/items?cursor={token}")).await;
-
-    assert_error_response(
-        response,
-        actix_web::http::StatusCode::BAD_REQUEST,
-        ErrorCode::InvalidRequest,
-    )
-    .await;
-}
-
-#[actix_web::test]
-async fn oversized_cursor_maps_to_invalid_request() {
-    let token = "a".repeat(OVERSIZED_CURSOR_LEN);
-    let response = dispatch(&format!("/items?cursor={token}")).await;
-
-    assert_error_response(
-        response,
-        actix_web::http::StatusCode::BAD_REQUEST,
-        ErrorCode::InvalidRequest,
-    )
-    .await;
-}
-
-#[actix_web::test]
-async fn cursor_serialize_maps_to_internal_error() {
-    let response = dispatch("/items?forceSerializeFailure=true").await;
-
-    assert_error_response(
-        response,
-        actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
-        ErrorCode::InternalError,
-    )
-    .await;
+    assert_error_response(response, expected_status, expected_code).await;
 }
 
 #[actix_web::test]
@@ -126,7 +105,7 @@ async fn valid_request_returns_paginated_fixture_items() {
 
     assert_eq!(response.status(), actix_web::http::StatusCode::OK);
 
-    let body: PaginatedResponse = test::read_body_json(response).await;
+    let body: PaginatedResponse = actix_test::read_body_json(response).await;
     assert_eq!(body.limit, 2);
     assert_eq!(
         body.data,
@@ -147,10 +126,10 @@ async fn valid_request_returns_paginated_fixture_items() {
 }
 
 async fn dispatch(uri: &str) -> actix_web::dev::ServiceResponse<actix_web::body::BoxBody> {
-    let app = test::init_service(App::new().configure(configure_routes)).await;
-    let request = test::TestRequest::get().uri(uri).to_request();
+    let app = actix_test::init_service(App::new().configure(configure_routes)).await;
+    let request = actix_test::TestRequest::get().uri(uri).to_request();
 
-    test::call_service(&app, request).await
+    actix_test::call_service(&app, request).await
 }
 
 fn configure_routes(config: &mut ServiceConfig) {
@@ -229,6 +208,6 @@ async fn assert_error_response(
 ) {
     assert_eq!(response.status(), expected_status);
 
-    let body: Error = test::read_body_json(response).await;
+    let body: Error = actix_test::read_body_json(response).await;
     assert_eq!(body.code(), expected_code);
 }

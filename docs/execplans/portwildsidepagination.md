@@ -182,6 +182,11 @@ and documentation port itself starts only after approval.
   documentation and pagination HTTP query parsing, then clarified the
   `markdownlint` inline `PATH` behaviour and replaced substring matching with
   exact query-parameter parsing.
+- [x] (2026-04-29 23:27Z) Verified follow-up review findings, then removed
+  second-person build-tooling prose, fixed punctuation around the
+  `markdownlint` path clause, documented `CursorError::TokenTooLong` on
+  `Cursor::decode`, and collapsed pagination HTTP error cases into one
+  parameterized `rstest`.
 
 ## Surprises & Discoveries
 
