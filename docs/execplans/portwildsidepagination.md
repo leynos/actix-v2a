@@ -166,6 +166,12 @@ and documentation port itself starts only after approval.
   stale Stage B plan text to match variant-and-field error assertions, and made
   `decode_response` return observed status, trace header, and payload values
   for caller-side assertions.
+- [x] (2026-04-29 22:10Z) Added snapshot tests for documented pagination error
+  display text and shared OpenAPI schema JSON, accepted the initial `insta`
+  snapshots, and documented that `trybuild` is unnecessary because no
+  compile-time public API constraint was identified.
+- [x] (2026-04-29 22:31Z) Added handler-level Actix integration tests for the
+  pagination HTTP error-mapping table and a valid `Paginated<T>` response.
 
 ## Surprises & Discoveries
 
@@ -636,3 +642,7 @@ hook environment.
 Revision note: Review comments were addressed on 2026-04-27 by correcting the
 pagination URL example, removing message-substring coupling from the
 documentation BDD test, and expanding first-use acronyms.
+
+Revision note: Follow-up hardening continued on 2026-04-29 with tracing
+instrumentation, snapshot tests, and handler-level HTTP integration coverage
+for the pagination mapping contract.
