@@ -631,8 +631,8 @@ change after reviewing this draft.
 Revision note: Initial draft created after reviewing Wildside commit
 `9d6b7655e3ad1a666a0e96beebd0a27b0d139388` and the current `actix-v2a`
 pagination surface. The plan was then updated with planning-gate evidence and
-the local `mdformat-all` limitation. The remaining work is blocked on explicit
-approval because this plan recommends implementation changes beyond the
+the local `mdformat-all` limitation. The remaining work was blocked on explicit
+approval because this plan recommended implementation changes beyond the
 planning phase.
 
 Revision note: Implementation began on 2026-04-27 after explicit user approval.
