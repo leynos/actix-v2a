@@ -365,6 +365,74 @@ now complete:
 
 See [`roadmap.md`](roadmap.md) for the full delivery plan.
 
+## Pagination module internals
+
+The `src/pagination/` module provides reusable cursor pagination primitives
+without binding the crate to a database, repository, or route shape.
+
+### Pagination module layout
+
+- `src/pagination/mod.rs` — module documentation, public re-exports, and the
+  documented pagination error-mapping table.
+- `src/pagination/cursor.rs` — `Cursor<Key>` encoding and decoding, direction
+  handling, token validation, and tracing spans.
+- `src/pagination/params.rs` — `PageParams` parsing, limit normalisation, and
+  shared query parameter constants.
+- `src/pagination/envelope.rs` — `Paginated<T>` response envelopes and
+  `PaginationLinks` link construction.
+
+### Cursor ordering invariant
+
+Cursor keys must implement `Serialize` and `Deserialize` with a consistent
+representation that is compatible with the endpoint's total ordering. The
+module encodes and decodes opaque cursor tokens, but it does not prove that a
+database query, index, or repository predicate applies the same ordering on
+every page. Downstream persistence logic owns that invariant.
+
+### Limit normalisation
+
+`PageParams` normalises page limits consistently:
+
+- missing `limit` values use `DEFAULT_LIMIT`;
+- limits greater than `MAX_LIMIT` are clamped to `MAX_LIMIT`;
+- `limit=0` is rejected with `PageParamsError::InvalidLimit`.
+
+### Tracing
+
+`Cursor::encode` and `Cursor::decode` are instrumented with `#[instrument]`
+spans. `CursorError::Serialize` additionally emits a `tracing::error!` event at
+the public `Cursor::encode` boundary because it indicates that the server could
+not serialise its own cursor key. The caller-controlled variants
+`CursorError::InvalidBase64`, `CursorError::Deserialize`,
+`CursorError::TokenTooLong`, and `PageParamsError::InvalidLimit` do not emit
+library error events.
+
+### Pagination error mapping
+
+HTTP adapters should map caller-controlled pagination failures to HTTP 400 and
+`ErrorCode::InvalidRequest`:
+
+- `CursorError::InvalidBase64`
+- `CursorError::Deserialize`
+- `CursorError::TokenTooLong`
+- `PageParamsError::InvalidLimit`
+
+`CursorError::Serialize` should map to HTTP 500 and
+`ErrorCode::InternalError` because it is a server-side serialisation failure.
+
+### Testing patterns
+
+Pagination tests are split by contract:
+
+- `tests/pagination_documentation_bdd.rs` validates documented invariants for
+  limits, cursor errors, and display text.
+- `tests/pagination_http_bdd.rs` verifies handler-level HTTP status and
+  `ErrorCode` mappings.
+- `tests/pagination_tracing_tests.rs` verifies cursor span and event
+  observability.
+- `tests/snapshots/` stores `insta` snapshots for error `Display` outputs and
+  OpenAPI schema JSON.
+
 ## Additional resources
 
 - [ADR 001: Shared SSE wire contract for Wildside and
@@ -376,4 +444,8 @@ See [`roadmap.md`](roadmap.md) for the full delivery plan.
 - [ExecPlan: Implement SSE frame and cache-header
   helpers](execplans/1-1-2-sse-frame-and-cache-header-helpers.md) —
   implementation plan for task 1.1.2
+- [Port Wildside pagination documentation hardening
+  execplan](execplans/portwildsidepagination.md) — records the port scope,
+  constraints, surprises, and acceptance criteria for the pagination
+  documentation hardening workstream
 - [AGENTS.md](../AGENTS.md) — code style, testing, and commit conventions

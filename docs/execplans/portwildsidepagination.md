@@ -205,6 +205,9 @@ began after user approval.
   invalid JSON payload for deserialize tracing coverage.
 - [x] (2026-04-30 01:18Z) Documented the `Cursor::decode` parameter rename
   from `value` to `token` in the user guide API changes section.
+- [x] (2026-04-30 01:28Z) Added pagination internals to the developer guide,
+  linked this ExecPlan from additional resources, and marked the pagination
+  documentation hardening workstream complete in the roadmap.
 
 ## Surprises & Discoveries
 
