@@ -448,7 +448,11 @@ use rstest::*;
 // fn db_connection() -> UserDb { UserDb::new() }
 
 // #[rstest]
-// fn test_user_retrieval(db_connection: UserDb, #[case] user_id: u32, #[case] expected_name: Option<&str>) {
+// fn test_user_retrieval(
+//     db_connection: UserDb,
+//     #[case] user_id: u32,
+//     #[case] expected_name: Option<&str>,
+// ) {
 //     let user = db_connection.fetch_user(user_id);
 //     assert_eq!(user.map(|u| u.name), expected_name.map(String::from));
 // }
@@ -486,7 +490,10 @@ fn derived_value(base_value: i32) -> i32 {
 }
 
 #[fixture]
-fn configured_item(derived_value: i32, #[default("item_")] prefix: String) -> String {
+fn configured_item(
+    derived_value: i32,
+    #[default("item_")] prefix: String,
+) -> String {
     format!("{}{}", prefix, derived_value)
 }
 
@@ -496,7 +503,9 @@ fn test_composed_fixture(configured_item: String) {
 }
 
 #[rstest]
-fn test_composed_fixture_with_override(#[with("special_")] configured_item: String) {
+fn test_composed_fixture_with_override(
+    #[with("special_")] configured_item: String,
+) {
     assert_eq!(configured_item, "special_20");
 }
 ```
@@ -579,12 +588,16 @@ fn complex_user_data_fixture() -> (String, u32, String) {
 }
 
 #[rstest]
-fn test_with_renamed_fixture(#[from(complex_user_data_fixture)] user_info: (String, u32, String)) {
+fn test_with_renamed_fixture(
+    #[from(complex_user_data_fixture)] user_info: (String, u32, String),
+) {
     assert_eq!(user_info.0, "Alice");
 }
 
 #[rstest]
-fn test_with_destructured_fixture(#[from(complex_user_data_fixture)] (name, _, _): (String, u32, String)) {
+fn test_with_destructured_fixture(
+    #[from(complex_user_data_fixture)] (name, _, _): (String, u32, String),
+) {
     assert_eq!(name, "Alice");
 }
 ```
@@ -877,12 +890,14 @@ fn temp_directory() -> TempDir {
     tempdir().expect("Failed to create temporary directory")
 }
 
-// Fixture that creates a temporary file with specific content within a temp directory.
+// Fixture that creates a temporary file with specific content within a temp
+// directory.
 // It depends on the temp_directory fixture.
 #[fixture]
 fn temp_file_with_content(
     #[from(temp_directory)] // Use #[from] if name differs or for clarity
-    temp_dir: &TempDir, // Take a reference to ensure TempDir outlives this fixture's direct use
+    // Take a reference to ensure TempDir outlives this fixture's direct use.
+    temp_dir: &TempDir,
     #[default("Hello, rstest from a temp file!")] content: &str
 ) -> PathBuf {
     let file_path = temp_dir.path().join("my_temp_file.txt");
@@ -894,7 +909,8 @@ fn temp_file_with_content(
 #[rstest]
 fn test_read_from_temp_file(temp_file_with_content: PathBuf) {
     assert!(temp_file_with_content.exists());
-    let mut file = File::open(temp_file_with_content).expect("Failed to open temp file");
+    let mut file =
+        File::open(temp_file_with_content).expect("Failed to open temp file");
     let mut read_content = String::new();
     file.read_to_string(&mut read_content).expect("Failed to read temp file");
     assert_eq!(read_content, "Hello, rstest from a temp file!");
@@ -989,8 +1005,9 @@ impl UserService {
 fn test_user_service_with_mock_db(mock_db_returns_alice: MockMyDatabase) {
     let user_service = UserService::new(Arc::new(mock_db_returns_alice));
     assert_eq!(user_service.fetch_username(1), Some("Alice".to_string()));
-    // Accessing mock_db_returns_alice.called directly here is problematic due to move.
-    // In a real mockall scenario, expectations would be checked on the mock object.
+    // Accessing mock_db_returns_alice.called directly here is problematic due
+    // to move. In a real mockall scenario, expectations would be checked on
+    // the mock object.
 }
 ```
 
@@ -1030,7 +1047,8 @@ fn process_text_file(#[files] path: PathBuf) {
 }
 
 #[rstest]
-#[files("tests/test_data/*.json", mode = "str")] // Injects content of each.json file as &str
+// Injects content of each .json file as &str.
+#[files("tests/test_data/*.json", mode = "str")]
 fn process_json_content(#[files] content: &str) {
     println!("Processing JSON content (first 50 chars): {:.50}", content);
     assert!(content.contains("{")); // Basic check for JSON-like content
@@ -1172,6 +1190,7 @@ The following table summarizes key differences:
 **Table 1:** `rstest` vs standard Rust `#[test]` for fixture management and
 parameterisation
 
+<!-- markdownlint-disable MD013 -->
 | Feature                                  | Standard #[test] Approach                                     | rstest Approach                                                                  |
 | ---------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | Fixture Injection                        | Manual calls to setup functions within each test.             | Fixture name as argument in #[rstest] function; fixture defined with #[fixture]. |
@@ -1179,6 +1198,7 @@ parameterisation
 | Parameterized Tests (Value Combinations) | Nested loops inside one test, or complex manual generation.   | #[values(…)] attributes on arguments of #[rstest] function.                      |
 | Async Fixture Setup                      | Manual async block and .await calls inside test.              | async fn fixtures, with #[future] and #[awt] for ergonomic `.await`ing.          |
 | Reusing Parameter Sets                   | Manual duplication of cases or custom helper macros.          | rstest_reuse crate with #[template] and #[apply] attributes.                     |
+<!-- markdownlint-enable MD013 -->
 
 This comparison highlights how `rstest`'s attribute-based, declarative approach
 streamlines common testing patterns, reduces manual effort, and improves the
@@ -1339,6 +1359,7 @@ provided by `rstest`:
 
 **Table 2:** Key `rstest` attributes quick reference
 
+<!-- markdownlint-disable MD013 -->
 | Attribute                    | Core Purpose                                                                                 |
 | ---------------------------- | -------------------------------------------------------------------------------------------- |
 | #[rstest]                    | Marks a function as an rstest test; enables fixture injection and parameterization.          |
@@ -1353,6 +1374,7 @@ provided by `rstest`:
 | #[default(…)]                | Provides default values for arguments within a fixture function.                             |
 | #[timeout(…)]                | Sets a timeout for an asynchronous test.                                                     |
 | #[files("glob_pattern",…)]   | Injects file paths (or contents, with mode=) matching a glob pattern as test arguments.      |
+<!-- markdownlint-enable MD013 -->
 
 By mastering `rstest`, Rust developers can significantly elevate the quality
 and efficiency of their testing practices, leading to more reliable,

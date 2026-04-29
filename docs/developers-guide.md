@@ -330,15 +330,20 @@ Avoid underscore-prefixed label parameters in rstest cases (triggers
 
 ### Behavioural tests
 
-Use `rstest-bdd` when the scenario structure adds clarity. The SSE module
-currently uses only unit tests because the validation and rendering logic is
-deterministic string and header formatting that does not benefit from
-Given/When/Then structure.
+Use `rstest-bdd` when the scenario structure adds clarity. The SSE module keeps
+detailed edge-case coverage in module-local unit tests, then uses
+`tests/sse_wire_contract_bdd.rs` and `tests/features/sse_wire_contract.feature`
+for downstream-style scenarios that compose the public crate-root re-exports.
+Keep this split: add precise validation permutations beside the helper being
+tested, and add behavioural scenarios only when they prove the published wire
+contract more clearly than a direct assertion test.
 
 ### Test organization
 
 Tests live in `#[cfg(test)] mod tests` blocks within the implementation file.
-Module-level tests use `//!` comments to describe coverage scope:
+Integration contract tests live under `tests/` and must import from
+`actix_v2a`, not private module paths. Module-level tests use `//!` comments to
+describe coverage scope:
 
 ```rust
 #[cfg(test)]

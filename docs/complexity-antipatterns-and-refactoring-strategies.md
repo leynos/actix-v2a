@@ -605,7 +605,9 @@ represented as dictionaries.[^24]
 ```python
   event_data = get_event()
   if "type" in event_data and event_data["type"] == "click":
-      if "position" in event_data and isinstance(event_data["position"], tuple) and len(event_data["position"]) == 2:
+      has_position = "position" in event_data
+      is_point = isinstance(event_data["position"], tuple)
+      if has_position and is_point and len(event_data["position"]) == 2:
           x, y = event_data["position"]
           handle_click(x, y)
   elif "type" in event_data and event_data["type"] == "keypress":
@@ -621,9 +623,11 @@ represented as dictionaries.[^24]
   ```python
   event_data = get_event()
   match event_data:
-      case {"type": "click", "position": (x, y)}: # Matches structure and extracts x, y
+      # Matches structure and extracts x, y.
+      case {"type": "click", "position": (x, y)}:
           handle_click(x, y)
-      case {"type": "keypress", "key_name": key}: # Matches structure and extracts key
+      # Matches structure and extracts key.
+      case {"type": "keypress", "key_name": key}:
           handle_keypress(key)
       case _:
           handle_unknown_event()

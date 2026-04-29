@@ -207,6 +207,19 @@ mod tests {
     }
 
     #[test]
+    fn render_event_frame_orders_fields_before_data_lines() {
+        let id = EventId::new("evt-ordered").expect("identifier should validate");
+
+        let frame = render_event_frame(Some(&id), Some("status"), "first\nsecond")
+            .expect("frame should render");
+
+        assert_eq!(
+            frame,
+            "id: evt-ordered\nevent: status\ndata: first\ndata: second\n\n"
+        );
+    }
+
+    #[test]
     fn render_event_frame_omits_optional_fields_when_not_supplied() {
         let frame = render_event_frame(None, None, "hello world").expect("frame should render");
 

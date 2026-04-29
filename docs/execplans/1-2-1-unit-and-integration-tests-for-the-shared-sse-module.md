@@ -5,7 +5,7 @@ This ExecPlan (execution plan) is a living document. The sections
 `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work
 proceeds.
 
-Status: DRAFT
+Status: COMPLETE
 
 ## Purpose / big picture
 
@@ -136,17 +136,19 @@ This plan must be approved before any implementation begins.
   `docs/rust-doctest-dry-guide.md`, and
   `docs/complexity-antipatterns-and-refactoring-strategies.md`.
 - [x] 2026-04-21: Draft this execution plan.
-- [ ] Await user approval of this plan.
-- [ ] Audit existing unit coverage against roadmap task 1.2.1 and ADR 001.
-- [ ] Add or tighten module-level `rstest` coverage for any missing SSE edge
-  cases.
-- [ ] Add a downstream-facing integration contract suite for the shared SSE
-  module.
-- [ ] Update ADR 001, `docs/users-guide.md`, and `docs/developers-guide.md` as
-  required by the final implementation findings.
-- [ ] Run `make check-fmt`, `make lint`, `make test`, `make fmt`,
-  `make markdownlint`, and `make nixie` with `tee` logs.
-- [ ] Mark roadmap task 1.2.1 done after the feature is complete.
+- [x] 2026-04-29: User approved proceeding with implementation.
+- [x] 2026-04-29: Audit existing unit coverage against roadmap task 1.2.1
+  and ADR 001.
+- [x] 2026-04-29: Add or tighten module-level `rstest` coverage for any
+  missing SSE edge cases.
+- [x] 2026-04-29: Add a downstream-facing integration contract suite for the
+  shared SSE module.
+- [x] 2026-04-29: Update ADR 001, `docs/users-guide.md`, and
+  `docs/developers-guide.md` as required by the final implementation findings.
+- [x] 2026-04-29: Run `make check-fmt`, `make lint`, `make test`,
+  `make fmt`, `make markdownlint`, and `make nixie` with `tee` logs.
+- [x] 2026-04-29: Mark roadmap task 1.2.1 done after the feature is
+  complete.
 
 ## Surprises & Discoveries
 
@@ -161,6 +163,28 @@ This plan must be approved before any implementation begins.
   - invalid CR/LF/NULL bytes belong in identifier validation tests, not header
     construction tests;
   - UTF-8 replay cursor coverage must remain explicit.
+- 2026-04-29: Stage A audit found substantial existing module-level coverage
+  across all roadmap bullets. The main remaining gap is downstream-facing
+  integration proof through the crate-root re-exports, plus a few focused unit
+  assertions for conversion error propagation and exact public constants.
+- 2026-04-29: `rstest-bdd` step text supports quoted arguments in the existing
+  pagination features, so the SSE feature uses the same style for event ids,
+  event names, and payload examples.
+- 2026-04-29: `make fmt` formats Rust successfully but then fails in the
+  Markdown formatting phase because `markdownlint --fix` reports existing
+  `MD013` long-line violations across several reference documents outside this
+  SSE task. The code changes are formatted with `cargo fmt --all`; the
+  documentation gate remains a closure risk until the repository-wide Markdown
+  issue is addressed.
+- 2026-04-29: `make lint` reached Whitaker and reported pre-existing
+  `no_expect_outside_tests` findings in helper functions inside `#[cfg(test)]`
+  modules outside the SSE module. These are test-only helpers, so the fix is to
+  make the helpers return `Result` and keep `expect` at actual test call sites
+  that the lint recognises.
+- 2026-04-29: The repository-wide Markdown gate also had pre-existing long-line
+  violations in reference material. The closure fix wraps ordinary examples and
+  uses scoped `MD013` disables only for headings and tables that cannot be
+  usefully wrapped.
 
 ## Decision Log
 
@@ -180,11 +204,64 @@ This plan must be approved before any implementation begins.
   changes; it should only update ADR 001 and the guides when the testing work
   makes an existing contract statement clearer or more precise.
 
+- 2026-04-29: Stage A keeps the existing module-local tests and adds only
+  focused coverage gaps. Rationale: `src/sse/*.rs` already directly covers
+  identifier validation, `Last-Event-ID` parsing, frame formatting, cache
+  header replacement, heartbeat policy, and `stream_reset` rendering. Rewriting
+  those tests would add churn without improving the contract proof.
+
+- 2026-04-29: Stage C will use `rstest-bdd` for the integration suite.
+  Rationale: three downstream-style scenarios make the public crate-root SSE
+  contract easier to read than one long assertion test, and the repository
+  already has this behavioural-test pattern.
+
+- 2026-04-29: ADR 001 and the user guide do not need contract updates for this
+  change. Rationale: the tests prove behaviours already documented there. The
+  developer guide does need a narrow testing-layout update because the SSE
+  module now has a public BDD contract suite in addition to module-local unit
+  tests.
+
 ## Outcomes & Retrospective
 
-Pending implementation. When task 1.2.1 is complete, replace this section with
-the final test layout, the exact behaviours proven, the gate results, and any
-lessons that should inform later SSE adoption work.
+Task 1.2.1 is complete. The final test layout keeps fine-grained helper
+coverage in `src/sse/*.rs` and adds the downstream-facing contract suite in
+`tests/sse_wire_contract_bdd.rs` with scenarios in
+`tests/features/sse_wire_contract.feature`.
+
+The coverage now proves every roadmap bullet:
+
+- identifier validation, including `TryFrom<String>` error propagation;
+- `Last-Event-ID` parsing through the crate-root public API;
+- deterministic SSE frame formatting and field ordering;
+- canonical cache headers for live event streams;
+- canonical heartbeat output and default interval;
+- canonical `stream_reset` output.
+
+The developer guide now records the SSE testing split between module-local unit
+tests and crate-root behavioural contract tests. ADR 001 and the user guide
+already described the proven contract, so they required no behavioural wording
+change.
+
+The formal gates passed on 2026-04-29:
+
+- `make check-fmt`
+- `make lint`
+- `make test`
+- `make fmt`
+- `make markdownlint`
+- `make nixie`
+
+Two repository-health issues surfaced during closure and were fixed: Whitaker
+did not classify several existing helper functions inside `#[cfg(test)]`
+modules as tests, and the Markdown lint gate had existing long-line findings in
+reference documents. Both fixes were kept mechanical and scoped to the failing
+gate behaviour.
+
+Post-turn hook validation also exposed that non-login hook environments may not
+have Cargo, Bun, or local user binaries on `PATH`. The Makefile now exports the
+standard per-user tool directories and resolves Cargo, Markdownlint, and Nixie
+from those locations when needed. The hook-equivalent commands pass with a
+restricted `PATH=/usr/bin:/bin`.
 
 ## Context and orientation
 

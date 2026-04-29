@@ -32,7 +32,11 @@ First, add the crate to development dependencies in `Cargo.toml`.
 
 ```toml
 [dev-dependencies]
-mockable = { version = "0.1.4", default-features = false, features = ["clock", "mock"] }
+mockable = {
+  version = "0.1.4",
+  default-features = false,
+  features = ["clock", "mock"],
+}
 ```
 
 ### 2. The untestable code (before)
