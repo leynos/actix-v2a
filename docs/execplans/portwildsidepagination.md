@@ -178,6 +178,10 @@ and documentation port itself starts only after approval.
 - [x] (2026-04-29 23:02Z) Verified the cursor observability review finding and
   removed `err` from `Cursor::encode` and `Cursor::decode` instrumentation so
   only `CursorError::Serialize` emits the explicit library error event.
+- [x] (2026-04-29 23:13Z) Verified review findings around Makefile
+  documentation and pagination HTTP query parsing, then clarified the
+  `markdownlint` inline `PATH` behaviour and replaced substring matching with
+  exact query-parameter parsing.
 
 ## Surprises & Discoveries
 

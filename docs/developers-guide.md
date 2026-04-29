@@ -210,9 +210,10 @@ Markdown linting uses `BUN_BIN`:
 BUN_BIN ?= $(HOME)/.bun/bin
 ```
 
-The `markdownlint` target prepends `$(HOME)/.bun/bin` to `PATH` because
-`markdownlint-cli2` is installed there in the standard development
-environment:
+Unlike Cargo-based targets, `markdownlint` does not use a shared environment
+variable such as `CARGO_ENV`. Its recipe prepends `$(BUN_BIN)` directly to
+`PATH`, which resolves to `$(HOME)/.bun/bin`, because `markdownlint-cli2` is
+installed there in the standard development environment:
 
 ```bash
 make markdownlint

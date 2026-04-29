@@ -162,10 +162,7 @@ async fn paginated_items(request: HttpRequest) -> Result<impl Responder, Error> 
         .map_err(|_| Error::invalid_request_static("invalid pagination parameters"))?
         .into_inner();
 
-    if request
-        .query_string()
-        .contains("forceSerializeFailure=true")
-    {
+    if should_force_serialize_failure(request.query_string()) {
         Cursor::new(FailingKey)
             .encode()
             .map_err(|error| map_cursor_error(&error))?;
@@ -189,6 +186,11 @@ fn map_cursor_error(error: &CursorError) -> Error {
             Error::invalid_request_static("invalid pagination cursor")
         }
     }
+}
+
+fn should_force_serialize_failure(query_string: &str) -> bool {
+    url::form_urlencoded::parse(query_string.as_bytes())
+        .any(|(key, value)| key == "forceSerializeFailure" && value == "true")
 }
 
 fn absolute_request_url(request: &HttpRequest) -> Result<Url, Error> {
