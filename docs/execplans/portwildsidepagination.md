@@ -36,9 +36,11 @@ began after user approval.
   `Direction`, `PageParams`, `PageParamsError`, `Paginated`,
   `PaginationLinks`, `DEFAULT_LIMIT`, `MAX_LIMIT`, `PAGE_PARAM_LIMIT`, and
   `PAGE_PARAM_CURSOR`.
-- Do not add new external dependencies. The current crate already has
-  `base64`, `serde`, `serde_json`, `thiserror`, `url`, `utoipa`, `rstest`, and
-  `rstest-bdd`, which are enough for the planned port.
+- Do not add new runtime dependencies without approval. The current crate
+  already has `base64`, `serde`, `serde_json`, `thiserror`, `url`, `utoipa`,
+  `rstest`, and `rstest-bdd`, which are enough for the planned port.
+- Approved test-only additions are `insta` and `tracing-test`; any further
+  dependency changes must distinguish between runtime and test scope.
 - Keep every Rust source file at or below 400 lines. If added tests would push
   `tests/pagination_bdd.rs` or any module over that limit, split the test
   support into a focused sibling file.
@@ -166,7 +168,8 @@ began after user approval.
   `decode_response` return observed status, trace header, and payload values
   for caller-side assertions.
 - [x] (2026-04-29 22:10Z) Added snapshot tests for documented pagination error
-  display text and shared OpenAPI schema JSON, accepted the initial `insta`
+  display text and shared OpenAPI schema JSON, using the approved test-only
+  dependencies `insta` and `tracing-test`, accepted the initial `insta`
   snapshots, and documented that `trybuild` is unnecessary because no
   compile-time public API constraint was identified.
 - [x] (2026-04-29 22:31Z) Added handler-level Actix integration tests for the
