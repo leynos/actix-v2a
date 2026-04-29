@@ -175,6 +175,55 @@ an `ErrorCode::InvalidRequest` error with a descriptive message:
 These messages are suitable for client-facing error responses and follow the
 same pattern as `map_idempotency_key_error`.
 
+## Build tooling
+
+The Makefile normalizes tool discovery for reduced-`PATH` environments such as
+CI hooks, local git hooks, and non-interactive shells. Prefer running the
+documented `make` targets instead of calling the underlying commands directly.
+
+Cargo-based targets use `CARGO_ENV`:
+
+```make
+CARGO_BIN ?= $(HOME)/.cargo/bin
+CARGO_ENV := PATH="$(CARGO_BIN):$$PATH"
+```
+
+`CARGO_ENV` prepends `$(HOME)/.cargo/bin` to `PATH` while preserving the
+caller-provided path. This keeps targets working when hook environments omit
+Cargo's default install directory. The `clean`, `test`, `build`, `release`,
+`lint`, `typecheck`, `fmt`, and `check-fmt` targets all run Cargo through this
+environment.
+
+The `test` target also detects `cargo-nextest` through `CARGO_ENV`. Install
+`cargo-nextest` under `~/.cargo/bin` when you want `make test` to use nextest:
+
+```bash
+cargo install cargo-nextest
+```
+
+If `cargo-nextest` is absent, `make test` falls back to `cargo test` and still
+runs doctests.
+
+Markdown linting uses `BUN_BIN`:
+
+```make
+BUN_BIN ?= $(HOME)/.bun/bin
+```
+
+The `markdownlint` target prepends `$(HOME)/.bun/bin` to `PATH` because
+`markdownlint-cli2` is installed there in the standard development
+environment:
+
+```bash
+make markdownlint
+```
+
+Developers using CI hooks, reduced-`PATH` shells, or other non-standard shell
+environments must ensure the Cargo and Bun binary directories exist when those
+tools are installed. The Makefile prepend mechanism handles ordinary
+`~/.cargo/bin` and `~/.bun/bin` installs automatically; it does not install
+missing tools or create shims.
+
 ## Quality gates
 
 All changes to the SSE module (and the broader crate) must pass the following
