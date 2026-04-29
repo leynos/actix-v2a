@@ -189,6 +189,9 @@ began after user approval.
 - [x] (2026-04-30 00:06Z) Moved the cursor serialization error event from the
   private `encode_cursor` helper to the public `Cursor::encode` boundary and
   updated the module observability contract.
+- [x] (2026-04-30 00:24Z) Replaced the documentation BDD synthetic serialize
+  error with `Cursor::new(FailingKey).encode()` and added tracing capture
+  coverage for cursor encode/decode spans and serialization error events.
 
 ## Surprises & Discoveries
 

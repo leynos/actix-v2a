@@ -12,7 +12,7 @@ use base64::Engine as _;
 use rstest::fixture;
 use rstest_bdd::Slot;
 use rstest_bdd_macros::{ScenarioState, given, scenario, then, when};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 
 const OVERSIZED_CURSOR_LEN: usize = 8 * 1024 + 1;
 
@@ -20,6 +20,17 @@ const OVERSIZED_CURSOR_LEN: usize = 8 * 1024 + 1;
 struct FixtureKey {
     created_at: String,
     id: String,
+}
+
+struct FailingKey;
+
+impl Serialize for FailingKey {
+    fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        Err(serde::ser::Error::custom("fixture serialization failed"))
+    }
 }
 
 #[derive(Debug, Default, ScenarioState)]
@@ -84,17 +95,12 @@ fn pagination_errors_of_different_documented_variants(world: &World) {
         Cursor::<FixtureKey>::decode(&"a".repeat(OVERSIZED_CURSOR_LEN)),
     );
 
-    errors.push(CursorError::Serialize {
-        message: "fixture serialization failed".to_owned(),
-    });
+    collect_cursor_error(&mut errors, Cursor::new(FailingKey).encode());
 
     world.cursor_errors.set(errors);
 }
 
-fn collect_cursor_error(
-    errors: &mut Vec<CursorError>,
-    result: Result<Cursor<FixtureKey>, CursorError>,
-) {
+fn collect_cursor_error(errors: &mut Vec<CursorError>, result: Result<impl Sized, CursorError>) {
     if let Err(error) = result {
         errors.push(error);
     }
