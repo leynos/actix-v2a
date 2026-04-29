@@ -175,6 +175,9 @@ and documentation port itself starts only after approval.
 - [x] (2026-04-29 22:47Z) Documented Makefile build-tooling requirements for
   `CARGO_ENV`, `BUN_BIN`, reduced-`PATH` shells, and nextest detection in
   `docs/developers-guide.md`.
+- [x] (2026-04-29 23:02Z) Verified the cursor observability review finding and
+  removed `err` from `Cursor::encode` and `Cursor::decode` instrumentation so
+  only `CursorError::Serialize` emits the explicit library error event.
 
 ## Surprises & Discoveries
 

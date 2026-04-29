@@ -174,11 +174,7 @@ where
     ///
     /// Returns [`CursorError::Serialize`] when the cursor key cannot be
     /// serialized into JSON.
-    #[expect(
-        clippy::cognitive_complexity,
-        reason = "tracing::instrument expands guard code that trips the lint"
-    )]
-    #[instrument(skip(self), err)]
+    #[instrument(skip(self))]
     pub fn encode(&self) -> Result<String, CursorError> { encode_cursor(self) }
 }
 
@@ -193,11 +189,7 @@ where
     /// Returns [`CursorError::InvalidBase64`] when `token` is not valid
     /// base64url and [`CursorError::Deserialize`] when the decoded JSON does
     /// not match the expected cursor shape.
-    #[expect(
-        clippy::cognitive_complexity,
-        reason = "tracing::instrument expands guard code that trips the lint"
-    )]
-    #[instrument(skip(token), err)]
+    #[instrument(skip(token))]
     pub fn decode(token: &str) -> Result<Self, CursorError> { decode_cursor(token) }
 }
 
