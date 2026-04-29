@@ -11,6 +11,7 @@ use base64::{
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use thiserror::Error;
+use tracing::instrument;
 
 const MAX_CURSOR_TOKEN_LEN: usize = 8 * 1024;
 
@@ -173,12 +174,12 @@ where
     ///
     /// Returns [`CursorError::Serialize`] when the cursor key cannot be
     /// serialized into JSON.
-    pub fn encode(&self) -> Result<String, CursorError> {
-        let payload = serde_json::to_vec(self).map_err(|error| CursorError::Serialize {
-            message: error.to_string(),
-        })?;
-        Ok(URL_SAFE_NO_PAD.encode(payload))
-    }
+    #[expect(
+        clippy::cognitive_complexity,
+        reason = "tracing::instrument expands guard code that trips the lint"
+    )]
+    #[instrument(skip(self), err)]
+    pub fn encode(&self) -> Result<String, CursorError> { encode_cursor(self) }
 }
 
 impl<Key> Cursor<Key>
@@ -189,26 +190,49 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`CursorError::InvalidBase64`] when `value` is not valid
+    /// Returns [`CursorError::InvalidBase64`] when `token` is not valid
     /// base64url and [`CursorError::Deserialize`] when the decoded JSON does
     /// not match the expected cursor shape.
-    pub fn decode(value: &str) -> Result<Self, CursorError> {
-        if value.len() > MAX_CURSOR_TOKEN_LEN {
-            return Err(CursorError::TokenTooLong {
-                max_len: MAX_CURSOR_TOKEN_LEN,
-            });
-        }
+    #[expect(
+        clippy::cognitive_complexity,
+        reason = "tracing::instrument expands guard code that trips the lint"
+    )]
+    #[instrument(skip(token), err)]
+    pub fn decode(token: &str) -> Result<Self, CursorError> { decode_cursor(token) }
+}
 
-        let payload = URL_SAFE_NO_PAD
-            .decode(value)
-            .or_else(|_| URL_SAFE.decode(value))
-            .map_err(|error| CursorError::InvalidBase64 {
-                message: error.to_string(),
-            })?;
-        serde_json::from_slice(&payload).map_err(|error| CursorError::Deserialize {
-            message: error.to_string(),
-        })
+fn encode_cursor<Key>(cursor: &Cursor<Key>) -> Result<String, CursorError>
+where
+    Key: Serialize,
+{
+    let payload = serde_json::to_vec(cursor).map_err(|e| {
+        tracing::error!(error = %e, "cursor serialization failed");
+        CursorError::Serialize {
+            message: e.to_string(),
+        }
+    })?;
+    Ok(URL_SAFE_NO_PAD.encode(payload))
+}
+
+fn decode_cursor<Key>(token: &str) -> Result<Cursor<Key>, CursorError>
+where
+    Key: DeserializeOwned,
+{
+    if token.len() > MAX_CURSOR_TOKEN_LEN {
+        return Err(CursorError::TokenTooLong {
+            max_len: MAX_CURSOR_TOKEN_LEN,
+        });
     }
+
+    let payload = URL_SAFE_NO_PAD
+        .decode(token)
+        .or_else(|_| URL_SAFE.decode(token))
+        .map_err(|error| CursorError::InvalidBase64 {
+            message: error.to_string(),
+        })?;
+    serde_json::from_slice(&payload).map_err(|error| CursorError::Deserialize {
+        message: error.to_string(),
+    })
 }
 
 #[cfg(test)]

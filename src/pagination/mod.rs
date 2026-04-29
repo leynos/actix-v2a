@@ -73,6 +73,13 @@
 //! key type could not be encoded. It should be logged and investigated rather
 //! than reported as a malformed client cursor.
 //!
+//! For observability, [`Cursor::encode`] and [`Cursor::decode`] are
+//! instrumented with `tracing` spans. `CursorError::Serialize` also emits a
+//! `tracing::error!` event before the error is returned, so callers do not need
+//! to re-log that failure. Other [`CursorError`] variants and
+//! [`PageParamsError`] variants are caller-controlled input failures; the
+//! library does not emit error events for them.
+//!
 //! # Scope boundaries
 //!
 //! This module intentionally does not provide database filters, connection
