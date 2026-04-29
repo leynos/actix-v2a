@@ -8,6 +8,7 @@ use std::sync::{
 };
 
 use actix_v2a::pagination::{Cursor, CursorError};
+use base64::Engine as _;
 use serde::{Serialize, Serializer};
 use tracing::{
     Event,
@@ -84,6 +85,7 @@ fn successful_decode_produces_span_without_error_events() {
 fn failing_decode_produces_no_error_events() {
     let recorder = TraceRecorder::default();
     let subscriber = RecordingSubscriber::new(recorder.clone());
+    let invalid_json = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(b"{not-json");
 
     with_default(subscriber, || {
         assert!(matches!(
@@ -93,6 +95,10 @@ fn failing_decode_produces_no_error_events() {
         assert!(matches!(
             Cursor::<String>::decode(&"a".repeat(8 * 1024 + 1)),
             Err(CursorError::TokenTooLong { .. })
+        ));
+        assert!(matches!(
+            Cursor::<serde_json::Value>::decode(&invalid_json),
+            Err(CursorError::Deserialize { .. })
         ));
     });
 

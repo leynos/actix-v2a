@@ -198,6 +198,8 @@ began after user approval.
 - [x] (2026-04-30 00:46Z) Converted pagination documentation BDD steps from
   panic-based `expect` calls to `StepResult` error propagation and added decode
   failure tracing coverage for caller-controlled cursor errors.
+- [x] (2026-04-30 01:02Z) Extracted shared normalized-limit BDD assertions and
+  extended decode-failure tracing coverage to include the `Deserialize` variant.
 
 ## Surprises & Discoveries
 
