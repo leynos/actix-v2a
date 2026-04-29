@@ -1,0 +1,5 @@
+---
+source: src/openapi/schemas.rs
+expression: schema
+---
+{"type":"object","description":"`OpenAPI` schema for [`crate::idempotency::ReplayMetadata`].","required":["replayed"],"properties":{"replayed":{"type":"boolean","description":"Whether the response was replayed from an existing idempotency record.","example":true}}}

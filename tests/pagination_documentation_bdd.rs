@@ -227,5 +227,42 @@ fn each_documented_cursor_error_variant_is_represented(world: &World) {
     );
 }
 
+#[test]
+fn cursor_error_display_messages_match_snapshots() {
+    insta::assert_snapshot!(
+        "cursor_error_invalid_base64_display",
+        CursorError::InvalidBase64 {
+            message: "invalid byte 33, offset 3.".to_owned(),
+        }
+        .to_string()
+    );
+    insta::assert_snapshot!(
+        "cursor_error_deserialize_display",
+        CursorError::Deserialize {
+            message: "expected ident at line 1 column 2".to_owned(),
+        }
+        .to_string()
+    );
+    insta::assert_snapshot!(
+        "cursor_error_token_too_long_display",
+        CursorError::TokenTooLong { max_len: 8 * 1024 }.to_string()
+    );
+    insta::assert_snapshot!(
+        "cursor_error_serialize_display",
+        CursorError::Serialize {
+            message: "fixture serialization failed".to_owned(),
+        }
+        .to_string()
+    );
+}
+
+#[test]
+fn page_params_error_display_messages_match_snapshots() {
+    insta::assert_snapshot!(
+        "page_params_error_invalid_limit_display",
+        PageParamsError::InvalidLimit.to_string()
+    );
+}
+
 #[scenario(path = "tests/features/pagination_documentation.feature")]
 fn pagination_documentation_invariants(world: World) { drop(world); }

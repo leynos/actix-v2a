@@ -1,0 +1,5 @@
+---
+source: src/openapi/schemas.rs
+expression: schema
+---
+{"type":"string","description":"`OpenAPI` schema for [`crate::ErrorCode`].","enum":["invalid_request","unauthorized","forbidden","not_found","conflict","service_unavailable","internal_error"]}

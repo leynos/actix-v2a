@@ -83,17 +83,7 @@ mod tests {
         let schema = schema_json::<ErrorCodeSchema>().expect("schema should serialize");
 
         assert_eq!(ErrorCodeSchema::name(), "crate.ErrorCode");
-        for variant in [
-            "invalid_request",
-            "unauthorized",
-            "forbidden",
-            "not_found",
-            "conflict",
-            "service_unavailable",
-            "internal_error",
-        ] {
-            assert!(schema.contains(variant), "missing variant {variant}");
-        }
+        insta::assert_snapshot!("error_code_schema_json", schema);
     }
 
     #[test]
@@ -131,9 +121,7 @@ mod tests {
         let schema = schema_json::<ErrorSchema>().expect("schema should serialize");
 
         assert_eq!(ErrorSchema::name(), "crate.Error");
-        for field in ["code", "message", "traceId", "details"] {
-            assert!(schema.contains(field), "missing field {field}");
-        }
+        insta::assert_snapshot!("error_schema_json", schema);
     }
 
     #[test]
@@ -144,6 +132,6 @@ mod tests {
             ReplayMetadataSchema::name(),
             "crate.idempotency.ReplayMetadata"
         );
-        assert!(schema.contains("replayed"));
+        insta::assert_snapshot!("replay_metadata_schema_json", schema);
     }
 }

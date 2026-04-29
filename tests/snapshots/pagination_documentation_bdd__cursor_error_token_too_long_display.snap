@@ -1,0 +1,5 @@
+---
+source: tests/pagination_documentation_bdd.rs
+expression: "CursorError::TokenTooLong { max_len: 8 * 1024 }.to_string()"
+---
+cursor token exceeds maximum length of 8192 bytes
