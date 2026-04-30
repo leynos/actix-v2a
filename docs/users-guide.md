@@ -195,6 +195,20 @@ fn handle_sse_request(req: HttpRequest) -> Result<(), Error> {
 }
 ```
 
+#### Replay cursor error handling
+
+Extraction and construction return `ReplayCursorError`:
+
+- `InvalidHeader` — the `Last-Event-ID` header was malformed because it was
+  duplicated or contained a non-UTF-8 value.
+- `Empty` — the event identifier value was empty.
+- `ForbiddenCharacter` — the event identifier contained CR, LF, or NULL.
+
+`Empty` exists for API completeness via `From<EventIdValidationError>`.
+`extract_replay_cursor` does not return it because empty `Last-Event-ID`
+header values are treated as `Ok(None)` per the WHATWG specification's reset
+semantics.
+
 #### Header extraction behaviour
 
 - Missing `Last-Event-ID` header: `Ok(None)`
