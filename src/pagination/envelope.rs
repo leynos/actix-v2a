@@ -1,4 +1,10 @@
 //! Paginated response envelopes and hypermedia links.
+//!
+//! [`Paginated<T>`] wraps one stable page of response data, the effective page
+//! size, and navigation links. [`PaginationLinks::from_request`] preserves
+//! non-pagination query parameters while replacing the shared `limit` and
+//! `cursor` parameters, so filters remain stable as clients follow `next` and
+//! `prev` links.
 
 use serde::Serialize;
 use url::{Url, form_urlencoded};

@@ -51,3 +51,19 @@ without pulling event-store, routing, or authorization logic into this crate.
     by the execplan closing milestone.
   - Pass `make fmt`, `make markdownlint`, and `make nixie` on the final
     documentation set.
+
+## 2. Pagination documentation hardening
+
+Harden the reusable `actix-v2a` pagination module with expanded documentation,
+BDD and handler-level test coverage, and observability instrumentation.
+
+- [x] 2.1. Port Wildside pagination documentation hardening.
+  See
+  [`docs/execplans/portwildsidepagination.md`](execplans/portwildsidepagination.md).
+  - Documented cursor key ordering invariants and limit normalisation semantics
+    in `src/pagination/mod.rs`.
+  - Added BDD coverage (`tests/pagination_documentation_bdd.rs`) and
+    handler-level coverage (`tests/pagination_http_bdd.rs`).
+  - Added snapshot tests for error `Display` outputs and OpenAPI schemas.
+  - Instrumented `Cursor::encode` and `Cursor::decode` with tracing spans and
+    error events.

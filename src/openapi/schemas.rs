@@ -74,26 +74,16 @@ mod tests {
     use super::{ErrorCodeSchema, ErrorSchema, ReplayMetadataSchema};
     use crate::ErrorCode;
 
-    fn schema_json<T: PartialSchema>() -> String {
-        serde_json::to_string(&T::schema()).expect("schema should serialize")
+    fn schema_json<T: PartialSchema>() -> serde_json::Result<String> {
+        serde_json::to_string(&T::schema())
     }
 
     #[test]
     fn error_code_schema_has_expected_name_and_variants() {
-        let schema = schema_json::<ErrorCodeSchema>();
+        let schema = schema_json::<ErrorCodeSchema>().expect("schema should serialize");
 
         assert_eq!(ErrorCodeSchema::name(), "crate.ErrorCode");
-        for variant in [
-            "invalid_request",
-            "unauthorized",
-            "forbidden",
-            "not_found",
-            "conflict",
-            "service_unavailable",
-            "internal_error",
-        ] {
-            assert!(schema.contains(variant), "missing variant {variant}");
-        }
+        insta::assert_snapshot!("error_code_schema_json", schema);
     }
 
     #[test]
@@ -128,22 +118,20 @@ mod tests {
 
     #[test]
     fn error_schema_has_expected_name_and_fields() {
-        let schema = schema_json::<ErrorSchema>();
+        let schema = schema_json::<ErrorSchema>().expect("schema should serialize");
 
         assert_eq!(ErrorSchema::name(), "crate.Error");
-        for field in ["code", "message", "traceId", "details"] {
-            assert!(schema.contains(field), "missing field {field}");
-        }
+        insta::assert_snapshot!("error_schema_json", schema);
     }
 
     #[test]
     fn replay_metadata_schema_has_expected_name_and_field() {
-        let schema = schema_json::<ReplayMetadataSchema>();
+        let schema = schema_json::<ReplayMetadataSchema>().expect("schema should serialize");
 
         assert_eq!(
             ReplayMetadataSchema::name(),
             "crate.idempotency.ReplayMetadata"
         );
-        assert!(schema.contains("replayed"));
+        insta::assert_snapshot!("replay_metadata_schema_json", schema);
     }
 }

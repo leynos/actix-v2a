@@ -175,6 +175,56 @@ an `ErrorCode::InvalidRequest` error with a descriptive message:
 These messages are suitable for client-facing error responses and follow the
 same pattern as `map_idempotency_key_error`.
 
+## Build tooling
+
+The Makefile normalizes tool discovery for reduced-`PATH` environments such as
+CI hooks, local git hooks, and non-interactive shells. Prefer running the
+documented `make` targets instead of calling the underlying commands directly.
+
+Cargo-based targets use `CARGO_ENV`:
+
+```make
+CARGO_BIN ?= $(HOME)/.cargo/bin
+CARGO_ENV := PATH="$(CARGO_BIN):$$PATH"
+```
+
+`CARGO_ENV` prepends `$(HOME)/.cargo/bin` to `PATH` while preserving the
+caller-provided path. This keeps targets working when hook environments omit
+Cargo's default install directory. The `clean`, `test`, `build`, `release`,
+`lint`, `typecheck`, `fmt`, and `check-fmt` targets all run Cargo through this
+environment.
+
+The `test` target also detects `cargo-nextest` through `CARGO_ENV`. Install
+`cargo-nextest` to `~/.cargo/bin` to enable `make test` to use nextest.
+
+```bash
+cargo install cargo-nextest
+```
+
+If `cargo-nextest` is absent, `make test` falls back to `cargo test` and still
+runs doctests.
+
+Markdown linting uses `BUN_BIN`:
+
+```make
+BUN_BIN ?= $(HOME)/.bun/bin
+```
+
+Unlike Cargo-based targets, `markdownlint` does not use a shared environment
+variable such as `CARGO_ENV`. Its recipe prepends `$(BUN_BIN)` directly to
+`PATH`, which resolves to `$(HOME)/.bun/bin` because `markdownlint-cli2` is
+installed there in the standard development environment:
+
+```bash
+make markdownlint
+```
+
+Developers using CI hooks, reduced-`PATH` shells, or other non-standard shell
+environments must ensure the Cargo and Bun binary directories exist when those
+tools are installed. The Makefile prepend mechanism handles ordinary
+`~/.cargo/bin` and `~/.bun/bin` installs automatically; it does not install
+missing tools or create shims.
+
 ## Quality gates
 
 All changes to the SSE module (and the broader crate) must pass the following
@@ -315,6 +365,74 @@ now complete:
 
 See [`roadmap.md`](roadmap.md) for the full delivery plan.
 
+## Pagination module internals
+
+The `src/pagination/` module provides reusable cursor pagination primitives
+without binding the crate to a database, repository, or route shape.
+
+### Pagination module layout
+
+- `src/pagination/mod.rs` — module documentation, public re-exports, and the
+  documented pagination error-mapping table.
+- `src/pagination/cursor.rs` — `Cursor<Key>` encoding and decoding, direction
+  handling, token validation, and tracing spans.
+- `src/pagination/params.rs` — `PageParams` parsing, limit normalisation, and
+  shared query parameter constants.
+- `src/pagination/envelope.rs` — `Paginated<T>` response envelopes and
+  `PaginationLinks` link construction.
+
+### Cursor ordering invariant
+
+Cursor keys must implement `Serialize` and `Deserialize` with a consistent
+representation that is compatible with the endpoint's total ordering. The
+module encodes and decodes opaque cursor tokens, but it does not prove that a
+database query, index, or repository predicate applies the same ordering on
+every page. Downstream persistence logic owns that invariant.
+
+### Limit normalisation
+
+`PageParams` normalises page limits consistently:
+
+- missing `limit` values use `DEFAULT_LIMIT`;
+- limits greater than `MAX_LIMIT` are clamped to `MAX_LIMIT`;
+- `limit=0` is rejected with `PageParamsError::InvalidLimit`.
+
+### Tracing
+
+`Cursor::encode` and `Cursor::decode` are instrumented with `#[instrument]`
+spans. `CursorError::Serialize` additionally emits a `tracing::error!` event at
+the public `Cursor::encode` boundary because it indicates that the server could
+not serialise its own cursor key. The caller-controlled variants
+`CursorError::InvalidBase64`, `CursorError::Deserialize`,
+`CursorError::TokenTooLong`, and `PageParamsError::InvalidLimit` do not emit
+library error events.
+
+### Pagination error mapping
+
+HTTP adapters should map caller-controlled pagination failures to HTTP 400 and
+`ErrorCode::InvalidRequest`:
+
+- `CursorError::InvalidBase64`
+- `CursorError::Deserialize`
+- `CursorError::TokenTooLong`
+- `PageParamsError::InvalidLimit`
+
+`CursorError::Serialize` should map to HTTP 500 and
+`ErrorCode::InternalError` because it is a server-side serialisation failure.
+
+### Testing patterns
+
+Pagination tests are split by contract:
+
+- `tests/pagination_documentation_bdd.rs` validates documented invariants for
+  limits, cursor errors, and display text.
+- `tests/pagination_http_bdd.rs` verifies handler-level HTTP status and
+  `ErrorCode` mappings.
+- `tests/pagination_tracing_tests.rs` verifies cursor span and event
+  observability.
+- `tests/snapshots/` stores `insta` snapshots for error `Display` outputs and
+  OpenAPI schema JSON.
+
 ## Additional resources
 
 - [ADR 001: Shared SSE wire contract for Wildside and
@@ -326,4 +444,8 @@ See [`roadmap.md`](roadmap.md) for the full delivery plan.
 - [ExecPlan: Implement SSE frame and cache-header
   helpers](execplans/1-1-2-sse-frame-and-cache-header-helpers.md) —
   implementation plan for task 1.1.2
+- [Port Wildside pagination documentation hardening
+  execplan](execplans/portwildsidepagination.md) — records the port scope,
+  constraints, surprises, and acceptance criteria for the pagination
+  documentation hardening workstream
 - [AGENTS.md](../AGENTS.md) — code style, testing, and commit conventions

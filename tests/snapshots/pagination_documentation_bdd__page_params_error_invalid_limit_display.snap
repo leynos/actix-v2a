@@ -1,0 +1,5 @@
+---
+source: tests/pagination_documentation_bdd.rs
+expression: "PageParamsError::InvalidLimit.to_string()"
+---
+page limit must be greater than zero

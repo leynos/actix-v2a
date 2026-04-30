@@ -1,0 +1,5 @@
+---
+source: tests/pagination_documentation_bdd.rs
+expression: "CursorError::InvalidBase64\n{ message: \"invalid byte 33, offset 3.\".to_owned(), }.to_string()"
+---
+cursor is not valid base64url: invalid byte 33, offset 3.

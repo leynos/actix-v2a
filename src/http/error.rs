@@ -125,31 +125,28 @@ mod tests {
 
     use crate::{Error, ErrorCode, TRACE_ID_HEADER};
 
-    async fn decode_response(
-        error: Error,
-        expected_status: StatusCode,
-        expected_trace_id: Option<&str>,
-    ) -> Error {
+    struct DecodedResponse {
+        status: StatusCode,
+        trace_id: Option<String>,
+        payload: Error,
+    }
+
+    async fn decode_response(error: Error) -> Result<DecodedResponse, Box<dyn std::error::Error>> {
         let response = error.error_response();
-        assert_eq!(response.status(), expected_status);
+        let status = response.status();
+        let trace_id = response
+            .headers()
+            .get(TRACE_ID_HEADER)
+            .map(|value| value.to_str().map(ToOwned::to_owned))
+            .transpose()?;
 
-        let trace_header = response.headers().get(TRACE_ID_HEADER);
-        match expected_trace_id {
-            Some(expected) => {
-                let trace_id = trace_header
-                    .expect("trace header should be present")
-                    .to_str()
-                    .expect("trace header should be UTF-8");
-                assert_eq!(trace_id, expected);
-            }
-            None => assert!(trace_header.is_none()),
-        }
+        let body = to_bytes(response.into_body()).await?;
 
-        let body = to_bytes(response.into_body())
-            .await
-            .expect("response body should be readable");
-
-        serde_json::from_slice(&body).expect("error payload should deserialize")
+        Ok(DecodedResponse {
+            status,
+            trace_id,
+            payload: serde_json::from_slice(&body)?,
+        })
     }
 
     #[test]
@@ -198,13 +195,16 @@ mod tests {
             .expect("trace identifier should be valid")
             .with_details(json!({"secret": true}));
 
-        let payload =
-            decode_response(error, StatusCode::INTERNAL_SERVER_ERROR, Some("trace-123")).await;
+        let decoded = decode_response(error)
+            .await
+            .expect("response should decode");
 
-        assert_eq!(payload.code(), ErrorCode::InternalError);
-        assert_eq!(payload.message(), "Internal server error");
-        assert_eq!(payload.trace_id(), Some("trace-123"));
-        assert_eq!(payload.details(), None);
+        assert_eq!(decoded.status, StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(decoded.trace_id.as_deref(), Some("trace-123"));
+        assert_eq!(decoded.payload.code(), ErrorCode::InternalError);
+        assert_eq!(decoded.payload.message(), "Internal server error");
+        assert_eq!(decoded.payload.trace_id(), Some("trace-123"));
+        assert_eq!(decoded.payload.details(), None);
     }
 
     #[actix_web::test]
@@ -213,9 +213,13 @@ mod tests {
             .try_with_trace_id("trace\n123")
             .expect("trace identifier should be stored before HTTP validation");
 
-        let payload = decode_response(error, StatusCode::INTERNAL_SERVER_ERROR, None).await;
+        let decoded = decode_response(error)
+            .await
+            .expect("response should decode");
 
-        assert_eq!(payload.trace_id(), Some("trace\n123"));
+        assert_eq!(decoded.status, StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(decoded.trace_id, None);
+        assert_eq!(decoded.payload.trace_id(), Some("trace\n123"));
     }
 
     #[actix_web::test]
@@ -225,12 +229,16 @@ mod tests {
             .expect("trace identifier should be valid")
             .with_details(json!({"field": "name"}));
 
-        let payload = decode_response(error, StatusCode::BAD_REQUEST, Some("trace-456")).await;
+        let decoded = decode_response(error)
+            .await
+            .expect("response should decode");
 
-        assert_eq!(payload.code(), ErrorCode::InvalidRequest);
-        assert_eq!(payload.message(), "bad");
-        assert_eq!(payload.trace_id(), Some("trace-456"));
-        assert_eq!(payload.details(), Some(&json!({"field": "name"})));
+        assert_eq!(decoded.status, StatusCode::BAD_REQUEST);
+        assert_eq!(decoded.trace_id.as_deref(), Some("trace-456"));
+        assert_eq!(decoded.payload.code(), ErrorCode::InvalidRequest);
+        assert_eq!(decoded.payload.message(), "bad");
+        assert_eq!(decoded.payload.trace_id(), Some("trace-456"));
+        assert_eq!(decoded.payload.details(), Some(&json!({"field": "name"})));
     }
 
     fn bad_request_error() -> actix_web::Error { actix_web::error::ErrorBadRequest("boom") }
