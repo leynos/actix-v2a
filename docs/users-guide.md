@@ -131,7 +131,8 @@ generation strategies.
 
 The `EventId` type wraps a validated string that is safe to emit in an SSE
 `id:` line. Construction rejects three characters that would corrupt the SSE
-wire format per the WHATWG HTML specification § 9.2.6:
+wire format per the Web Hypertext Application Technology Working Group (WHATWG)
+HTML specification § 9.2.6:
 
 - Carriage return (U+000D)
 - Line feed (U+000A)
@@ -212,10 +213,9 @@ fn handle_sse_request(req: HttpRequest) -> Result<(), Error> {
   `EventIdValidationError::ForbiddenCharacter`.
 
 `extract_replay_cursor` never returns `ReplayCursorError::Empty`. An empty
-`Last-Event-ID` header is treated as `Ok(None)` per the Web Hypertext
-Application Technology Working Group (WHATWG) specification's reset semantics,
-so callers only see `ReplayCursorError::Empty` after an explicit
-`From<EventIdValidationError>` conversion.
+`Last-Event-ID` header is treated as `Ok(None)` per the WHATWG specification's
+reset semantics, so callers only see `ReplayCursorError::Empty` after an
+explicit `From<EventIdValidationError>` conversion.
 
 ```rust
 use actix_v2a::{EventIdValidationError, ReplayCursorError, extract_replay_cursor};
