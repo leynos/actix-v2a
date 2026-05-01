@@ -197,22 +197,25 @@ fn handle_sse_request(req: HttpRequest) -> Result<(), Error> {
 
 #### Replay cursor error handling
 
-`extract_replay_cursor` and `From<EventIdValidationError>` return
-`ReplayCursorError`:
+`extract_replay_cursor` and `From<EventIdValidationError>` can both produce
+`ReplayCursorError`, but they do not expose the same variants:
 
 - `InvalidHeader` — the `Last-Event-ID` header was malformed because it was
   duplicated or contained a non-UTF-8 value. This variant is returned only by
   `extract_replay_cursor`.
-- `Empty` — the event identifier value was empty. This variant is observable
-  when converting `EventIdValidationError::Empty` into `ReplayCursorError`.
+- `ReplayCursorError::Empty` — the event identifier value was empty. This
+  variant exists for API completeness via `From<EventIdValidationError>` and is
+  observable when converting `EventIdValidationError::Empty` into
+  `ReplayCursorError`.
 - `ForbiddenCharacter` — the event identifier contained CR, LF, or NULL. This
   variant can be returned by `extract_replay_cursor` or by converting
   `EventIdValidationError::ForbiddenCharacter`.
 
-`Empty` exists for API completeness via `From<EventIdValidationError>`.
-`extract_replay_cursor` does not return it because empty `Last-Event-ID`
-header values are treated as `Ok(None)` per the Web Hypertext Application
-Technology Working Group (WHATWG) specification's reset semantics.
+`extract_replay_cursor` never returns `ReplayCursorError::Empty`. An empty
+`Last-Event-ID` header is treated as `Ok(None)` per the Web Hypertext
+Application Technology Working Group (WHATWG) specification's reset semantics,
+so callers only see `ReplayCursorError::Empty` after an explicit
+`From<EventIdValidationError>` conversion.
 
 ```rust
 use actix_v2a::{ReplayCursorError, extract_replay_cursor};
