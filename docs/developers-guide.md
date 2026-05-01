@@ -14,9 +14,11 @@ helpers per
 ```plaintext
 src/sse/
   mod.rs               # Public re-exports and module documentation
+  actix_adapter.rs     # Actix Web adapter functions for SSE domain helpers
   cache_control.rs     # Live event-stream cache policy helper
   event_id.rs          # EventId validated newtype and validation error
   frame.rs             # SSE event and comment frame rendering
+  header.rs            # Framework-agnostic SseHeader type
   heartbeat.rs         # Heartbeat interval policy and canonical heartbeat frame
   replay_cursor.rs     # ReplayCursor type and Last-Event-ID header extraction
   stream_reset.rs      # Standard replay-unavailable control event helper
@@ -154,13 +156,30 @@ policy into the crate.
 
 ### Cache-control policy
 
-`apply_event_stream_cache_control` mutates an Actix `HeaderMap` in place and
-sets:
+`apply_event_stream_cache_control` mutates a `Vec<SseHeader>` in place and sets:
 
 - `Cache-Control: no-cache, no-store, must-revalidate`
 
-The helper replaces any prior `Cache-Control` state deterministically and does
-not add proxy-vendor-specific buffering headers.
+For Actix Web callers, use `apply_actix_event_stream_cache_control` (in
+`src/sse/actix_adapter.rs`), which accepts an Actix `HeaderMap` and delegates
+to the domain function after converting header types.
+
+### Framework adapter layer
+
+The `actix_adapter` module is the sole location within `src/sse/` permitted to
+import `actix_web` types. It exposes two public functions:
+
+- `apply_actix_event_stream_cache_control(headers: &mut HeaderMap)` — inserts
+  the canonical `Cache-Control` value into an Actix response `HeaderMap`.
+<!-- markdownlint-disable-next-line MD013 -->
+- `extract_actix_replay_cursor(headers: &HeaderMap) -> Result<Option<ReplayCursor>, ReplayCursorError>`
+  — collects all `Last-Event-ID` values from an Actix request `HeaderMap`,
+  converts each to a domain `SseHeader`, and delegates to
+  `extract_replay_cursor`.
+
+The `SseHeader` type (in `src/sse/header.rs`) is a plain name/value pair with
+case-insensitive name comparison. Domain functions accept `&[SseHeader]` or
+`&mut Vec<SseHeader>` to remain framework-independent.
 
 ### Error mapping
 
