@@ -51,6 +51,7 @@ without pulling event-store, routing, or authorization logic into this crate.
     by the execplan closing milestone.
   - Pass `make fmt`, `make markdownlint`, and `make nixie` on the final
     documentation set.
+
 ## 2. Pagination documentation hardening
 
 Harden the reusable `actix-v2a` pagination module with expanded documentation,
