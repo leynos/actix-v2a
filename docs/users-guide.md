@@ -197,17 +197,37 @@ fn handle_sse_request(req: HttpRequest) -> Result<(), Error> {
 
 #### Replay cursor error handling
 
-Extraction and construction return `ReplayCursorError`:
+`extract_replay_cursor` and `From<EventIdValidationError>` return
+`ReplayCursorError`:
 
 - `InvalidHeader` — the `Last-Event-ID` header was malformed because it was
-  duplicated or contained a non-UTF-8 value.
-- `Empty` — the event identifier value was empty.
-- `ForbiddenCharacter` — the event identifier contained CR, LF, or NULL.
+  duplicated or contained a non-UTF-8 value. This variant is returned only by
+  `extract_replay_cursor`.
+- `Empty` — the event identifier value was empty. This variant is observable
+  when converting `EventIdValidationError::Empty` into `ReplayCursorError`.
+- `ForbiddenCharacter` — the event identifier contained CR, LF, or NULL. This
+  variant can be returned by `extract_replay_cursor` or by converting
+  `EventIdValidationError::ForbiddenCharacter`.
 
 `Empty` exists for API completeness via `From<EventIdValidationError>`.
 `extract_replay_cursor` does not return it because empty `Last-Event-ID`
-header values are treated as `Ok(None)` per the WHATWG specification's reset
-semantics.
+header values are treated as `Ok(None)` per the Web Hypertext Application
+Technology Working Group (WHATWG) specification's reset semantics.
+
+```rust
+use actix_v2a::{ReplayCursorError, extract_replay_cursor};
+use actix_web::http::header::HeaderMap;
+
+fn classify(headers: &HeaderMap) -> Result<&'static str, ReplayCursorError> {
+    match extract_replay_cursor(headers) {
+        Ok(Some(_)) => Ok("resume"),
+        Ok(None) => Ok("start"),
+        Err(ReplayCursorError::InvalidHeader) => Ok("reject malformed header"),
+        Err(ReplayCursorError::ForbiddenCharacter) => Ok("reject unsafe identifier"),
+        Err(ReplayCursorError::Empty) => Ok("reject empty converted identifier"),
+    }
+}
+```
 
 #### Header extraction behaviour
 
