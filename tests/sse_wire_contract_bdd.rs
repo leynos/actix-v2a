@@ -2,8 +2,10 @@
 
 use actix_v2a::{
     CACHE_CONTROL_HEADER,
+    DEFAULT_HEARTBEAT_INTERVAL,
     EVENT_STREAM_CACHE_CONTROL,
     EventId,
+    HeartbeatPolicy,
     LAST_EVENT_ID_HEADER,
     ReplayCursor,
     SseHeader,
@@ -122,12 +124,16 @@ fn the_replay_cursor_preserves(world: &World, event_id: String) {
     reason = "BDD steps use expect for clear failures"
 )]
 fn the_shared_last_event_id_header_name_is_exported() {
-    let headers = vec![SseHeader::new(LAST_EVENT_ID_HEADER, "evt-exported")];
-    let cursor = extract_replay_cursor(&headers)
-        .expect("exported header name should be accepted")
-        .expect("replay cursor should be present");
+    let wrong_name = format!("{LAST_EVENT_ID_HEADER}-wrong");
+    let headers = vec![SseHeader::new(&wrong_name, "evt-123")];
+    let result =
+        extract_replay_cursor(&headers).expect("header with wrong name should not be an error");
 
-    assert_eq!(cursor.as_ref(), "evt-exported");
+    assert!(
+        result.is_none(),
+        "extract_replay_cursor should return None when header name does not match \
+         LAST_EVENT_ID_HEADER"
+    );
 }
 
 #[then("the response uses the canonical no-store cache policy")]
@@ -163,6 +169,14 @@ fn the_heartbeat_frame_is_the_canonical_empty_comment(world: &World) {
         .expect("heartbeat frame should be set");
 
     assert_eq!(heartbeat, ":\n\n");
+    let policy = HeartbeatPolicy::new(DEFAULT_HEARTBEAT_INTERVAL)
+        .expect("DEFAULT_HEARTBEAT_INTERVAL should be a valid heartbeat interval");
+
+    assert_eq!(
+        policy.interval(),
+        DEFAULT_HEARTBEAT_INTERVAL,
+        "HeartbeatPolicy constructed from DEFAULT_HEARTBEAT_INTERVAL should preserve the interval"
+    );
 }
 
 #[then("the event and stream reset frames match the approved wire format")]
