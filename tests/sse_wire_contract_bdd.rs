@@ -3,27 +3,28 @@
 use std::time::Duration;
 
 use actix_v2a::{
+    CACHE_CONTROL_HEADER,
     DEFAULT_HEARTBEAT_INTERVAL,
     EVENT_STREAM_CACHE_CONTROL,
     EventId,
     LAST_EVENT_ID_HEADER,
     ReplayCursor,
+    SseHeader,
     apply_event_stream_cache_control,
     extract_replay_cursor,
     render_event_frame,
     render_heartbeat_frame,
     render_stream_reset_frame,
 };
-use actix_web::http::header::{CACHE_CONTROL, HeaderMap, HeaderName, HeaderValue};
 use rstest::fixture;
 use rstest_bdd::Slot;
 use rstest_bdd_macros::{ScenarioState, given, scenario, then, when};
 
 #[derive(Debug, Default, ScenarioState)]
 struct World {
-    headers: Slot<HeaderMap>,
+    headers: Slot<Vec<SseHeader>>,
     replay_cursor: Slot<Option<ReplayCursor>>,
-    response_headers: Slot<HeaderMap>,
+    response_headers: Slot<Vec<SseHeader>>,
     heartbeat_frame: Slot<String>,
     event_frame: Slot<String>,
     stream_reset_frame: Slot<String>,
@@ -36,20 +37,14 @@ fn world() -> World {
 }
 
 #[given("a reconnect request with Last-Event-ID {event_id}")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
 fn a_reconnect_request_with_last_event_id(world: &World, event_id: String) {
-    let mut headers = HeaderMap::new();
-    let header_name = HeaderName::from_static("last-event-id");
-    let header_value = HeaderValue::from_str(&event_id).expect("fixture header should be valid");
-    headers.insert(header_name, header_value);
-    world.headers.set(headers);
+    world
+        .headers
+        .set(vec![SseHeader::new(LAST_EVENT_ID_HEADER, event_id)]);
 }
 
 #[given("an event-stream response")]
-fn an_event_stream_response(world: &World) { world.response_headers.set(HeaderMap::new()); }
+fn an_event_stream_response(world: &World) { world.response_headers.set(Vec::new()); }
 
 #[given("a downstream event with id {event_id}, event {event_name}, and payload {payload}")]
 #[expect(
@@ -142,8 +137,10 @@ fn the_response_uses_the_canonical_no_store_cache_policy(world: &World) {
 
     assert_eq!(
         headers
-            .get(CACHE_CONTROL)
-            .expect("cache-control header should be present"),
+            .iter()
+            .find(|header| header.name() == CACHE_CONTROL_HEADER)
+            .expect("cache-control header should be present")
+            .value(),
         EVENT_STREAM_CACHE_CONTROL
     );
 }

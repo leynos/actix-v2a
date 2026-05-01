@@ -6,16 +6,24 @@
 //! headers. These helpers ensure wire safety without imposing opinions on
 //! identifier generation strategies or event store persistence models.
 
+pub mod actix_adapter;
 pub mod cache_control;
 pub mod event_id;
 pub mod frame;
+pub mod header;
 pub mod heartbeat;
 pub mod replay_cursor;
 pub mod stream_reset;
 
-pub use cache_control::{EVENT_STREAM_CACHE_CONTROL, apply_event_stream_cache_control};
+pub use actix_adapter::{apply_actix_event_stream_cache_control, extract_actix_replay_cursor};
+pub use cache_control::{
+    CACHE_CONTROL_HEADER,
+    EVENT_STREAM_CACHE_CONTROL,
+    apply_event_stream_cache_control,
+};
 pub use event_id::{EventId, EventIdValidationError};
 pub use frame::{SseFrameError, render_comment_frame, render_event_frame};
+pub use header::SseHeader;
 pub use heartbeat::{
     DEFAULT_HEARTBEAT_INTERVAL,
     HeartbeatPolicy,

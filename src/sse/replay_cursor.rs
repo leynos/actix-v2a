@@ -2,12 +2,14 @@
 
 use std::fmt;
 
-use actix_web::http::header::HeaderMap;
 use thiserror::Error;
 
 use crate::{
     Error,
-    sse::event_id::{EventId, EventIdValidationError},
+    sse::{
+        event_id::{EventId, EventIdValidationError},
+        header::SseHeader,
+    },
 };
 
 /// HTTP header name for the SSE reconnection identifier.
@@ -96,14 +98,9 @@ impl fmt::Display for ReplayCursor {
 /// # Examples
 ///
 /// ```
-/// use actix_v2a::extract_replay_cursor;
-/// use actix_web::http::header::{HeaderMap, HeaderName, HeaderValue};
+/// use actix_v2a::{SseHeader, extract_replay_cursor};
 ///
-/// let mut headers = HeaderMap::new();
-/// headers.insert(
-///     HeaderName::from_static("last-event-id"),
-///     HeaderValue::from_static("evt-123"),
-/// );
+/// let headers = vec![SseHeader::new("last-event-id", "evt-123")];
 ///
 /// let cursor = extract_replay_cursor(&headers)
 ///     .expect("valid header should parse")
@@ -112,18 +109,19 @@ impl fmt::Display for ReplayCursor {
 /// assert_eq!(cursor.as_ref(), "evt-123");
 /// ```
 pub fn extract_replay_cursor(
-    headers: &HeaderMap,
+    headers: &[SseHeader],
 ) -> Result<Option<ReplayCursor>, ReplayCursorError> {
-    let mut header_values = headers.get_all(LAST_EVENT_ID_HEADER);
-    let Some(header_value) = header_values.next() else {
+    let mut header_values = headers
+        .iter()
+        .filter(|header| header.has_name(LAST_EVENT_ID_HEADER));
+    let Some(header) = header_values.next() else {
         return Ok(None);
     };
     if header_values.next().is_some() {
         return Err(ReplayCursorError::InvalidHeader);
     }
 
-    let header_text = std::str::from_utf8(header_value.as_bytes())
-        .map_err(|_| ReplayCursorError::InvalidHeader)?;
+    let header_text = header.value();
 
     if header_text.is_empty() {
         return Ok(None);
@@ -166,7 +164,6 @@ pub fn map_replay_cursor_error(error: &ReplayCursorError) -> Error {
 mod tests {
     //! Regression coverage for the SSE replay cursor and header extraction.
 
-    use actix_web::http::header::{HeaderMap, HeaderName, HeaderValue};
     use rstest::rstest;
 
     use super::{
@@ -178,12 +175,13 @@ mod tests {
     };
     use crate::{
         ErrorCode,
+        SseHeader,
         sse::event_id::{EventId, EventIdValidationError},
     };
 
     #[test]
     fn extract_replay_cursor_returns_none_when_header_missing() {
-        let headers = HeaderMap::new();
+        let headers = Vec::new();
 
         let cursor = extract_replay_cursor(&headers).expect("missing header should be allowed");
 
@@ -192,11 +190,7 @@ mod tests {
 
     #[test]
     fn extract_replay_cursor_parses_valid_header() {
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            HeaderName::from_static("last-event-id"),
-            HeaderValue::from_static("evt-123"),
-        );
+        let headers = vec![SseHeader::new("last-event-id", "evt-123")];
 
         let cursor = extract_replay_cursor(&headers)
             .expect("valid header should parse")
@@ -207,11 +201,7 @@ mod tests {
 
     #[test]
     fn extract_replay_cursor_returns_none_for_empty_header_value() {
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            HeaderName::from_static("last-event-id"),
-            HeaderValue::from_static(""),
-        );
+        let headers = vec![SseHeader::new("last-event-id", "")];
 
         let cursor = extract_replay_cursor(&headers).expect("empty header should be allowed");
 
@@ -220,29 +210,12 @@ mod tests {
 
     #[test]
     fn extract_replay_cursor_rejects_duplicate_headers() {
-        let mut headers = HeaderMap::new();
-        let header_name = HeaderName::from_static("last-event-id");
-        headers.append(header_name.clone(), HeaderValue::from_static("evt-001"));
-        headers.append(header_name, HeaderValue::from_static("evt-002"));
+        let headers = vec![
+            SseHeader::new("last-event-id", "evt-001"),
+            SseHeader::new("last-event-id", "evt-002"),
+        ];
 
         let error = extract_replay_cursor(&headers).expect_err("duplicate headers should fail");
-
-        assert_eq!(error, ReplayCursorError::InvalidHeader);
-    }
-
-    #[test]
-    fn extract_replay_cursor_rejects_non_utf8_header_value() {
-        let mut headers = HeaderMap::new();
-        let header_name = HeaderName::from_static("last-event-id");
-        let non_utf8_bytes = &[0xff, 0xfe, 0xfd];
-        #[expect(
-            unsafe_code,
-            reason = "Test needs to construct invalid UTF-8 header value"
-        )]
-        let header_value = unsafe { HeaderValue::from_maybe_shared_unchecked(non_utf8_bytes) };
-        headers.insert(header_name, header_value);
-
-        let error = extract_replay_cursor(&headers).expect_err("non-UTF-8 value should fail");
 
         assert_eq!(error, ReplayCursorError::InvalidHeader);
     }
@@ -263,11 +236,7 @@ mod tests {
 
     #[test]
     fn extract_replay_cursor_preserves_leading_and_trailing_spaces() {
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            HeaderName::from_static("last-event-id"),
-            HeaderValue::from_static("  evt-001  "),
-        );
+        let headers = vec![SseHeader::new("last-event-id", "  evt-001  ")];
 
         let cursor = extract_replay_cursor(&headers)
             .expect("header with spaces should parse")
@@ -278,12 +247,8 @@ mod tests {
 
     #[test]
     fn extract_replay_cursor_accepts_utf8_identifier() {
-        let mut headers = HeaderMap::new();
         let utf8_id = "événement-🎉-123";
-        headers.insert(
-            HeaderName::from_static("last-event-id"),
-            HeaderValue::from_str(utf8_id).expect("UTF-8 should be valid header value"),
-        );
+        let headers = vec![SseHeader::new("last-event-id", utf8_id)];
 
         let cursor = extract_replay_cursor(&headers)
             .expect("UTF-8 header should parse")

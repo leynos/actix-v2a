@@ -1,6 +1,9 @@
 //! Cache-header helpers for live SSE event streams.
 
-use actix_web::http::header::{CACHE_CONTROL, HeaderMap, HeaderValue};
+use crate::sse::header::SseHeader;
+
+/// HTTP header name for cache-control directives.
+pub const CACHE_CONTROL_HEADER: &str = "Cache-Control";
 
 /// Canonical `Cache-Control` policy for live event streams.
 ///
@@ -17,95 +20,93 @@ pub const EVENT_STREAM_CACHE_CONTROL: &str = "no-cache, no-store, must-revalidat
 /// # Examples
 ///
 /// ```
-/// use actix_v2a::{EVENT_STREAM_CACHE_CONTROL, apply_event_stream_cache_control};
-/// use actix_web::http::header::{CACHE_CONTROL, HeaderMap};
+/// use actix_v2a::{
+///     CACHE_CONTROL_HEADER,
+///     EVENT_STREAM_CACHE_CONTROL,
+///     apply_event_stream_cache_control,
+/// };
 ///
-/// let mut headers = HeaderMap::new();
+/// let mut headers = Vec::new();
 /// apply_event_stream_cache_control(&mut headers);
 ///
+/// let cache_header = headers.first().expect("cache header should be set");
 /// assert_eq!(
-///     headers
-///         .get(CACHE_CONTROL)
-///         .expect("cache header should be set"),
-///     EVENT_STREAM_CACHE_CONTROL
+///     (cache_header.name(), cache_header.value()),
+///     (CACHE_CONTROL_HEADER, EVENT_STREAM_CACHE_CONTROL)
 /// );
 /// ```
-pub fn apply_event_stream_cache_control(headers: &mut HeaderMap) {
-    headers.insert(
-        CACHE_CONTROL,
-        HeaderValue::from_static(EVENT_STREAM_CACHE_CONTROL),
-    );
+pub fn apply_event_stream_cache_control(headers: &mut Vec<SseHeader>) {
+    headers.retain(|header| !header.has_name(CACHE_CONTROL_HEADER));
+    headers.push(SseHeader::new(
+        CACHE_CONTROL_HEADER,
+        EVENT_STREAM_CACHE_CONTROL,
+    ));
 }
 
 #[cfg(test)]
 mod tests {
     //! Regression coverage for event-stream cache-control helpers.
 
-    use actix_web::http::header::{CACHE_CONTROL, CONTENT_TYPE, HeaderMap, HeaderValue};
-
-    use super::{EVENT_STREAM_CACHE_CONTROL, apply_event_stream_cache_control};
+    use super::{
+        CACHE_CONTROL_HEADER,
+        EVENT_STREAM_CACHE_CONTROL,
+        apply_event_stream_cache_control,
+    };
+    use crate::SseHeader;
 
     #[test]
     fn apply_event_stream_cache_control_sets_expected_value() {
-        let mut headers = HeaderMap::new();
+        let mut headers = Vec::new();
 
         apply_event_stream_cache_control(&mut headers);
 
-        assert_eq!(
-            headers
-                .get(CACHE_CONTROL)
-                .expect("cache header should be present"),
-            EVENT_STREAM_CACHE_CONTROL
-        );
+        let header = headers.first().expect("cache header should be present");
+        assert_eq!(header.name(), CACHE_CONTROL_HEADER);
+        assert_eq!(header.value(), EVENT_STREAM_CACHE_CONTROL);
     }
 
     #[test]
     fn apply_event_stream_cache_control_replaces_existing_cache_policy() {
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            CACHE_CONTROL,
-            HeaderValue::from_static("public, max-age=60"),
-        );
+        let mut headers = vec![SseHeader::new(CACHE_CONTROL_HEADER, "public, max-age=60")];
 
         apply_event_stream_cache_control(&mut headers);
 
+        assert_eq!(headers.len(), 1);
         assert_eq!(
             headers
-                .get(CACHE_CONTROL)
-                .expect("cache header should be present"),
+                .first()
+                .expect("cache header should be present")
+                .value(),
             EVENT_STREAM_CACHE_CONTROL
         );
     }
 
     #[test]
     fn apply_event_stream_cache_control_preserves_unrelated_headers() {
-        let mut headers = HeaderMap::new();
-        headers.insert(CONTENT_TYPE, HeaderValue::from_static("text/event-stream"));
+        let mut headers = vec![SseHeader::new("Content-Type", "text/event-stream")];
 
         apply_event_stream_cache_control(&mut headers);
 
-        assert_eq!(
-            headers
-                .get(CONTENT_TYPE)
-                .expect("content type should stay present"),
-            "text/event-stream"
-        );
+        assert!(headers.contains(&SseHeader::new("Content-Type", "text/event-stream")));
     }
 
     #[test]
     fn apply_event_stream_cache_control_is_deterministic_when_repeated() {
-        let mut headers = HeaderMap::new();
+        let mut headers = Vec::new();
 
         apply_event_stream_cache_control(&mut headers);
         apply_event_stream_cache_control(&mut headers);
 
-        let values: Vec<_> = headers.get_all(CACHE_CONTROL).collect();
+        let values: Vec<_> = headers
+            .iter()
+            .filter(|header| header.has_name(CACHE_CONTROL_HEADER))
+            .collect();
         assert_eq!(values.len(), 1);
         assert_eq!(
             values
                 .first()
-                .copied()
-                .expect("a cache header should be present"),
+                .expect("cache header should be present")
+                .value(),
             EVENT_STREAM_CACHE_CONTROL
         );
     }
