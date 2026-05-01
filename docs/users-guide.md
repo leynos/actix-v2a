@@ -218,7 +218,7 @@ so callers only see `ReplayCursorError::Empty` after an explicit
 `From<EventIdValidationError>` conversion.
 
 ```rust
-use actix_v2a::{ReplayCursorError, extract_replay_cursor};
+use actix_v2a::{EventIdValidationError, ReplayCursorError, extract_replay_cursor};
 use actix_web::http::header::HeaderMap;
 
 fn classify(headers: &HeaderMap) -> Result<&'static str, ReplayCursorError> {
@@ -227,7 +227,19 @@ fn classify(headers: &HeaderMap) -> Result<&'static str, ReplayCursorError> {
         Ok(None) => Ok("start"),
         Err(ReplayCursorError::InvalidHeader) => Ok("reject malformed header"),
         Err(ReplayCursorError::ForbiddenCharacter) => Ok("reject unsafe identifier"),
-        Err(ReplayCursorError::Empty) => Ok("reject empty converted identifier"),
+        Err(ReplayCursorError::Empty) => unreachable!(
+            "extract_replay_cursor returns Ok(None) for empty Last-Event-ID headers"
+        ),
+    }
+}
+
+fn classify_converted(error: EventIdValidationError) -> &'static str {
+    match ReplayCursorError::from(error) {
+        ReplayCursorError::Empty => "reject empty converted identifier",
+        ReplayCursorError::ForbiddenCharacter => "reject unsafe identifier",
+        ReplayCursorError::InvalidHeader => unreachable!(
+            "From<EventIdValidationError> never produces InvalidHeader"
+        ),
     }
 }
 ```
