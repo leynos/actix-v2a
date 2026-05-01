@@ -202,7 +202,7 @@ Override Cargo by exporting `CARGO` or by passing it to `make`:
 CARGO=/path/to/cargo make test
 ```
 
-You can also modify `PATH` before invoking `make`; the scoped prepend is added
+`PATH` may be modified before invoking `make`; the scoped prepend is applied
 only for Cargo, Bun, and related developer-tool detection.
 
 The `test` target also detects `cargo-nextest` through `CARGO`. Install
@@ -434,7 +434,7 @@ HTTP adapters should map caller-controlled pagination failures to HTTP 400 and
 - `PageParamsError::InvalidLimit`
 
 `CursorError::Serialize` should map to HTTP 500 and `ErrorCode::InternalError`
-because it is a server-side serialisation failure.
+because it is a server-side serialization failure.
 
 ### Testing patterns
 

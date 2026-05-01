@@ -69,6 +69,8 @@ pub struct ReplayMetadataSchema {
 mod tests {
     //! Regression coverage for shared schema fragments.
 
+    use std::collections::BTreeSet;
+
     use utoipa::{PartialSchema, ToSchema};
 
     use super::{ErrorCodeSchema, ErrorSchema, ReplayMetadataSchema};
@@ -87,9 +89,11 @@ mod tests {
             .get("enum")
             .and_then(serde_json::Value::as_array)
             .expect("schema should define enum variants");
-
-        assert_eq!(ErrorCodeSchema::name(), "crate.ErrorCode");
-        for variant in [
+        let actual_variants = variants
+            .iter()
+            .map(|variant| variant.as_str().expect("variant should be a string"))
+            .collect::<BTreeSet<_>>();
+        let expected_variants = BTreeSet::from([
             "invalid_request",
             "unauthorized",
             "forbidden",
@@ -97,14 +101,10 @@ mod tests {
             "conflict",
             "service_unavailable",
             "internal_error",
-        ] {
-            assert!(
-                variants
-                    .iter()
-                    .any(|schema_variant| schema_variant.as_str() == Some(variant)),
-                "missing variant {variant}"
-            );
-        }
+        ]);
+
+        assert_eq!(ErrorCodeSchema::name(), "crate.ErrorCode");
+        assert_eq!(actual_variants, expected_variants);
     }
 
     #[test]
@@ -146,11 +146,14 @@ mod tests {
             .get("properties")
             .and_then(serde_json::Value::as_object)
             .expect("schema should define object properties");
+        let actual_fields = properties
+            .keys()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>();
+        let expected_fields = BTreeSet::from(["code", "message", "traceId", "details"]);
 
         assert_eq!(ErrorSchema::name(), "crate.Error");
-        for field in ["code", "message", "traceId", "details"] {
-            assert!(properties.contains_key(field), "missing field {field}");
-        }
+        assert_eq!(actual_fields, expected_fields);
     }
 
     #[test]
@@ -162,11 +165,16 @@ mod tests {
             .get("properties")
             .and_then(serde_json::Value::as_object)
             .expect("schema should define object properties");
+        let actual_fields = properties
+            .keys()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>();
+        let expected_fields = BTreeSet::from(["replayed"]);
 
         assert_eq!(
             ReplayMetadataSchema::name(),
             "crate.idempotency.ReplayMetadata"
         );
-        assert!(properties.contains_key("replayed"));
+        assert_eq!(actual_fields, expected_fields);
     }
 }

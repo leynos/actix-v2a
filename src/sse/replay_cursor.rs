@@ -90,8 +90,8 @@ impl fmt::Display for ReplayCursor {
 ///
 /// # Errors
 ///
-/// Returns [`ReplayCursorError::InvalidHeader`] when the header cannot be
-/// decoded as UTF-8 or when duplicate `Last-Event-ID` headers are present.
+/// Returns [`ReplayCursorError::InvalidHeader`] when duplicate
+/// `Last-Event-ID` headers are present.
 /// Returns [`ReplayCursorError::ForbiddenCharacter`] when the header
 /// value contains carriage return (CR), line feed (LF), or NULL.
 ///

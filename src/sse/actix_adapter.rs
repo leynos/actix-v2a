@@ -20,6 +20,9 @@ pub fn apply_actix_event_stream_cache_control(headers: &mut HeaderMap) {
 
 /// Extract a replay cursor from Actix request headers.
 ///
+/// This adapter converts Actix's raw header values into UTF-8 domain headers
+/// before delegating to the framework-agnostic replay cursor parser.
+///
 /// # Errors
 ///
 /// Returns [`ReplayCursorError::InvalidHeader`] when the Actix header value is

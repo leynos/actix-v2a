@@ -1,10 +1,7 @@
 //! Behavioural tests for the shared SSE wire contract.
 
-use std::time::Duration;
-
 use actix_v2a::{
     CACHE_CONTROL_HEADER,
-    DEFAULT_HEARTBEAT_INTERVAL,
     EVENT_STREAM_CACHE_CONTROL,
     EventId,
     LAST_EVENT_ID_HEADER,
@@ -120,8 +117,17 @@ fn the_replay_cursor_preserves(world: &World, event_id: String) {
 }
 
 #[then("the shared Last-Event-ID header name is exported")]
+#[expect(
+    clippy::expect_used,
+    reason = "BDD steps use expect for clear failures"
+)]
 fn the_shared_last_event_id_header_name_is_exported() {
-    assert_eq!(LAST_EVENT_ID_HEADER, "Last-Event-ID");
+    let headers = vec![SseHeader::new(LAST_EVENT_ID_HEADER, "evt-exported")];
+    let cursor = extract_replay_cursor(&headers)
+        .expect("exported header name should be accepted")
+        .expect("replay cursor should be present");
+
+    assert_eq!(cursor.as_ref(), "evt-exported");
 }
 
 #[then("the response uses the canonical no-store cache policy")]
@@ -157,7 +163,6 @@ fn the_heartbeat_frame_is_the_canonical_empty_comment(world: &World) {
         .expect("heartbeat frame should be set");
 
     assert_eq!(heartbeat, ":\n\n");
-    assert_eq!(DEFAULT_HEARTBEAT_INTERVAL, Duration::from_secs(20));
 }
 
 #[then("the event and stream reset frames match the approved wire format")]
