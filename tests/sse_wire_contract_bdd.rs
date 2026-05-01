@@ -1,5 +1,7 @@
 //! Behavioural tests for the shared SSE wire contract.
 
+use std::time::Duration;
+
 use actix_v2a::{
     CACHE_CONTROL_HEADER,
     DEFAULT_HEARTBEAT_INTERVAL,
@@ -174,8 +176,8 @@ fn the_heartbeat_frame_is_the_canonical_empty_comment(world: &World) {
 
     assert_eq!(
         policy.interval(),
-        DEFAULT_HEARTBEAT_INTERVAL,
-        "HeartbeatPolicy constructed from DEFAULT_HEARTBEAT_INTERVAL should preserve the interval"
+        Duration::from_secs(20),
+        "DEFAULT_HEARTBEAT_INTERVAL should encode a 20-second heartbeat interval"
     );
 }
 
