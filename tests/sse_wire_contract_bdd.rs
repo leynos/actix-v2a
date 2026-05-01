@@ -120,12 +120,12 @@ fn the_replay_cursor_preserves(world: &World, event_id: String) {
     assert_eq!(cursor.as_ref(), event_id);
 }
 
-#[then("the shared Last-Event-ID header name is exported")]
+#[then("the shared Last-Event-ID header name ignores non-matching headers")]
 #[expect(
     clippy::expect_used,
     reason = "BDD steps use expect for clear failures"
 )]
-fn the_shared_last_event_id_header_name_is_exported() {
+fn the_shared_last_event_id_header_name_ignores_non_matching_headers() {
     let wrong_name = format!("{LAST_EVENT_ID_HEADER}-wrong");
     let headers = vec![SseHeader::new(&wrong_name, "evt-123")];
     let result =

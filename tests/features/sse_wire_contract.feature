@@ -6,7 +6,7 @@ Feature: Shared SSE wire contract
     Given a reconnect request with Last-Event-ID "evt-42"
     When the replay cursor is extracted
     Then the replay cursor preserves "evt-42"
-    And the shared Last-Event-ID header name is exported
+    And the shared Last-Event-ID header name ignores non-matching headers
 
   Scenario: Live streams use the canonical cache and heartbeat policy
     Given an event-stream response
