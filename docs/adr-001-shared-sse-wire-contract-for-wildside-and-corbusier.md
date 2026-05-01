@@ -1,4 +1,5 @@
-# Shared SSE wire contract for Wildside and Corbusier
+# Architectural decision record (ADR) 001: shared SSE wire contract for Wildside and Corbusier
+<!-- markdownlint-disable-next-line MD013 -->
 
 ## Status
 
