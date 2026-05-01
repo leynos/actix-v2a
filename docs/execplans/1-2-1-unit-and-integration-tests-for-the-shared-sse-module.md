@@ -78,6 +78,18 @@ This plan was approved before implementation began.
   en-GB-oxendict spelling, wrapped Markdown, module-level `//!` comments, and
   documented public interfaces.
 
+### Property-based testing
+
+Property-based testing (for example, `proptest`) for `EventId` byte-validation
+exhaustiveness and `apply_event_stream_cache_control` idempotence over
+arbitrary `Vec<SseHeader>` state is **out of scope for this plan**. The
+discrete `rstest` parameterized cases cover the specified forbidden-byte set
+(`\n`, `\r`, `\0`) and the empty-string guard; idempotence is verified over
+hand-crafted initial states (empty, single pre-existing entry, multiple
+entries). Exhaustive property coverage is tracked in
+[issue `#18`](https://github.com/leynos/actix-v2a/issues/18) and deferred to a
+subsequent PR.
+
 ## Tolerances (exception triggers)
 
 - Scope: if closing task 1.2.1 requires broad production-code changes beyond
