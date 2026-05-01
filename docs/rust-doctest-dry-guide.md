@@ -1,5 +1,4 @@
-<!-- markdownlint-disable-next-line MD013 -->
-# A systematic guide to effective, ergonomic, and "don't repeat yourself" (DRY) doctests in Rust
+# Effective, ergonomic, and DRY doctests in Rust
 
 ## The `rustdoc` compilation model: a foundational perspective
 

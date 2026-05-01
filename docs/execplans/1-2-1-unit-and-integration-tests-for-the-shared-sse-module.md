@@ -31,7 +31,7 @@ when `make check-fmt`, `make lint`, and `make test` pass with the new coverage,
 and when `docs/roadmap.md` marks task 1.2.1 done only after the implementation
 is complete.
 
-This plan must be approved before any implementation begins.
+This plan was approved before implementation began.
 
 [adr-001]: ../adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md
 
@@ -180,7 +180,7 @@ This plan must be approved before any implementation begins.
   `no_expect_outside_tests` findings in helper functions inside `#[cfg(test)]`
   modules outside the SSE module. These are test-only helpers, so the fix is to
   make the helpers return `Result` and keep `expect` at actual test call sites
-  that the lint recognises.
+  that the lint recognizes.
 - 2026-04-29: The repository-wide Markdown gate also had pre-existing long-line
   violations in reference material. The closure fix wraps ordinary examples and
   uses scoped `MD013` disables only for headings and tables that cannot be

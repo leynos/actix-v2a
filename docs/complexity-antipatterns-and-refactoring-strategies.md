@@ -606,7 +606,7 @@ represented as dictionaries.[^24]
   event_data = get_event()
   if "type" in event_data and event_data["type"] == "click":
       has_position = "position" in event_data
-      is_point = isinstance(event_data["position"], tuple)
+      is_point = has_position and isinstance(event_data["position"], tuple)
       if has_position and is_point and len(event_data["position"]) == 2:
           x, y = event_data["position"]
           handle_click(x, y)
