@@ -401,8 +401,8 @@ set -o pipefail && make nixie 2>&1 | tee /tmp/nixie-sse-tests-plan.out
 
 ## Plan of work
 
-The implementation should proceed in four stages. Do not begin Stage B until
-the user approves this plan.
+The implementation proceeded in four stages. Stage B was only begun after the
+user approved this plan.
 
 ### Stage A: audit the existing SSE coverage against the roadmap
 

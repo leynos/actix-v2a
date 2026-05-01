@@ -80,7 +80,13 @@ mod tests {
 
     #[test]
     fn error_code_schema_has_expected_name_and_variants() {
-        let schema = schema_json::<ErrorCodeSchema>().expect("schema should serialize");
+        let schema_json = schema_json::<ErrorCodeSchema>().expect("schema should serialize");
+        let parsed_schema = serde_json::from_str::<serde_json::Value>(&schema_json)
+            .expect("schema should parse as JSON");
+        let variants = parsed_schema
+            .get("enum")
+            .and_then(serde_json::Value::as_array)
+            .expect("schema should define enum variants");
 
         assert_eq!(ErrorCodeSchema::name(), "crate.ErrorCode");
         for variant in [
@@ -92,7 +98,12 @@ mod tests {
             "service_unavailable",
             "internal_error",
         ] {
-            assert!(schema.contains(variant), "missing variant {variant}");
+            assert!(
+                variants
+                    .iter()
+                    .any(|schema_variant| schema_variant.as_str() == Some(variant)),
+                "missing variant {variant}"
+            );
         }
     }
 
@@ -128,22 +139,34 @@ mod tests {
 
     #[test]
     fn error_schema_has_expected_name_and_fields() {
-        let schema = schema_json::<ErrorSchema>().expect("schema should serialize");
+        let schema_json = schema_json::<ErrorSchema>().expect("schema should serialize");
+        let parsed_schema = serde_json::from_str::<serde_json::Value>(&schema_json)
+            .expect("schema should parse as JSON");
+        let properties = parsed_schema
+            .get("properties")
+            .and_then(serde_json::Value::as_object)
+            .expect("schema should define object properties");
 
         assert_eq!(ErrorSchema::name(), "crate.Error");
         for field in ["code", "message", "traceId", "details"] {
-            assert!(schema.contains(field), "missing field {field}");
+            assert!(properties.contains_key(field), "missing field {field}");
         }
     }
 
     #[test]
     fn replay_metadata_schema_has_expected_name_and_field() {
-        let schema = schema_json::<ReplayMetadataSchema>().expect("schema should serialize");
+        let schema_json = schema_json::<ReplayMetadataSchema>().expect("schema should serialize");
+        let parsed_schema = serde_json::from_str::<serde_json::Value>(&schema_json)
+            .expect("schema should parse as JSON");
+        let properties = parsed_schema
+            .get("properties")
+            .and_then(serde_json::Value::as_object)
+            .expect("schema should define object properties");
 
         assert_eq!(
             ReplayMetadataSchema::name(),
             "crate.idempotency.ReplayMetadata"
         );
-        assert!(schema.contains("replayed"));
+        assert!(properties.contains_key("replayed"));
     }
 }

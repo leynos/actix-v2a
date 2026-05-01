@@ -30,14 +30,12 @@ ______________________________________________________________________
 
 First, add the crate to development dependencies in `Cargo.toml`.
 
+<!-- markdownlint-disable MD013 -->
 ```toml
 [dev-dependencies]
-mockable = {
-  version = "0.1.4",
-  default-features = false,
-  features = ["clock", "mock"],
-}
+mockable = { version = "0.1.4", default-features = false, features = ["clock", "mock"] }
 ```
+<!-- markdownlint-enable MD013 -->
 
 ### 2. The untestable code (before)
 
