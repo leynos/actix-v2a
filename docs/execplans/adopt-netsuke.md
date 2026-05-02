@@ -1,0 +1,317 @@
+# Adopt Netsuke as the Repository Build Driver
+
+This ExecPlan (execution plan) is a living document. The sections
+`Constraints`, `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`,
+`Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work
+proceeds.
+
+Status: DRAFT
+
+## Purpose / big picture
+
+This repository currently uses GNU Make through the root `Makefile` and the
+GitHub Actions workflow at `.github/workflows/ci.yml`. The goal is to pilot
+Netsuke as the primary build driver for this simple Rust repository while
+dogfooding Netsuke before package-manager distribution is available. After this
+change, a developer can run `netsuke build check-fmt`, `netsuke build lint`,
+and `netsuke build test` from the repository root and receive the same quality
+gate behaviour currently exposed by `make check-fmt`, `make lint`, and
+`make test`.
+
+Success is observable in two places. Locally, the Netsuke commands pass and
+produce the same effective Cargo, Markdown, and Mermaid checks as the existing
+Makefile. In CI, `.github/workflows/ci.yml` installs Netsuke from
+`https://github.com/leynos/netsuke/` source, installs Ninja, and invokes
+Netsuke for repository gates instead of invoking `make` directly. This is a
+dogfooding pilot, so the plan keeps rollback straightforward and captures any
+Netsuke limitations discovered while translating the existing Makefile targets.
+
+## Constraints
+
+- Read and follow `AGENTS.md` before implementation. This plan was drafted from
+  the repository instructions embedded in the task prompt and must be checked
+  against the actual file again before execution.
+- Use `docs/netsuke-users-guide.md` as the local Netsuke reference for manifest
+  structure, command-line behaviour, configuration, and diagnostics.
+- Install Netsuke from source in CI using the GitHub repository, not from a
+  Debian package, `cargo-binstall`, or crates.io metadata.
+- Keep the pilot suitable for demonstrating that Netsuke can replace `gnumake`
+  in a simple repository. Do not add a bespoke task runner, shell framework, or
+  wrapper script unless a documented Netsuke limitation makes it necessary.
+- Preserve the existing quality gates: Rust formatting, Rustdoc and Clippy
+  linting, Whitaker when available, tests including doctests, Markdown linting,
+  and Mermaid validation.
+- Do not change the public Rust API as part of this build-tooling migration.
+- Do not introduce new Rust crate dependencies to `Cargo.toml`.
+- Do not run format, lint, or test commands in parallel. The repository relies
+  on shared build caching, and sequential execution is required.
+- Capture long validation command output through `tee` into `/tmp`, using
+  branch-specific log names.
+- Keep documentation in en-GB Oxford spelling and wrap Markdown paragraphs at
+  80 columns.
+- Do not remove the `Makefile` until Netsuke has passed locally and in CI, and
+  until the rollback story is accepted. During the pilot, retaining the Makefile
+  as a compatibility shim is allowed.
+
+If satisfying the objective requires violating a constraint, stop immediately,
+record the conflict in `Decision Log`, and ask for direction.
+
+## Tolerances (exception triggers)
+
+- Scope: if implementation requires changes to more than five repository files
+  or more than 250 net lines outside generated lock/build artefacts, stop and
+  escalate.
+- Interface: if any Rust public API signature must change, stop and escalate.
+- Dependencies: if any new project dependency must be added to `Cargo.toml`,
+  stop and escalate.
+- CI: if replacing the coverage step requires removing CodeScene upload or
+  changing coverage format from `lcov`, stop and present options.
+- Tooling: if Netsuke cannot express an existing Makefile target without a
+  wrapper script longer than 40 lines, stop and document the limitation.
+- Iterations: if a gate still fails after two focused fixes, stop and document
+  the failing command, log path, and options.
+- Ambiguity: if there are multiple credible interpretations of "alternative to
+  gnumake" that materially affect whether the Makefile remains, stop and ask.
+
+## Risks
+
+- Risk: Netsuke may not support Make-style conditional execution cleanly for
+  the `test` target's "use nextest if installed, otherwise cargo test" logic.
+  Severity: medium. Likelihood: medium. Mitigation: encode the conditional in
+  a small `script:` action and keep it directly equivalent to the current
+  Makefile recipe; escalate if this becomes a larger shell wrapper.
+- Risk: GitHub's Ubuntu runner may not have Ninja installed. Severity: medium.
+  Likelihood: medium. Mitigation: add an explicit `apt-get install
+  ninja-build` CI step before invoking Netsuke.
+- Risk: `cargo install --git https://github.com/leynos/netsuke/ netsuke
+  --locked` may fail if upstream lockfile or Rust toolchain requirements drift.
+  Severity: medium. Likelihood: low. Mitigation: pin the install to a reviewed
+  Netsuke revision for the pilot, document the revision, and update it
+  deliberately when testing newer Netsuke.
+- Risk: The shared coverage action in `.github/workflows/ci.yml` may hide an
+  internal `make` call. Severity: medium. Likelihood: unknown. Mitigation:
+  inspect its documented inputs or source before finalizing CI; if it invokes
+  Make, either configure it to use the Netsuke test command or replace it with
+  an explicit coverage command that still uploads `lcov.info`.
+- Risk: Markdown formatting tools may not be installed in every local
+  environment. Severity: low. Likelihood: medium. Mitigation: preserve the
+  current Makefile's `PATH` discovery behaviour in the Netsuke manifest and
+  keep failure messages from the underlying tools visible.
+
+## Progress
+
+- [x] 2026-05-02: Create the initial draft plan on branch `adopt-netsuke`.
+- [x] 2026-05-02: Inspect the current `Makefile`, `.github/workflows/ci.yml`,
+  `docs/developers-guide.md`, and `docs/netsuke-users-guide.md`.
+- [x] 2026-05-02: Confirm upstream Netsuke source metadata from
+  `https://github.com/leynos/netsuke/`; the package name is `netsuke`, current
+  `HEAD` during drafting was `2fe314a58d7311758640b3daa086c401d79838cf`, and
+  the crate declares Rust `1.89.0`.
+- [ ] Await explicit approval before executing the implementation phase.
+- [ ] Add a repository `Netsukefile` that reproduces current Makefile targets.
+- [ ] Update developer documentation to describe Netsuke-first usage.
+- [ ] Update CI to install Netsuke from GitHub source and run Netsuke gates.
+- [ ] Validate formatting, linting, tests, Markdown linting, and Mermaid
+  validation through Netsuke.
+- [ ] Commit each completed, gated change atomically.
+
+## Surprises & Discoveries
+
+- 2026-05-02: The current CI only calls `make` directly for `check-fmt` and
+  `lint`. Tests and coverage are delegated to
+  `leynos/shared-actions/.github/actions/generate-coverage`, so implementation
+  must check whether that shared action invokes `make` internally before
+  claiming CI is fully Make-free.
+- 2026-05-02: The Makefile already contains compatibility work for reduced
+  `PATH` environments by prepending `$HOME/.cargo/bin`, `$HOME/.bun/bin`, and
+  `$HOME/.local/bin`. The Netsuke manifest must preserve this behaviour.
+
+## Decision Log
+
+- Decision: Treat this as a Netsuke-first pilot rather than deleting Makefile
+  support immediately.
+  Rationale: The user asked for adoption "as an alternative to `gnumake`" and
+  identified this as a dogfooding pilot. Keeping Makefile compatibility during
+  the first Netsuke migration reduces rollback risk while still proving that
+  Netsuke can drive the repository gates.
+- Decision: Install Netsuke in CI with Cargo from GitHub source and pin the
+  pilot to a reviewed revision.
+  Rationale: The user explicitly rejected Debian packages and `cargo-binstall`
+  metadata until the pilot has demonstrated replacement value. Pinning avoids
+  unrelated upstream Netsuke movement breaking this repository's CI.
+- Decision: Model repository gates as Netsuke `actions`, not file-producing
+  `targets`.
+  Rationale: The current Makefile gates are phony commands that validate the
+  working tree rather than producing durable artefacts. Netsuke's `actions:`
+  section maps directly to that behaviour.
+
+## Outcomes & Retrospective
+
+This section is intentionally empty in the draft. During implementation, record
+what changed, which gates passed, which Netsuke behaviours worked well, and
+which gaps should feed back into Netsuke packaging or documentation before the
+project provides Debian packages or `cargo-binstall` metadata.
+
+## Repository orientation
+
+The current build-tooling surface is small:
+
+- `Makefile` defines `check-fmt`, `lint`, `test`, `fmt`, `markdownlint`,
+  `nixie`, `build`, `release`, `clean`, `typecheck`, `all`, and `help`.
+- `.github/workflows/ci.yml` runs on pull requests and manual dispatch. It
+  checks out the repository, sets up Rust, runs `make check-fmt`, runs
+  Markdown lint through a GitHub Action, runs `make lint`, generates coverage
+  through a shared action, and uploads coverage to CodeScene when configured.
+- `docs/developers-guide.md` documents Makefile-based build tooling and must
+  be updated so developers know that Netsuke is the preferred driver during
+  the pilot.
+- `docs/netsuke-users-guide.md` documents the manifest format. Important
+  concepts for this migration are `actions:` for phony tasks, `script:` for
+  multi-line shell actions, `defaults:` for what runs when `netsuke` is invoked
+  without targets, and `netsuke manifest` for inspecting the generated Ninja
+  file without executing it.
+
+## Implementation plan
+
+First, create `Netsukefile` in the repository root. Use
+`netsuke_version: "1.0.0"` and define shared variables for the tool paths and
+flags currently centralised in the Makefile:
+
+```yaml
+vars:
+  prepend_path: "{{ env('HOME') }}/.cargo/bin:{{ env('HOME') }}/.bun/bin:{{ env('HOME') }}/.local/bin"
+  cargo: "{{ env('CARGO', 'cargo') }}"
+  rust_flags: "-D warnings"
+  rustdoc_flags: "-D warnings"
+  cargo_flags: "--all-targets --all-features"
+```
+
+Use `actions:` for the repository gates. Each action should use a `script:`
+block so shell conditionals remain readable. Preserve the current command
+semantics:
+
+- `check-fmt` runs `cargo fmt --all -- --check`.
+- `lint` runs `cargo doc --no-deps`, `cargo clippy --all-targets
+  --all-features -- -D warnings`, and runs Whitaker only when it is found on
+  `PATH`.
+- `test` detects `cargo nextest --version`; if present, it runs
+  `cargo nextest run --all-targets --all-features` and then
+  `cargo test --doc --workspace --all-features`; otherwise it runs
+  `cargo test --all-targets --all-features`.
+- `fmt` runs `cargo +nightly fmt --all` and `mdformat-all`.
+- `markdownlint` runs `markdownlint-cli2 '**/*.md'`.
+- `nixie` runs `nixie --no-sandbox`.
+- `typecheck` runs `cargo check --all-targets --all-features`.
+- `clean` runs `cargo clean`.
+- `all` runs the same gate sequence as today's Makefile: `check-fmt`, `lint`,
+  and `test`.
+
+Set `defaults:` to `["all"]` only if the implementation confirms that running
+`netsuke` without arguments should execute the full gate suite. If that is too
+expensive for day-to-day use, set no default and document explicit target
+usage instead. This is a product decision for the pilot; if uncertain, escalate
+before choosing.
+
+Second, keep or adapt `Makefile` as a compatibility shim. The preferred pilot
+shape is for `make check-fmt` and related targets to delegate to
+`netsuke build check-fmt` once Netsuke is available. If this creates a
+bootstrap problem for environments that have Make but not Netsuke, leave the
+Makefile recipes intact and document Netsuke as the primary path instead. Do
+not delete the Makefile in the first implementation unless explicitly
+approved.
+
+Third, update `.github/workflows/ci.yml`. After the Rust setup step, install
+Ninja and install Netsuke from source:
+
+```yaml
+- name: Install Ninja
+  run: sudo apt-get update && sudo apt-get install -y ninja-build
+- name: Install Netsuke
+  run: >-
+    cargo install --git https://github.com/leynos/netsuke.git
+    --rev 2fe314a58d7311758640b3daa086c401d79838cf
+    netsuke --locked
+- name: Show Netsuke version
+  run: netsuke --version
+```
+
+Replace direct `make check-fmt` and `make lint` invocations with
+`netsuke build check-fmt` and `netsuke build lint`. Add a Netsuke-driven test
+step unless the coverage action is confirmed to run tests without Make and with
+equivalent coverage. If the shared coverage action invokes `make`, replace or
+configure it so CI remains Netsuke-first while still producing `lcov.info` for
+the existing CodeScene upload step.
+
+Fourth, update documentation. In `docs/developers-guide.md`, change the build
+tooling section to describe Netsuke as the preferred driver, include the source
+install command for the pilot, keep a short compatibility note for Makefile
+users if the Makefile remains, and update gate examples from `make ...` to
+`netsuke build ...`. Also update any roadmap or contributor references that
+would otherwise instruct contributors to use Make for the same gates. Do not
+bulk-rewrite historical ExecPlans.
+
+Fifth, validate the generated Ninja manifest before running expensive gates:
+
+```bash
+set -o pipefail && netsuke manifest - 2>&1 | tee /tmp/manifest-actix-v2a-adopt-netsuke.out
+```
+
+The command should exit successfully and print a Ninja file containing build
+edges for the declared actions. If this fails, fix the `Netsukefile` before
+running any gate.
+
+## Validation plan
+
+Run validation sequentially and capture logs in `/tmp`:
+
+```bash
+set -o pipefail && netsuke build check-fmt 2>&1 | tee /tmp/check-fmt-actix-v2a-adopt-netsuke.out
+set -o pipefail && netsuke build lint 2>&1 | tee /tmp/lint-actix-v2a-adopt-netsuke.out
+set -o pipefail && netsuke build test 2>&1 | tee /tmp/test-actix-v2a-adopt-netsuke.out
+set -o pipefail && netsuke build markdownlint 2>&1 | tee /tmp/markdownlint-actix-v2a-adopt-netsuke.out
+set -o pipefail && netsuke build nixie 2>&1 | tee /tmp/nixie-actix-v2a-adopt-netsuke.out
+```
+
+For documentation-only commits, at minimum run:
+
+```bash
+set -o pipefail && make markdownlint 2>&1 | tee /tmp/markdownlint-actix-v2a-adopt-netsuke-plan.out
+set -o pipefail && make nixie 2>&1 | tee /tmp/nixie-actix-v2a-adopt-netsuke-plan.out
+```
+
+For the final implementation commit, also run the legacy Makefile gates if the
+Makefile remains as a compatibility path:
+
+```bash
+set -o pipefail && make check-fmt 2>&1 | tee /tmp/make-check-fmt-actix-v2a-adopt-netsuke.out
+set -o pipefail && make lint 2>&1 | tee /tmp/make-lint-actix-v2a-adopt-netsuke.out
+set -o pipefail && make test 2>&1 | tee /tmp/make-test-actix-v2a-adopt-netsuke.out
+```
+
+Expected success:
+
+- `netsuke manifest -` exits with status 0.
+- `netsuke build check-fmt` reports no Rust formatting drift.
+- `netsuke build lint` builds Rustdoc without warnings, runs Clippy with
+  warnings denied, and either runs Whitaker or reports the existing
+  "whitaker not found" skip message.
+- `netsuke build test` runs the full workspace test suite and doctests.
+- `netsuke build markdownlint` and `netsuke build nixie` pass after
+  documentation updates.
+- GitHub Actions shows the workflow installing Netsuke from source and running
+  Netsuke commands for the repository gates.
+
+## Rollback plan
+
+If Netsuke cannot drive the gates within the tolerances above, leave the
+existing Makefile and CI Make calls intact, remove any incomplete `Netsukefile`
+changes, and record the Netsuke limitation in `Surprises & Discoveries` and
+`Decision Log`. If only CI installation is unstable, keep the local Netsuke
+manifest and continue using Make in CI until the Netsuke revision or install
+method is fixed. Do not remove coverage upload unless explicitly approved.
+
+## Approval gate
+
+This plan is in draft. Do not implement the `Netsukefile`, CI workflow, or
+developer documentation changes until the plan is explicitly approved or
+revised by the user.
