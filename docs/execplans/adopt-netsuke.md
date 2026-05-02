@@ -132,6 +132,9 @@ record the conflict in `Decision Log`, and ask for direction.
 - [x] 2026-05-02: Rerun final gates: `netsuke manifest -`, `make check-fmt`,
   `make markdownlint`, `make nixie`, `make lint`, and `make test`.
 - [x] 2026-05-02: Prepare the gated implementation change for commit.
+- [x] 2026-05-02: Inspect
+  `leynos/agent-helper-scripts/hooks/post-turn-quality-stop-hook.py` and
+  document the external hook changes needed for Netsuke-native quality gates.
 
 ## Surprises & Discoveries
 
@@ -161,6 +164,10 @@ record the conflict in `Decision Log`, and ask for direction.
 - 2026-05-02: `make fmt` now invokes Netsuke and runs, but Markdown formatting
   fails because `docs/netsuke-users-guide.md` contains long lines that
   `markdownlint --fix` reports and cannot automatically repair.
+- 2026-05-02: The external post-turn quality hook is Make-specific today. It
+  stores `make_targets_requested`, parses `make -qp`, runs grouped
+  `make --no-print-directory ...` commands, and reports "Requested make
+  targets" in its block output.
 
 ## Decision Log
 
@@ -198,6 +205,11 @@ record the conflict in `Decision Log`, and ask for direction.
   Rationale: The user approved continuing after the `make fmt` blocker was
   reported, so `docs/netsuke-users-guide.md` can be updated narrowly to satisfy
   Markdown formatting.
+- Decision: Document agent-helper-scripts changes here instead of editing the
+  external repository in this branch. Rationale: The requested script lives in
+  `leynos/agent-helper-scripts`, while this pull request belongs to
+  `leynos/actix-v2a`. Keeping the requirement in this ExecPlan lets the
+  follow-up be implemented in the owning repository.
 
 ## Outcomes & Retrospective
 
@@ -212,6 +224,118 @@ After approval to exceed the initial file-count tolerance,
 final Netsuke-driven Makefile gates passed. The migration is complete from the
 repository's perspective; CI must still prove the source install path on GitHub
 Actions.
+
+## Required agent-helper-scripts hook changes
+
+The stop hook at
+`https://github.com/leynos/agent-helper-scripts/blob/main/hooks/post-turn-quality-stop-hook.py`
+ must become build-driver aware before repositories can retire Makefile shims.
+The current script assumes Make at the data-model, discovery, execution, and
+reporting layers:
+
+- `CATS_TO_TARGETS` maps change categories to target names, but the surrounding
+  state names those values as Make targets.
+- `HookState` stores `make_targets_requested`, `make_targets_run`, and
+  `make_targets_skipped`.
+- `get_make_targets()` shells out to `make -qp --no-print-directory` and parses
+  Make's database output.
+- `run_make()` invokes `make --no-print-directory <targets...>`.
+- `evaluate_changes()` skips requested targets that are absent from the
+  Makefile.
+- `format_reason()` reports "Requested make targets", "Targets run", and
+  "Targets skipped (missing)".
+
+The follow-up in `agent-helper-scripts` should introduce a small build-driver
+abstraction rather than special-casing Netsuke throughout the hook. A minimal
+shape is enough:
+
+```python
+@dataclass(frozen=True)
+class BuildDriver:
+    name: str
+    executable: str
+    manifest: str
+
+    def list_targets(self, repo: Path) -> set[str]: ...
+    def run_targets(
+        self,
+        repo: Path,
+        kind: str,
+        targets: list[str],
+        max_out: int,
+    ) -> dict[str, Any]: ...
+```
+
+Discovery should prefer Netsuke when a root `Netsukefile` exists and `netsuke`
+is on `PATH`. It should fall back to Make when a `Makefile` exists or when
+Netsuke is absent. This preserves current behaviour for repositories that have
+not adopted Netsuke while allowing this repository to remove the compatibility
+shim later.
+
+Target enumeration for Netsuke should not parse arbitrary human output. Use one
+of these approaches, in order of preference:
+
+1. Add a Netsuke machine-readable target listing command upstream and call it
+   from the hook once available.
+2. Until that exists, run `netsuke manifest -` and parse generated Ninja
+   `build <target>:` lines for non-implicit targets. This is less ideal, but it
+   is deterministic enough for a stop-hook bridge.
+3. As a temporary fallback, assume the standard target names from
+   `CATS_TO_TARGETS` exist when `Netsukefile` is present, run them, and let
+   Netsuke report an unknown-target failure. This is noisier but still blocks
+   correctly.
+
+Execution should run one Netsuke process per target group, matching the current
+code and Markdown grouping:
+
+```python
+["netsuke", "build", *targets]
+```
+
+The hook must continue to split code and Markdown checks so Markdown-only
+changes run only `markdownlint`, and Rust changes run `check-fmt` and `lint`.
+If future repositories add TypeScript/Python Netsuke actions, the existing
+`python_ts` mapping can continue to request `check-fmt`, `lint`, and
+`typecheck`.
+
+The hook's state and output should be renamed from Make-specific wording to
+driver-neutral wording:
+
+- `make_targets_requested` -> `targets_requested`
+- `make_targets_run` -> `targets_run`
+- `make_targets_skipped` -> `targets_skipped`
+- "Requested make targets" -> "Requested build targets"
+- failed command strings should show either `netsuke build ...` or `make ...`
+  exactly as executed.
+
+The configuration surface should gain explicit overrides for gradual rollout:
+
+- `POST_TURN_BUILD_DRIVER=auto|netsuke|make`, defaulting to `auto`.
+- `POST_TURN_NETSUKE_BIN=/path/to/netsuke`, defaulting to `netsuke`.
+- `POST_TURN_MAKE_BIN=/path/to/make`, defaulting to `make`.
+
+When `POST_TURN_BUILD_DRIVER=netsuke`, the hook should block with a clear error
+if `Netsukefile` is missing or `netsuke` is unavailable. When the value is
+`auto`, missing Netsuke should fall back to Make if Make is available. When no
+supported driver is available and checks are required, the hook should block
+with an actionable message.
+
+The hook tests in `agent-helper-scripts` should cover:
+
+- Netsuke is selected when both `Netsukefile` and `Makefile` exist.
+- Make is selected when only `Makefile` exists.
+- `POST_TURN_BUILD_DRIVER=make` forces Make even when `Netsukefile` exists.
+- `POST_TURN_BUILD_DRIVER=netsuke` blocks if Netsuke is missing.
+- Markdown-only changes invoke `netsuke build markdownlint`.
+- Rust changes invoke `netsuke build check-fmt lint`.
+- Python/TypeScript changes invoke `netsuke build check-fmt lint typecheck`.
+- Failure output uses driver-neutral labels and includes the exact failed
+  command.
+- `POST_TURN_COMPUSH=1` behaviour is unchanged after successful Netsuke checks.
+
+Acceptance for the hook change is that this repository can delete the Makefile
+compatibility shim and still have the stop hook run the same quality gates
+through `netsuke build ...`.
 
 ## Repository orientation
 
