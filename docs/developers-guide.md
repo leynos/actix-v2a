@@ -196,64 +196,58 @@ same pattern as `map_idempotency_key_error`.
 
 ## Build tooling
 
-The Makefile normalizes tool discovery for reduced-`PATH` environments such as
-CI hooks, local git hooks, and non-interactive shells. Prefer running the
-documented `make` targets instead of calling the underlying commands directly.
-
-Cargo-based targets resolve Cargo through the Makefile's `CARGO` variable:
-
-<!-- markdownlint-disable MD013 -->
-```make
-PREPEND_PATH := $(HOME)/.cargo/bin:$(HOME)/.bun/bin:$(HOME)/.local/bin
-CARGO ?= $(shell PATH=$(PREPEND_PATH):$(PATH) command -v cargo 2>/dev/null || printf '%s/.cargo/bin/cargo' "$$HOME")
-```
-<!-- markdownlint-enable MD013 -->
-
-The discovery shell prepends `$(HOME)/.cargo/bin`, `$(HOME)/.bun/bin`, and
-`$(HOME)/.local/bin` while preserving the caller-provided path. This keeps
-targets working when hook environments omit common user install directories.
-The `clean`, `test`, `build`, `release`, `lint`, `typecheck`, `fmt`, and
-`check-fmt` recipes also run Cargo with that scoped prepend.
-
-Override Cargo by exporting `CARGO` or by passing it to `make`:
+Netsuke is the primary repository build driver during the dogfooding pilot that
+replaces direct GNU Make usage. Netsuke compiles the root `Netsukefile` into a
+Ninja build graph, then Ninja runs the selected action. Install Ninja and
+Netsuke before running repository gates:
 
 ```bash
-CARGO=/path/to/cargo make test
+sudo dnf install ninja-build
+cargo install --git https://github.com/leynos/netsuke.git \
+  --rev 2fe314a58d7311758640b3daa086c401d79838cf \
+  netsuke --locked
 ```
 
-`PATH` may be modified before invoking `make`; the scoped prepend is applied
-only for Cargo, Bun, and related developer-tool detection.
+Use the documented Netsuke targets instead of calling the underlying commands
+directly. The root `Makefile` remains as a compatibility shim for existing
+hooks and developer habits, but each Make target now delegates to Netsuke.
 
-The `test` target also detects `cargo-nextest` through `CARGO`. Install
-`cargo-nextest` to `~/.cargo/bin` to enable `make test` to use nextest.
+The Netsuke actions prepend `$HOME/.cargo/bin`, `$HOME/.bun/bin`, and
+`$HOME/.local/bin` while preserving the caller-provided `PATH`. This keeps
+targets working when hook environments omit common user install directories.
+Cargo-based actions honour `CARGO`; Markdown and Mermaid actions honour
+`MDLINT` and `NIXIE`.
+
+Override Cargo by exporting `CARGO` before invoking Netsuke:
+
+```bash
+CARGO=/path/to/cargo netsuke build test
+```
+
+The `test` action detects `cargo-nextest` through Cargo. Install
+`cargo-nextest` to `$HOME/.cargo/bin` to enable `netsuke build test` to use
+nextest.
 
 ```bash
 cargo install cargo-nextest
 ```
 
-If `cargo-nextest` is absent, `make test` falls back to `cargo test` and still
-runs doctests.
+If `cargo-nextest` is absent, `netsuke build test` falls back to `cargo test`
+and still runs doctests.
 
-Markdown linting uses `MDLINT`, resolved through the same scoped prepend:
-
-<!-- markdownlint-disable MD013 -->
-```make
-MDLINT ?= $(shell PATH=$(PREPEND_PATH):$(PATH) command -v markdownlint-cli2 2>/dev/null || printf '%s/.bun/bin/markdownlint-cli2' "$$HOME")
-```
-<!-- markdownlint-enable MD013 -->
-
-Its recipe uses the same scoped `PATH` prepend so `markdownlint-cli2` resolves
-from `$(HOME)/.bun/bin` in the standard development environment:
+Markdown linting uses `MDLINT`, resolved through the same scoped prepend. In
+the standard development environment, `markdownlint-cli2` resolves from
+`$HOME/.bun/bin`:
 
 ```bash
-make markdownlint
+netsuke build markdownlint
 ```
 
 Developers using CI hooks, reduced-`PATH` shells, or other non-standard shell
 environments must ensure the Cargo and Bun binary directories exist when those
-tools are installed. The Makefile prepend mechanism handles ordinary
-`~/.cargo/bin` and `~/.bun/bin` installs automatically; it does not install
-missing tools or create shims.
+tools are installed. The Netsuke manifest handles ordinary `$HOME/.cargo/bin`
+and `$HOME/.bun/bin` installs automatically; it does not install missing tools
+or create shims.
 
 ## Quality gates
 
@@ -263,16 +257,16 @@ gates before commit:
 ### Formatting
 
 ```bash
-make check-fmt
+netsuke build check-fmt
 ```
 
 Validates that all Rust code is formatted per `rustfmt` conventions. Run
-`make fmt` to apply formatting fixes.
+`netsuke build fmt` to apply formatting fixes.
 
 ### Lint
 
 ```bash
-make lint
+netsuke build lint
 ```
 
 Executes Clippy with strict warnings (`-D warnings`) and the repository's
@@ -290,7 +284,7 @@ Key enforced lints:
 ### Tests
 
 ```bash
-make test
+netsuke build test
 ```
 
 Runs `cargo nextest run` (if available, otherwise `cargo test`) plus
@@ -316,8 +310,8 @@ tests cover:
 ### Documentation
 
 ```bash
-make markdownlint  # Lint Markdown files
-make nixie         # Validate Mermaid diagrams
+netsuke build markdownlint  # Lint Markdown files
+netsuke build nixie         # Validate Mermaid diagrams
 ```
 
 Markdown files must pass `markdownlint` and any embedded Mermaid diagrams must

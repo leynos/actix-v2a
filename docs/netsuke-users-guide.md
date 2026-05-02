@@ -198,10 +198,13 @@ Targets define *what* to build or *what action* to perform.
 ```yaml
 targets:
   # Example 1: Building an object file using a rule
-  - name: build/utils.o         # Output file(s). Can be a string or list.
-    rule: compile               # Rule to use (mutually exclusive with command/script)
+  # Output file(s). Can be a string or list.
+  - name: build/utils.o
+    # Rule to use; mutually exclusive with command/script.
+    rule: compile
     sources: src/utils.c        # Input file(s). String or list.
-    deps:                       # Explicit dependencies (targets built before this one)
+    # Explicit dependencies built before this target.
+    deps:
       - build/utils.h
     vars:                       # Target-local variables, override globals
       cflags: "-O0 -g"
@@ -209,10 +212,12 @@ targets:
   # Example 2: Linking an executable using an inline command
   - name: my_app
     command: "{{ cc }} build/main.o build/utils.o -o my_app"
-    sources:                    # Implicit dependencies derived from command/rule usage
+    # Implicit dependencies derived from command/rule usage.
+    sources:
       - build/main.o
       - build/utils.o
-    order_only_deps:            # Dependencies built before, but changes don't trigger rebuild
+    # Dependencies built before, but changes don't trigger rebuilds.
+    order_only_deps:
       - build_directory         # e.g., Ensure 'build/' exists
 
   # Example 3: A phony action (can also be in top-level 'actions:')
@@ -324,7 +329,8 @@ Define reusable Jinja logic in the top-level `macros` section.
 macros:
   - signature: "cc_cmd(src, obj, flags='')" # Jinja macro signature
     body: |                                # Multi-line body
-      {{ cc }} {{ flags }} -c {{ src | shell_escape }} -o {{ obj | shell_escape }}
+      {{ cc }} {{ flags }} -c {{ src | shell_escape }} \
+        -o {{ obj | shell_escape }}
 
 targets:
   - name: build/main.o
@@ -710,7 +716,7 @@ Example:
       "url": null,
       "causes": [
         "YAML parse error at line 2, column 2: tabs disallowed within this context",
-        "tabs disallowed within this context (block indentation) at line 2, column 2"
+        "tabs disallowed within this context at line 2, column 2"
       ],
       "source": {
         "name": "Netsukefile"
@@ -1231,7 +1237,11 @@ report structured failures:
 ```sh
 netsuke --diag-json build 2>diagnostics.json
 if [ $? -ne 0 ]; then
-  jq '.schema_version, .generator.name, .generator.version, .diagnostics[0].code, .diagnostics[0].message' diagnostics.json
+  jq '.schema_version,
+    .generator.name,
+    .generator.version,
+    .diagnostics[0].code,
+    .diagnostics[0].message' diagnostics.json
 fi
 ```
 
