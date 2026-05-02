@@ -131,7 +131,8 @@ generation strategies.
 
 The `EventId` type wraps a validated string that is safe to emit in an SSE
 `id:` line. Construction rejects three characters that would corrupt the SSE
-wire format per the WHATWG HTML specification § 9.2.6:
+wire format per the Web Hypertext Application Technology Working Group (WHATWG)
+HTML specification § 9.2.6:
 
 - Carriage return (U+000D)
 - Line feed (U+000A)
@@ -192,6 +193,54 @@ fn handle_sse_request(req: HttpRequest) -> Result<(), Error> {
     }
 
     Ok(())
+}
+```
+
+#### Replay cursor error handling
+
+`extract_replay_cursor` and `From<EventIdValidationError>` can both produce
+`ReplayCursorError`, but they do not expose the same variants:
+
+- `InvalidHeader` — the `Last-Event-ID` header was malformed because it was
+  duplicated or contained a non-UTF-8 value. This variant is returned only by
+  `extract_replay_cursor`.
+- `ReplayCursorError::Empty` — the event identifier value was empty. This
+  variant exists for API completeness via `From<EventIdValidationError>` and is
+  observable when converting `EventIdValidationError::Empty` into
+  `ReplayCursorError`.
+- `ForbiddenCharacter` — the event identifier contained CR, LF, or NULL. This
+  variant can be returned by `extract_replay_cursor` or by converting
+  `EventIdValidationError::ForbiddenCharacter`.
+
+`extract_replay_cursor` never returns `ReplayCursorError::Empty`. An empty
+`Last-Event-ID` header is treated as `Ok(None)` per the WHATWG specification's
+reset semantics, so callers only see `ReplayCursorError::Empty` after an
+explicit `From<EventIdValidationError>` conversion.
+
+```rust
+use actix_v2a::{EventIdValidationError, ReplayCursorError, extract_replay_cursor};
+use actix_web::http::header::HeaderMap;
+
+fn classify(headers: &HeaderMap) -> Result<&'static str, ReplayCursorError> {
+    match extract_replay_cursor(headers) {
+        Ok(Some(_)) => Ok("resume"),
+        Ok(None) => Ok("start"),
+        Err(ReplayCursorError::InvalidHeader) => Ok("reject malformed header"),
+        Err(ReplayCursorError::ForbiddenCharacter) => Ok("reject unsafe identifier"),
+        Err(ReplayCursorError::Empty) => unreachable!(
+            "extract_replay_cursor returns Ok(None) for empty Last-Event-ID headers"
+        ),
+    }
+}
+
+fn classify_converted(error: EventIdValidationError) -> &'static str {
+    match ReplayCursorError::from(error) {
+        ReplayCursorError::Empty => "reject empty converted identifier",
+        ReplayCursorError::ForbiddenCharacter => "reject unsafe identifier",
+        ReplayCursorError::InvalidHeader => unreachable!(
+            "From<EventIdValidationError> never produces InvalidHeader"
+        ),
+    }
 }
 ```
 
