@@ -395,20 +395,22 @@ or truncated output. Run them sequentially.
 For the implementation turn:
 
 ```bash
-set -o pipefail && make check-fmt 2>&1 | tee /tmp/check-fmt-sse-tests.out
-set -o pipefail && make lint 2>&1 | tee /tmp/lint-sse-tests.out
-set -o pipefail && make test 2>&1 | tee /tmp/test-sse-tests.out
-set -o pipefail && make fmt 2>&1 | tee /tmp/fmt-sse-tests.out
-set -o pipefail && make markdownlint 2>&1 | tee /tmp/markdownlint-sse-tests.out
-set -o pipefail && make nixie 2>&1 | tee /tmp/nixie-sse-tests.out
+mkdir -p ./logs
+set -o pipefail && make check-fmt 2>&1 | tee ./logs/check-fmt-sse-tests.out
+set -o pipefail && make lint 2>&1 | tee ./logs/lint-sse-tests.out
+set -o pipefail && make test 2>&1 | tee ./logs/test-sse-tests.out
+set -o pipefail && make fmt 2>&1 | tee ./logs/fmt-sse-tests.out
+set -o pipefail && make markdownlint 2>&1 | tee ./logs/markdownlint-sse-tests.out
+set -o pipefail && make nixie 2>&1 | tee ./logs/nixie-sse-tests.out
 ```
 
 For this plan-only documentation turn:
 
 ```bash
-set -o pipefail && make fmt 2>&1 | tee /tmp/fmt-sse-tests-plan.out
-set -o pipefail && make markdownlint 2>&1 | tee /tmp/markdownlint-sse-tests-plan.out
-set -o pipefail && make nixie 2>&1 | tee /tmp/nixie-sse-tests-plan.out
+mkdir -p ./logs
+set -o pipefail && make fmt 2>&1 | tee ./logs/fmt-sse-tests-plan.out
+set -o pipefail && make markdownlint 2>&1 | tee ./logs/markdownlint-sse-tests-plan.out
+set -o pipefail && make nixie 2>&1 | tee ./logs/nixie-sse-tests-plan.out
 ```
 
 ## Plan of work
