@@ -1,4 +1,4 @@
-# A systematic guide to effective, ergonomic, and "don't repeat yourself" (DRY) doctests in Rust
+# A systematic guide to effective, ergonomic, and "don't repeat yourself" (DRY) doctests in Rust <!-- markdownlint-disable-line MD013 -->
 
 ## The `rustdoc` compilation model: a foundational perspective
 
@@ -236,6 +236,7 @@ Choosing the correct attribute is critical for communicating the intent of an
 example and ensuring the test suite provides meaningful feedback. The following
 table provides a comparative reference for the most common doctest attributes.
 
+<!-- markdownlint-disable MD013 -->
 | Attribute    | Action                                                              | Test Outcome                                                   | Primary Use Case & Warnings                                                                                                                                                                                                           |
 | ------------ | ------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ignore       | Skips both compilation and execution.                               | ignored                                                        | Use Case: For pseudocode, examples known to be broken, or to temporarily disable a test. Warning: Provides no guarantee that the code is even syntactically correct. Generally discouraged in favour of more specific attributes.[^3] |
@@ -243,6 +244,7 @@ table provides a comparative reference for the most common doctest attributes.
 | compile_fail | Attempts to compile the code. The test passes if compilation fails. | OK on compilation failure, failed if it compiles successfully. | Use Case: Illustrating language rules, such as the borrow checker or type system constraints. Warning: Highly brittle. A future Rust version might make the code valid, causing the test to unexpectedly fail.[^4]                    |
 | no_run       | Compiles the code but does not execute it.                          | OK if compilation succeeds.                                    | Use Case: Essential for examples with undesirable side effects in a test environment, such as network requests, filesystem input/output, or launching a GUI. Guarantees the example is valid Rust code without running it.[^5]        |
 | edition20xx  | Compiles the code using the specified Rust edition's rules.         | OK on success.                                                 | Use Case: Demonstrating syntax alongside idioms that are specific to a particular Rust edition (e.g., edition2018, edition2021).[^4]                                                                                                  |
+<!-- markdownlint-enable MD013 -->
 
 ### 3.2 Detailed attribute breakdown
 

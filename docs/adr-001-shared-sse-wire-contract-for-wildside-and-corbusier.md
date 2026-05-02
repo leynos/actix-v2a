@@ -1,4 +1,4 @@
-# Architectural decision record (ADR) 001: shared SSE wire contract for Wildside and Corbusier
+# Architectural decision record (ADR) 001: shared SSE wire contract for Wildside and Corbusier <!-- markdownlint-disable-line MD013 -->
 
 ## Status
 
@@ -87,6 +87,7 @@ replay semantics, with `actix-v2a` providing no shared streaming contract.
 interfaces, replay retention policies, and stream orchestration behaviour for
 all applications.
 
+<!-- markdownlint-disable MD013 -->
 | Topic                     | Option A | Option B                    | Option C               |
 | ------------------------- | -------- | --------------------------- | ---------------------- |
 | Cross-app consistency     | Strong   | Weak                        | Strong                 |
@@ -95,6 +96,7 @@ all applications.
 | Implementation complexity | Moderate | Moderate twice              | High                   |
 | Reuse value               | High     | Low                         | High, but over-coupled |
 | Fit for `actix-v2a`       | Strong   | Weak                        | Weak                   |
+<!-- markdownlint-enable MD013 -->
 
 _Table 1: Trade-offs for the shared SSE contract._
 

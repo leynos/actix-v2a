@@ -37,7 +37,7 @@ without pulling event-store, routing, or authorization logic into this crate.
 
 ### 1.2. Prove the contract and close the delivery loop
 
-- [ ] 1.2.1. Add unit and integration tests for the shared SSE module.
+- [x] 1.2.1. Add unit and integration tests for the shared SSE module.
   Requires 1.1.3. See ADR 001 "Migration plan" Phase 2.
   - Cover identifier validation, `Last-Event-ID` parsing, frame formatting,
     cache headers, heartbeat output, and `stream_reset` output.

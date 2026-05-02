@@ -14,9 +14,11 @@ helpers per
 ```plaintext
 src/sse/
   mod.rs               # Public re-exports and module documentation
+  actix_adapter.rs     # Actix Web adapter functions for SSE domain helpers
   cache_control.rs     # Live event-stream cache policy helper
   event_id.rs          # EventId validated newtype and validation error
   frame.rs             # SSE event and comment frame rendering
+  header.rs            # Framework-agnostic SseHeader type
   heartbeat.rs         # Heartbeat interval policy and canonical heartbeat frame
   replay_cursor.rs     # ReplayCursor type and Last-Event-ID header extraction
   stream_reset.rs      # Standard replay-unavailable control event helper
@@ -154,13 +156,30 @@ policy into the crate.
 
 ### Cache-control policy
 
-`apply_event_stream_cache_control` mutates an Actix `HeaderMap` in place and
-sets:
+`apply_event_stream_cache_control` mutates a `Vec<SseHeader>` in place and sets:
 
 - `Cache-Control: no-cache, no-store, must-revalidate`
 
-The helper replaces any prior `Cache-Control` state deterministically and does
-not add proxy-vendor-specific buffering headers.
+For Actix Web callers, use `apply_actix_event_stream_cache_control` (in
+`src/sse/actix_adapter.rs`), which accepts an Actix `HeaderMap` and delegates
+to the domain function after converting header types.
+
+### Framework adapter layer
+
+The `actix_adapter` module is the sole location within `src/sse/` permitted to
+import `actix_web` types. It exposes two public functions:
+
+- `apply_actix_event_stream_cache_control(headers: &mut HeaderMap)` — inserts
+  the canonical `Cache-Control` value into an Actix response `HeaderMap`.
+<!-- markdownlint-disable-next-line MD013 -->
+- `extract_actix_replay_cursor(headers: &HeaderMap) -> Result<Option<ReplayCursor>, ReplayCursorError>`
+  — collects all `Last-Event-ID` values from an Actix request `HeaderMap`,
+  converts each to a domain `SseHeader`, and delegates to
+  `extract_replay_cursor`.
+
+The `SseHeader` type (in `src/sse/header.rs`) is a plain name/value pair with
+case-insensitive name comparison. Domain functions accept `&[SseHeader]` or
+`&mut Vec<SseHeader>` to remain framework-independent.
 
 ### Error mapping
 
@@ -181,20 +200,31 @@ The Makefile normalizes tool discovery for reduced-`PATH` environments such as
 CI hooks, local git hooks, and non-interactive shells. Prefer running the
 documented `make` targets instead of calling the underlying commands directly.
 
-Cargo-based targets use `CARGO_ENV`:
+Cargo-based targets resolve Cargo through the Makefile's `CARGO` variable:
 
+<!-- markdownlint-disable MD013 -->
 ```make
-CARGO_BIN ?= $(HOME)/.cargo/bin
-CARGO_ENV := PATH="$(CARGO_BIN):$$PATH"
+PREPEND_PATH := $(HOME)/.cargo/bin:$(HOME)/.bun/bin:$(HOME)/.local/bin
+CARGO ?= $(shell PATH=$(PREPEND_PATH):$(PATH) command -v cargo 2>/dev/null || printf '%s/.cargo/bin/cargo' "$$HOME")
+```
+<!-- markdownlint-enable MD013 -->
+
+The discovery shell prepends `$(HOME)/.cargo/bin`, `$(HOME)/.bun/bin`, and
+`$(HOME)/.local/bin` while preserving the caller-provided path. This keeps
+targets working when hook environments omit common user install directories.
+The `clean`, `test`, `build`, `release`, `lint`, `typecheck`, `fmt`, and
+`check-fmt` recipes also run Cargo with that scoped prepend.
+
+Override Cargo by exporting `CARGO` or by passing it to `make`:
+
+```bash
+CARGO=/path/to/cargo make test
 ```
 
-`CARGO_ENV` prepends `$(HOME)/.cargo/bin` to `PATH` while preserving the
-caller-provided path. This keeps targets working when hook environments omit
-Cargo's default install directory. The `clean`, `test`, `build`, `release`,
-`lint`, `typecheck`, `fmt`, and `check-fmt` targets all run Cargo through this
-environment.
+`PATH` may be modified before invoking `make`; the scoped prepend is applied
+only for Cargo, Bun, and related developer-tool detection.
 
-The `test` target also detects `cargo-nextest` through `CARGO_ENV`. Install
+The `test` target also detects `cargo-nextest` through `CARGO`. Install
 `cargo-nextest` to `~/.cargo/bin` to enable `make test` to use nextest.
 
 ```bash
@@ -204,16 +234,16 @@ cargo install cargo-nextest
 If `cargo-nextest` is absent, `make test` falls back to `cargo test` and still
 runs doctests.
 
-Markdown linting uses `BUN_BIN`:
+Markdown linting uses `MDLINT`, resolved through the same scoped prepend:
 
+<!-- markdownlint-disable MD013 -->
 ```make
-BUN_BIN ?= $(HOME)/.bun/bin
+MDLINT ?= $(shell PATH=$(PREPEND_PATH):$(PATH) command -v markdownlint-cli2 2>/dev/null || printf '%s/.bun/bin/markdownlint-cli2' "$$HOME")
 ```
+<!-- markdownlint-enable MD013 -->
 
-Unlike Cargo-based targets, `markdownlint` does not use a shared environment
-variable such as `CARGO_ENV`. Its recipe prepends `$(BUN_BIN)` directly to
-`PATH`, which resolves to `$(HOME)/.bun/bin` because `markdownlint-cli2` is
-installed there in the standard development environment:
+Its recipe uses the same scoped `PATH` prepend so `markdownlint-cli2` resolves
+from `$(HOME)/.bun/bin` in the standard development environment:
 
 ```bash
 make markdownlint
@@ -330,15 +360,20 @@ Avoid underscore-prefixed label parameters in rstest cases (triggers
 
 ### Behavioural tests
 
-Use `rstest-bdd` when the scenario structure adds clarity. The SSE module
-currently uses only unit tests because the validation and rendering logic is
-deterministic string and header formatting that does not benefit from
-Given/When/Then structure.
+Use `rstest-bdd` when the scenario structure adds clarity. The SSE module keeps
+detailed edge-case coverage in module-local unit tests, then uses
+`tests/sse_wire_contract_bdd.rs` and `tests/features/sse_wire_contract.feature`
+for downstream-style scenarios that compose the public crate-root re-exports.
+Keep this split: add precise validation permutations beside the helper being
+tested, and add behavioural scenarios only when they prove the published wire
+contract more clearly than a direct assertion test.
 
 ### Test organization
 
-Tests live in `#[cfg(test)] mod tests` blocks within the implementation file.
-Module-level tests use `//!` comments to describe coverage scope:
+Module-local/unit tests live in `#[cfg(test)] mod tests` blocks within the
+implementation file. Integration contract tests live under `tests/` and must
+import from `actix_v2a`, not private module paths. Module-level tests use `//!`
+comments to describe coverage scope:
 
 ```rust
 #[cfg(test)]
@@ -417,8 +452,8 @@ HTTP adapters should map caller-controlled pagination failures to HTTP 400 and
 - `CursorError::TokenTooLong`
 - `PageParamsError::InvalidLimit`
 
-`CursorError::Serialize` should map to HTTP 500 and
-`ErrorCode::InternalError` because it is a server-side serialisation failure.
+`CursorError::Serialize` should map to HTTP 500 and `ErrorCode::InternalError`
+because it is a server-side serialization failure.
 
 ### Testing patterns
 

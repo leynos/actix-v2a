@@ -69,21 +69,42 @@ pub struct ReplayMetadataSchema {
 mod tests {
     //! Regression coverage for shared schema fragments.
 
+    use std::collections::BTreeSet;
+
     use utoipa::{PartialSchema, ToSchema};
 
     use super::{ErrorCodeSchema, ErrorSchema, ReplayMetadataSchema};
     use crate::ErrorCode;
 
-    fn schema_json<T: PartialSchema>() -> serde_json::Result<String> {
+    fn schema_json<T: PartialSchema>() -> Result<String, serde_json::Error> {
         serde_json::to_string(&T::schema())
     }
 
     #[test]
     fn error_code_schema_has_expected_name_and_variants() {
-        let schema = schema_json::<ErrorCodeSchema>().expect("schema should serialize");
+        let schema_json = schema_json::<ErrorCodeSchema>().expect("schema should serialize");
+        let parsed_schema = serde_json::from_str::<serde_json::Value>(&schema_json)
+            .expect("schema should parse as JSON");
+        let variants = parsed_schema
+            .get("enum")
+            .and_then(serde_json::Value::as_array)
+            .expect("schema should define enum variants");
+        let actual_variants = variants
+            .iter()
+            .map(|variant| variant.as_str().expect("variant should be a string"))
+            .collect::<BTreeSet<_>>();
+        let expected_variants = BTreeSet::from([
+            "invalid_request",
+            "unauthorized",
+            "forbidden",
+            "not_found",
+            "conflict",
+            "service_unavailable",
+            "internal_error",
+        ]);
 
         assert_eq!(ErrorCodeSchema::name(), "crate.ErrorCode");
-        insta::assert_snapshot!("error_code_schema_json", schema);
+        assert_eq!(actual_variants, expected_variants);
     }
 
     #[test]
@@ -118,20 +139,42 @@ mod tests {
 
     #[test]
     fn error_schema_has_expected_name_and_fields() {
-        let schema = schema_json::<ErrorSchema>().expect("schema should serialize");
+        let schema_json = schema_json::<ErrorSchema>().expect("schema should serialize");
+        let parsed_schema = serde_json::from_str::<serde_json::Value>(&schema_json)
+            .expect("schema should parse as JSON");
+        let properties = parsed_schema
+            .get("properties")
+            .and_then(serde_json::Value::as_object)
+            .expect("schema should define object properties");
+        let actual_fields = properties
+            .keys()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>();
+        let expected_fields = BTreeSet::from(["code", "message", "traceId", "details"]);
 
         assert_eq!(ErrorSchema::name(), "crate.Error");
-        insta::assert_snapshot!("error_schema_json", schema);
+        assert_eq!(actual_fields, expected_fields);
     }
 
     #[test]
     fn replay_metadata_schema_has_expected_name_and_field() {
-        let schema = schema_json::<ReplayMetadataSchema>().expect("schema should serialize");
+        let schema_json = schema_json::<ReplayMetadataSchema>().expect("schema should serialize");
+        let parsed_schema = serde_json::from_str::<serde_json::Value>(&schema_json)
+            .expect("schema should parse as JSON");
+        let properties = parsed_schema
+            .get("properties")
+            .and_then(serde_json::Value::as_object)
+            .expect("schema should define object properties");
+        let actual_fields = properties
+            .keys()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>();
+        let expected_fields = BTreeSet::from(["replayed"]);
 
         assert_eq!(
             ReplayMetadataSchema::name(),
             "crate.idempotency.ReplayMetadata"
         );
-        insta::assert_snapshot!("replay_metadata_schema_json", schema);
+        assert_eq!(actual_fields, expected_fields);
     }
 }

@@ -213,6 +213,20 @@ mod tests {
         assert_eq!(id.as_str(), "evt-123");
     }
 
+    #[rstest]
+    #[case("", EventIdValidationError::Empty)]
+    #[case("evt\n123", EventIdValidationError::ForbiddenCharacter)]
+    #[case("evt\r123", EventIdValidationError::ForbiddenCharacter)]
+    #[case("evt\x00123", EventIdValidationError::ForbiddenCharacter)]
+    fn try_from_string_returns_validation_error(
+        #[case] input: &str,
+        #[case] expected_error: EventIdValidationError,
+    ) {
+        let result = EventId::try_from(input.to_owned());
+
+        assert_eq!(result, Err(expected_error));
+    }
+
     #[test]
     fn new_rejects_empty_string() {
         let result = EventId::new("");

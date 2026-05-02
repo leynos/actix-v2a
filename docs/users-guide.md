@@ -173,15 +173,16 @@ validation guarantees.
 
 #### Extracting the `Last-Event-ID` header
 
-Use `extract_replay_cursor` to parse and validate the `Last-Event-ID` request
-header:
+Use `extract_actix_replay_cursor` to parse and validate the `Last-Event-ID`
+request header in Actix Web handlers. The `extract_replay_cursor` function is
+the framework-agnostic domain function and takes `&[SseHeader]`.
 
 ```rust
-use actix_v2a::extract_replay_cursor;
+use actix_v2a::extract_actix_replay_cursor;
 use actix_web::HttpRequest;
 
 fn handle_sse_request(req: HttpRequest) -> Result<(), Error> {
-    let replay_cursor = extract_replay_cursor(req.headers())?;
+    let replay_cursor = extract_actix_replay_cursor(req.headers())?;
 
     if let Some(cursor) = replay_cursor {
         // Client is reconnecting; start replay from cursor.event_id()
@@ -261,11 +262,11 @@ Use `map_replay_cursor_error` to convert validation failures to the shared API
 error envelope:
 
 ```rust
-use actix_v2a::{extract_replay_cursor, map_replay_cursor_error};
+use actix_v2a::{extract_actix_replay_cursor, map_replay_cursor_error};
 use actix_web::HttpRequest;
 
 fn handle_sse_request(req: HttpRequest) -> Result<(), actix_v2a::Error> {
-    let replay_cursor = extract_replay_cursor(req.headers())
+    let replay_cursor = extract_actix_replay_cursor(req.headers())
         .map_err(|e| map_replay_cursor_error(&e))?;
 
     // ... use replay_cursor
@@ -281,9 +282,13 @@ messages suitable for client responses.
 The `LAST_EVENT_ID_HEADER` constant provides the standardized header name:
 
 ```rust
-use actix_v2a::LAST_EVENT_ID_HEADER;
+use actix_v2a::{LAST_EVENT_ID_HEADER, SseHeader, extract_replay_cursor};
 
-assert_eq!(LAST_EVENT_ID_HEADER, "Last-Event-ID");
+let headers = vec![SseHeader::new(LAST_EVENT_ID_HEADER, "evt-001")];
+let cursor = extract_replay_cursor(&headers)
+    .expect("valid header")
+    .expect("cursor present");
+assert_eq!(cursor.as_ref(), "evt-001");
 ```
 
 ### Frame rendering
@@ -393,24 +398,28 @@ application-event builder.
 
 ### Live-stream cache headers
 
-Use `apply_event_stream_cache_control` to set the canonical anti-reuse policy
-for a live event stream:
+Use `apply_actix_event_stream_cache_control` to set the canonical anti-reuse
+policy for a live event stream in Actix Web responses.
 
 ```rust
-use actix_v2a::{EVENT_STREAM_CACHE_CONTROL, apply_event_stream_cache_control};
-use actix_web::http::header::{CACHE_CONTROL, HeaderMap};
+use actix_v2a::{EVENT_STREAM_CACHE_CONTROL, CACHE_CONTROL_HEADER};
+use actix_v2a::apply_actix_event_stream_cache_control;
+use actix_web::http::header::HeaderMap;
 
 let mut headers = HeaderMap::new();
-apply_event_stream_cache_control(&mut headers);
+apply_actix_event_stream_cache_control(&mut headers);
 
-assert_eq!(
-    headers.get(CACHE_CONTROL).expect("cache header should be present"),
-    EVENT_STREAM_CACHE_CONTROL
-);
+let value = headers
+    .get(CACHE_CONTROL_HEADER)
+    .expect("cache header should be present")
+    .to_str()
+    .expect("header should be valid UTF-8");
+assert_eq!(value, EVENT_STREAM_CACHE_CONTROL);
 ```
 
-The helper sets `Cache-Control` to `no-cache, no-store, must-revalidate` and
-leaves unrelated headers untouched.
+The `apply_actix_event_stream_cache_control` function is the Actix-specific
+adapter. The `apply_event_stream_cache_control` function is the
+framework-agnostic domain function that takes `&mut Vec<SseHeader>`.
 
 ## Identifier generation strategies
 
