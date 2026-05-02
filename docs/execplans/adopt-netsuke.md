@@ -135,6 +135,8 @@ record the conflict in `Decision Log`, and ask for direction.
 - [x] 2026-05-02: Inspect
   `leynos/agent-helper-scripts/hooks/post-turn-quality-stop-hook.py` and
   document the external hook changes needed for Netsuke-native quality gates.
+- [x] 2026-05-02: Address CI runtime failure `markdownlint-cli2: not found` by
+  installing Bun and `markdownlint-cli2` via GitHub Actions.
 
 ## Surprises & Discoveries
 
@@ -161,6 +163,9 @@ record the conflict in `Decision Log`, and ask for direction.
   directly. It runs its own Rust coverage scripts through `cargo llvm-cov`, so
   the CI migration can keep CodeScene coverage upload intact while replacing
   direct Make invocations with Netsuke.
+- 2026-05-02: `netsuke build markdownlint` in CI failed because
+  `markdownlint-cli2` was missing from PATH; that gap is now addressed by
+  Bun-based install steps before Netsuke invocations.
 - 2026-05-02: `make fmt` now invokes Netsuke and runs, but Markdown formatting
   fails because `docs/netsuke-users-guide.md` contains long lines that
   `markdownlint --fix` reports and cannot automatically repair.
@@ -210,6 +215,9 @@ record the conflict in `Decision Log`, and ask for direction.
   `leynos/agent-helper-scripts`, while this pull request belongs to
   `leynos/actix-v2a`. Keeping the requirement in this ExecPlan lets the
   follow-up be implemented in the owning repository.
+- Decision: Install `markdownlint-cli2` in CI through Bun with `oven-sh/setup-bun`
+  and `bun install -g markdownlint-cli2`. Rationale: the Netsuke Markdown lint
+  step depends on that binary and is not guaranteed present on GitHub runners.
 
 ## Outcomes & Retrospective
 
@@ -218,6 +226,8 @@ Netsuke-first developer documentation, and CI steps that install Netsuke from
 the pinned GitHub source revision before running Netsuke gates. The Netsuke
 manifest, format check, lint, test, Markdown lint, Mermaid validation, and
 Makefile compatibility gates passed.
+CI now installs Bun and `markdownlint-cli2` explicitly so the Markdown gate no
+longer fails with `markdownlint-cli2: not found` during Netsuke execution.
 
 After approval to exceed the initial file-count tolerance,
 `docs/netsuke-users-guide.md` was wrapped narrowly, `make fmt` passed, and the

@@ -17,6 +17,10 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
       - name: Setup Rust
         uses: leynos/shared-actions/.github/actions/setup-rust@f9f1c863c8a5bef64aa6779caa746e1a4a6c1ad4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Install markdownlint-cli2
+        run: bun install -g markdownlint-cli2
       - name: Install Ninja
         run: sudo apt-get update && sudo apt-get install -y ninja-build
       - name: Install Netsuke
