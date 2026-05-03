@@ -137,6 +137,8 @@ record the conflict in `Decision Log`, and ask for direction.
   document the external hook changes needed for Netsuke-native quality gates.
 - [x] 2026-05-02: Address CI runtime failure `markdownlint-cli2: not found` by
   installing Bun and `markdownlint-cli2` via GitHub Actions.
+- [x] 2026-05-03: Fix `typecheck` action to pass `RUSTFLAGS` in-process with
+  the `cargo check` command so Netsuke enforces `-D warnings` consistently.
 
 ## Surprises & Discoveries
 
@@ -173,6 +175,10 @@ record the conflict in `Decision Log`, and ask for direction.
   stores `make_targets_requested`, parses `make -qp`, runs grouped
   `make --no-print-directory ...` commands, and reports "Requested make
   targets" in its block output.
+- 2026-05-03: Netsuke `typecheck` was assigning `RUSTFLAGS` to a shell variable
+  without exporting it; the fixed action now invokes `cargo check` with the
+  environment assignment in-line, restoring the Makefile semantics and preventing
+  silent warning-only pass-through.
 
 ## Decision Log
 
@@ -218,6 +224,10 @@ record the conflict in `Decision Log`, and ask for direction.
 - Decision: Install `markdownlint-cli2` in CI through Bun with `oven-sh/setup-bun`
   and `bun install -g markdownlint-cli2`. Rationale: the Netsuke Markdown lint
   step depends on that binary and is not guaranteed present on GitHub runners.
+- Decision: Keep Netsuke `typecheck` warning policy explicit by passing
+  `RUSTFLAGS` directly in the `cargo check` command line. Rationale: separate
+  shell variable assignment without export is equivalent to a no-op for child
+  processes and can silently miss warnings that should fail CI.
 
 ## Outcomes & Retrospective
 

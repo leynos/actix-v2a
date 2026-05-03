@@ -53,9 +53,8 @@ actions:
 
   - name: typecheck
     command: >-
-      sh -e -c 'PATH="{{ prepend_path }}:$$PATH"
-      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}"
-      "$${CARGO:-cargo}" check {{ cargo_flags }}'
+      sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
+      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}" "$${CARGO:-cargo}" check {{ cargo_flags }}'
 
   - name: fmt
     command: >-
