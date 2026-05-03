@@ -137,6 +137,8 @@ record the conflict in `Decision Log`, and ask for direction.
   document the external hook changes needed for Netsuke-native quality gates.
 - [x] 2026-05-02: Address CI runtime failure `markdownlint-cli2: not found` by
   installing Bun and `markdownlint-cli2` via GitHub Actions.
+- [x] 2026-05-03: Pin `oven-sh/setup-bun` and `markdownlint-cli2` in CI to
+  immutable versions for reproducible installs.
 - [x] 2026-05-03: Fix `typecheck` action to pass `RUSTFLAGS` in-process with
   the `cargo check` command so Netsuke enforces `-D warnings` consistently.
 
@@ -224,6 +226,11 @@ record the conflict in `Decision Log`, and ask for direction.
 - Decision: Install `markdownlint-cli2` in CI through Bun with `oven-sh/setup-bun`
   and `bun install -g markdownlint-cli2`. Rationale: the Netsuke Markdown lint
   step depends on that binary and is not guaranteed present on GitHub runners.
+- Decision: Pin the CI Bun setup action and markdownlint-cli2 package version to
+  fixed revisions (`oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6`
+  and
+  `markdownlint-cli2@0.22.1`). Rationale: reproducibility should be explicit for
+  dogfooding gates.
 - Decision: Keep Netsuke `typecheck` warning policy explicit by passing
   `RUSTFLAGS` directly in the `cargo check` command line. Rationale: separate
   shell variable assignment without export is equivalent to a no-op for child
@@ -364,17 +371,18 @@ The current build-tooling surface is small:
 - `Makefile` defines `check-fmt`, `lint`, `test`, `fmt`, `markdownlint`,
   `nixie`, `build`, `release`, `clean`, `typecheck`, `all`, and `help`.
 - `.github/workflows/ci.yml` runs on pull requests and manual dispatch. It
-  checks out the repository, sets up Rust, runs `make check-fmt`, runs Markdown
-  lint through a GitHub Action, runs `make lint`, generates coverage through a
-  shared action, and uploads coverage to CodeScene when configured.
+  checks out the repository, sets up Rust, installs Bun tools, installs Netsuke,
+  validates the `Netsukefile` manifest, then runs `netsuke build` gates for
+  format, Markdown linting, and linting, followed by shared coverage and
+  CodeScene upload steps.
 - `docs/developers-guide.md` documents Makefile-based build tooling and must
   be updated so developers know that Netsuke is the preferred driver during the
   pilot.
 - `docs/netsuke-users-guide.md` documents the manifest format. Important
-  concepts for this migration are `actions:` for phony tasks, `script:` for
-  multi-line shell actions, `defaults:` for what runs when `netsuke` is invoked
-  without targets, and `netsuke manifest` for inspecting the generated Ninja
-  file without executing it.
+  concepts for this migration are `actions:` for phony tasks, `command:` blocks
+  for multi-line shell execution, `defaults:` for what runs when `netsuke` is
+  invoked without targets, and `netsuke manifest` for inspecting the generated
+  Ninja file without executing it.
 
 ## Implementation plan
 
@@ -393,31 +401,22 @@ vars:
   cargo_flags: "--all-targets --all-features"
 ```
 
-Use `actions:` for the repository gates. Each action should use a `script:`
-block so shell conditionals remain readable. Preserve the current command
-semantics:
+Use `actions:` for the repository gates. Each action is a `command:` action that
+invokes `sh -e -c` and preserves the current behaviour:
 
-- `check-fmt` runs `cargo fmt --all -- --check`.
-- `lint` runs `cargo doc --no-deps`, `cargo clippy --all-targets
-  --all-features -- -D
-  warnings`, and runs Whitaker only when it is found on `PATH`.
-- `test` detects `cargo nextest --version`; if present, it runs
-  `cargo nextest run --all-targets --all-features` and then
-  `cargo test --doc --workspace --all-features`; otherwise it runs
-  `cargo test --all-targets --all-features`.
-- `fmt` runs `cargo +nightly fmt --all` and `mdformat-all`.
-- `markdownlint` runs `markdownlint-cli2 '**/*.md'`.
-- `nixie` runs `nixie --no-sandbox`.
-- `typecheck` runs `cargo check --all-targets --all-features`.
-- `clean` runs `cargo clean`.
-- `all` runs the same gate sequence as today's Makefile: `check-fmt`, `lint`,
-  and `test`.
+- `check-fmt` runs `netsuke build check-fmt`.
+- `lint` runs `netsuke build lint`.
+- `test` runs `netsuke build test` with `nextest` detection and fallback logic.
+- `fmt` runs `netsuke build fmt`.
+- `markdownlint` runs `netsuke build markdownlint`.
+- `nixie` runs `netsuke build nixie`.
+- `typecheck` runs `netsuke build typecheck`.
+- `clean` runs `netsuke build clean`.
+- `all` runs `netsuke build all`, where `defaults:` is defined to keep the same
+  behaviour as the Makefile's `all`.
 
-Set `defaults:` to `["all"]` only if the implementation confirms that running
-`netsuke` without arguments should execute the full gate suite. If that is too
-expensive for day-to-day use, set no default and document explicit target usage
-instead. This is a product decision for the pilot; if uncertain, escalate
-before choosing.
+Set `defaults:` to `["all"]` because the implementation already confirms
+`netsuke` without arguments should execute the full gate suite for this pilot.
 
 Second, keep or adapt `Makefile` as a compatibility shim. The preferred pilot
 shape is for `make check-fmt` and related targets to delegate to
