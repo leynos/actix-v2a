@@ -36,7 +36,7 @@ jobs:
         run: netsuke build check-fmt
       - name: Markdown lint
         run: netsuke build markdownlint
-      - name: Mermaid lint
+      - name: Validate Mermaid diagrams
         run: netsuke build nixie
       - name: Lint
         run: netsuke build lint
