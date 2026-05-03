@@ -36,6 +36,8 @@ jobs:
         run: netsuke build check-fmt
       - name: Markdown lint
         run: netsuke build markdownlint
+      - name: Mermaid lint
+        run: netsuke build nixie
       - name: Lint
         run: netsuke build lint
       - name: Test and Measure Coverage

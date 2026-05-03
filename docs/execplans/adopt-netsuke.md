@@ -77,9 +77,9 @@ record the conflict in `Decision Log`, and ask for direction.
 
 - Risk: Netsuke may not support Make-style conditional execution cleanly for
   the `test` target's "use nextest if installed, otherwise cargo test" logic.
-  Severity: medium. Likelihood: medium. Mitigation: encode the conditional in a
-  small `script:` action and keep it directly equivalent to the current
-  Makefile recipe; escalate if this becomes a larger shell wrapper.
+  Severity: medium. Likelihood: medium. Mitigation: keep the conditional in a
+  `command:` action using `sh -e -c` and preserve the current Makefile recipe;
+  escalate only if this grows beyond a concise shell block.
 - Risk: GitHub's Ubuntu runner may not have Ninja installed. Severity: medium.
   Likelihood: medium. Mitigation: add an explicit `apt-get install ninja-build`
   CI step before invoking Netsuke.
@@ -517,6 +517,4 @@ method is fixed. Do not remove coverage upload unless explicitly approved.
 
 ## Approval gate
 
-This plan is in draft. Do not implement the `Netsukefile`, CI workflow, or
-developer documentation changes until the plan is explicitly approved or
-revised by the user.
+Completed in this branch and represented in the current pull request state.
