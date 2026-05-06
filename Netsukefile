@@ -1,0 +1,86 @@
+netsuke_version: "1.0.0"
+
+vars:
+  prepend_path: "$$HOME/.cargo/bin:$$HOME/.bun/bin:$$HOME/.local/bin"
+  cargo_flags: "--all-targets --all-features"
+  rust_flags: "-D warnings"
+  rustdoc_flags: "-D warnings"
+
+actions:
+  - name: all
+    sources:
+      - check-fmt
+      - lint
+      - test
+    command: "true"
+
+  - name: build
+    command: >-
+      sh -e -c 'PATH="{{ prepend_path }}:$$PATH"
+      "$${CARGO:-cargo}" build $${BUILD_JOBS:-}'
+
+  - name: release
+    command: >-
+      sh -e -c 'PATH="{{ prepend_path }}:$$PATH"
+      "$${CARGO:-cargo}" build --release $${BUILD_JOBS:-}'
+
+  - name: clean
+    command: >-
+      sh -e -c 'PATH="{{ prepend_path }}:$$PATH"
+      "$${CARGO:-cargo}" clean'
+
+  - name: test
+    command: >-
+      sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
+      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}";
+      if "$${CARGO:-cargo}" nextest --version >/dev/null 2>&1; then
+      echo "[netsuke:test] cargo-nextest found; using nextest runner";
+      RUSTFLAGS="$$RUSTFLAGS" "$${CARGO:-cargo}" nextest run {{ cargo_flags }} $${BUILD_JOBS:-};
+      RUSTFLAGS="$$RUSTFLAGS" "$${CARGO:-cargo}" test --doc --workspace --all-features;
+      else
+      echo "[netsuke:test] cargo-nextest not found; falling back to cargo test";
+      RUSTFLAGS="$$RUSTFLAGS" "$${CARGO:-cargo}" test {{ cargo_flags }} $${BUILD_JOBS:-};
+      fi'
+
+  - name: lint
+    command: >-
+      sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
+      RUSTDOCFLAGS="{{ rustdoc_flags }} $${RUSTDOC_FLAGS:-}" "$${CARGO:-cargo}" doc --no-deps;
+      "$${CARGO:-cargo}" clippy {{ cargo_flags }} -- {{ rust_flags }} $${RUST_FLAGS:-};
+      if command -v whitaker >/dev/null 2>&1; then
+      echo "[netsuke:lint] whitaker found; running whitaker lint";
+      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}" whitaker --all -- {{ cargo_flags }};
+      else
+      echo "[netsuke:lint] whitaker not found on PATH; skipping whitaker lint. Install whitaker to run this check.";
+      fi'
+
+  - name: typecheck
+    command: >-
+      sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
+      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}" "$${CARGO:-cargo}" check {{ cargo_flags }}'
+
+  - name: fmt
+    command: >-
+      sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
+      "$${CARGO:-cargo}" +nightly fmt --all;
+      mdformat-all'
+
+  - name: check-fmt
+    command: >-
+      sh -e -c 'PATH="{{ prepend_path }}:$$PATH"
+      "$${CARGO:-cargo}" fmt --all -- --check'
+
+  - name: markdownlint
+    command: >-
+      sh -e -c 'PATH="{{ prepend_path }}:$$PATH"
+      "$${MDLINT:-markdownlint-cli2}" '"'"'**/*.md'"'"''
+
+  - name: nixie
+    command: >-
+      sh -e -c 'PATH="{{ prepend_path }}:$$PATH"
+      "$${NIXIE:-nixie}" --no-sandbox'
+
+targets: []
+
+defaults:
+  - all

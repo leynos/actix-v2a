@@ -17,17 +17,53 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
       - name: Setup Rust
         uses: leynos/shared-actions/.github/actions/setup-rust@f9f1c863c8a5bef64aa6779caa746e1a4a6c1ad4
-      - name: Format
-        run: make check-fmt
-      - name: Markdown lint
-        uses: DavidAnson/markdownlint-cli2-action@992badcdf24e3b8eb7e87ff9287fe931bcb00c6e
+      - name: Install uv
+        uses: astral-sh/setup-uv@4cda7d73322c50eac316ad623a716f09a2db2ac7
+        # v3.1.2
         with:
-          globs: |
-            **/*.md
-            !**/target/**
-            !**/dist/**
+          python-version: '3.11'
+      - name: Install bun
+        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+        # v2
+        with:
+          bun-version: '1.2.21'
+      - name: Install Mermaid CLI
+        run: |
+          set -euxo pipefail
+          bun install --no-progress --global @mermaid-js/mermaid-cli@11.9.0
+          bun x @puppeteer/browsers browsers install chrome-headless-shell
+          mmdc --version
+      - name: Install Nixie
+        run: uv tool install nixie-cli==1.0.0
+      - name: Install markdownlint-cli2
+        run: bun install -g markdownlint-cli2@0.22.1
+      - name: Install Ninja
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Install Netsuke
+        run: >-
+          cargo install --git https://github.com/leynos/netsuke.git
+          --rev 2fe314a58d7311758640b3daa086c401d79838cf
+          netsuke --locked
+      - name: Show Netsuke version
+        run: netsuke --version
+      - name: Validate Netsuke manifest
+        run: netsuke manifest -
+      - name: Format
+        run: >-
+          set -o pipefail;
+          netsuke --verbose build check-fmt 2>&1 | tee /tmp/netsuke-check-fmt-actix-v2a-adopt-netsuke-ci.out
+      - name: Markdown lint
+        run: >-
+          set -o pipefail;
+          netsuke --verbose build markdownlint 2>&1 | tee /tmp/netsuke-markdownlint-actix-v2a-adopt-netsuke-ci.out
+      - name: Validate Mermaid diagrams
+        run: >-
+          set -o pipefail;
+          netsuke --verbose build nixie 2>&1 | tee /tmp/netsuke-nixie-actix-v2a-adopt-netsuke-ci.out
       - name: Lint
-        run: make lint
+        run: >-
+          set -o pipefail;
+          netsuke --verbose build lint 2>&1 | tee /tmp/netsuke-lint-actix-v2a-adopt-netsuke-ci.out
       - name: Test and Measure Coverage
         uses: leynos/shared-actions/.github/actions/generate-coverage@f9f1c863c8a5bef64aa6779caa746e1a4a6c1ad4
         with:
