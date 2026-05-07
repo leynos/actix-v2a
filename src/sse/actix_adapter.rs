@@ -4,6 +4,7 @@ use actix_web::http::header::{CACHE_CONTROL, HeaderMap, HeaderValue};
 
 use crate::sse::{
     EVENT_STREAM_CACHE_CONTROL,
+    LAST_EVENT_ID_HEADER,
     ReplayCursor,
     ReplayCursorError,
     SseHeader,
@@ -36,8 +37,16 @@ pub fn extract_actix_replay_cursor(
         .map(|value| {
             value
                 .to_str()
-                .map(|text| SseHeader::new(crate::sse::LAST_EVENT_ID_HEADER, text))
+                .map(|text| SseHeader::new(LAST_EVENT_ID_HEADER, text))
                 .map_err(|_| ReplayCursorError::InvalidHeader)
+                .inspect_err(|error| {
+                    tracing::error!(
+                        error = %error,
+                        header_name = LAST_EVENT_ID_HEADER,
+                        error_variant = error.variant_name(),
+                        "replay cursor header is invalid UTF-8"
+                    );
+                })
         })
         .collect::<Result<Vec<_>, _>>()?;
 
@@ -55,6 +64,7 @@ mod tests {
         HeaderName,
         HeaderValue,
     };
+    use tracing_test::traced_test;
 
     use super::{apply_actix_event_stream_cache_control, extract_actix_replay_cursor};
     use crate::sse::{EVENT_STREAM_CACHE_CONTROL, ReplayCursorError};
@@ -107,6 +117,7 @@ mod tests {
     }
 
     #[test]
+    #[traced_test]
     fn extract_actix_replay_cursor_rejects_non_utf8_header_value() {
         let mut headers = HeaderMap::new();
         let header_name = HeaderName::from_static("last-event-id");
@@ -121,5 +132,8 @@ mod tests {
         let error = extract_actix_replay_cursor(&headers).expect_err("non-UTF-8 value should fail");
 
         assert_eq!(error, ReplayCursorError::InvalidHeader);
+        assert!(logs_contain("header_name=\"Last-Event-ID\""));
+        assert!(logs_contain("error_variant=\"InvalidHeader\""));
+        assert!(logs_contain("replay cursor header is invalid UTF-8"));
     }
 }

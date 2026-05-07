@@ -38,6 +38,16 @@ impl From<EventIdValidationError> for ReplayCursorError {
     }
 }
 
+impl ReplayCursorError {
+    pub(crate) const fn variant_name(&self) -> &'static str {
+        match self {
+            Self::InvalidHeader => "InvalidHeader",
+            Self::Empty => "Empty",
+            Self::ForbiddenCharacter => "ForbiddenCharacter",
+        }
+    }
+}
+
 /// Replay cursor extracted from the `Last-Event-ID` request header.
 ///
 /// This type wraps a validated [`EventId`] to distinguish between "an
@@ -118,7 +128,14 @@ pub fn extract_replay_cursor(
         return Ok(None);
     };
     if header_values.next().is_some() {
-        return Err(ReplayCursorError::InvalidHeader);
+        return Err(ReplayCursorError::InvalidHeader).inspect_err(|error| {
+            tracing::error!(
+                error = %error,
+                header_name = LAST_EVENT_ID_HEADER,
+                error_variant = error.variant_name(),
+                "replay cursor header extraction failed"
+            );
+        });
     }
 
     let header_text = header.value();
@@ -130,6 +147,14 @@ pub fn extract_replay_cursor(
     EventId::new(header_text)
         .map(|id| Some(ReplayCursor::new(id)))
         .map_err(Into::into)
+        .inspect_err(|error: &ReplayCursorError| {
+            tracing::error!(
+                error = %error,
+                header_name = LAST_EVENT_ID_HEADER,
+                error_variant = error.variant_name(),
+                "replay cursor header extraction failed"
+            );
+        })
 }
 
 /// Map replay cursor validation failures to the shared API error envelope.
@@ -165,6 +190,7 @@ mod tests {
     //! Regression coverage for the SSE replay cursor and header extraction.
 
     use rstest::rstest;
+    use tracing_test::traced_test;
 
     use super::{
         LAST_EVENT_ID_HEADER,
@@ -209,6 +235,7 @@ mod tests {
     }
 
     #[test]
+    #[traced_test]
     fn extract_replay_cursor_rejects_duplicate_headers() {
         let headers = vec![
             SseHeader::new("last-event-id", "evt-001"),
@@ -218,6 +245,9 @@ mod tests {
         let error = extract_replay_cursor(&headers).expect_err("duplicate headers should fail");
 
         assert_eq!(error, ReplayCursorError::InvalidHeader);
+        assert!(logs_contain("header_name=\"Last-Event-ID\""));
+        assert!(logs_contain("error_variant=\"InvalidHeader\""));
+        assert!(logs_contain("replay cursor header extraction failed"));
     }
 
     #[rstest]
@@ -232,6 +262,19 @@ mod tests {
         let result = EventId::new(forbidden);
 
         assert_eq!(result, Err(EventIdValidationError::ForbiddenCharacter));
+    }
+
+    #[test]
+    #[traced_test]
+    fn extract_replay_cursor_logs_forbidden_header_value() {
+        let headers = vec![SseHeader::new("last-event-id", "evt\n123")];
+
+        let error = extract_replay_cursor(&headers).expect_err("forbidden character should fail");
+
+        assert_eq!(error, ReplayCursorError::ForbiddenCharacter);
+        assert!(logs_contain("header_name=\"Last-Event-ID\""));
+        assert!(logs_contain("error_variant=\"ForbiddenCharacter\""));
+        assert!(logs_contain("replay cursor header extraction failed"));
     }
 
     #[test]
