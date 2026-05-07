@@ -1,4 +1,5 @@
 target/
+.ninja_log
 **/*.rs.bk
 *.swp
 *.swo
