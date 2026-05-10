@@ -126,6 +126,11 @@ mod tests {
             unsafe_code,
             reason = "Test needs to construct invalid UTF-8 header value"
         )]
+        // SAFETY: `non_utf8_bytes` is a local test-only byte slice. The
+        // unsafe construction is intentionally used to build a non-UTF-8 header
+        // value so `to_str()` can be exercised on invalid input. The call is
+        // limited to this test setup and does not affect ownership or
+        // aliasing guarantees elsewhere.
         let header_value = unsafe { HeaderValue::from_maybe_shared_unchecked(non_utf8_bytes) };
         headers.insert(header_name, header_value);
 

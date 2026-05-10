@@ -83,6 +83,15 @@ impl ReplayCursor {
     pub fn into_event_id(self) -> EventId { self.0 }
 }
 
+fn log_replay_cursor_extraction_error(error: &ReplayCursorError, message: &'static str) {
+    tracing::error!(
+        error = %error,
+        header_name = LAST_EVENT_ID_HEADER,
+        error_variant = error.variant_name(),
+        "{message}"
+    );
+}
+
 impl AsRef<str> for ReplayCursor {
     fn as_ref(&self) -> &str { self.0.as_ref() }
 }
@@ -129,12 +138,7 @@ pub fn extract_replay_cursor(
     };
     if header_values.next().is_some() {
         return Err(ReplayCursorError::InvalidHeader).inspect_err(|error| {
-            tracing::error!(
-                error = %error,
-                header_name = LAST_EVENT_ID_HEADER,
-                error_variant = error.variant_name(),
-                "replay cursor header extraction failed"
-            );
+            log_replay_cursor_extraction_error(error, "replay cursor header extraction failed");
         });
     }
 
@@ -148,12 +152,7 @@ pub fn extract_replay_cursor(
         .map(|id| Some(ReplayCursor::new(id)))
         .map_err(Into::into)
         .inspect_err(|error: &ReplayCursorError| {
-            tracing::error!(
-                error = %error,
-                header_name = LAST_EVENT_ID_HEADER,
-                error_variant = error.variant_name(),
-                "replay cursor header extraction failed"
-            );
+            log_replay_cursor_extraction_error(error, "replay cursor header extraction failed");
         })
 }
 
