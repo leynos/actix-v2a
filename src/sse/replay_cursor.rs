@@ -48,6 +48,24 @@ impl ReplayCursorError {
     }
 }
 
+pub(crate) fn log_replay_cursor_error(error: &ReplayCursorError, message: &'static str) {
+    tracing::error!(
+        error = %error,
+        header_name = LAST_EVENT_ID_HEADER,
+        error_variant = error.variant_name(),
+        "{message}"
+    );
+}
+
+pub(crate) fn log_replay_cursor_warning(error: &ReplayCursorError, message: &'static str) {
+    tracing::warn!(
+        error = %error,
+        header_name = LAST_EVENT_ID_HEADER,
+        error_variant = error.variant_name(),
+        "{message}"
+    );
+}
+
 /// Replay cursor extracted from the `Last-Event-ID` request header.
 ///
 /// This type wraps a validated [`EventId`] to distinguish between "an
@@ -81,15 +99,6 @@ impl ReplayCursor {
     /// Unwrap the inner event identifier.
     #[must_use]
     pub fn into_event_id(self) -> EventId { self.0 }
-}
-
-fn log_replay_cursor_extraction_error(error: &ReplayCursorError, message: &'static str) {
-    tracing::error!(
-        error = %error,
-        header_name = LAST_EVENT_ID_HEADER,
-        error_variant = error.variant_name(),
-        "{message}"
-    );
 }
 
 impl AsRef<str> for ReplayCursor {
@@ -138,7 +147,7 @@ pub fn extract_replay_cursor(
     };
     if header_values.next().is_some() {
         return Err(ReplayCursorError::InvalidHeader).inspect_err(|error| {
-            log_replay_cursor_extraction_error(error, "replay cursor header extraction failed");
+            log_replay_cursor_error(error, "replay cursor header extraction failed");
         });
     }
 
@@ -152,7 +161,7 @@ pub fn extract_replay_cursor(
         .map(|id| Some(ReplayCursor::new(id)))
         .map_err(Into::into)
         .inspect_err(|error: &ReplayCursorError| {
-            log_replay_cursor_extraction_error(error, "replay cursor header extraction failed");
+            log_replay_cursor_error(error, "replay cursor header extraction failed");
         })
 }
 
