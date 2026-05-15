@@ -302,6 +302,8 @@ tests cover:
 - Data and comment newline normalization, including blank lines and trailing
   newlines
 - Cache-control helper behaviour, replacement semantics, and determinism
+- Property tests for `EventId` forbidden-byte validation and cache-control
+  idempotence
 - Heartbeat policy defaults, override validation, and heartbeat frame output
 - Standard `stream_reset` event output and constant alignment
 - Conversion traits (`AsRef<str>`, `Display`, `From`, `TryFrom`)
@@ -351,6 +353,35 @@ fn new_rejects_identifier_containing_line_feed(#[case] input: &str) {
 
 Avoid underscore-prefixed label parameters in rstest cases (triggers
 `used_underscore_binding` lint).
+
+### Property tests
+
+Use `proptest` when a helper has a compact invariant that should hold across a
+large input space, especially for parsing, validation, normalization, and
+idempotent mutation. Keep property tests beside the helper they exercise, in
+the same module-local `#[cfg(test)] mod tests` block as the related
+example-based coverage.
+
+Prefer `rstest` for named edge cases that document specific examples. Prefer
+`proptest` when the important claim is universal, such as "all UTF-8 strings
+without forbidden bytes are valid" or "applying this header policy twice leaves
+one canonical header". Property tests should:
+
+- use narrow strategies that match the invariant under test;
+- keep generated collection sizes bounded so `make test` remains fast;
+- use `prop_assert!` and `prop_assert_eq!` for failures that shrink clearly;
+- avoid returning `Result` from the generated test body unless the property
+  genuinely needs fallible setup outside the assertion path; and
+- preserve hand-written regression tests for named boundary cases that are easy
+  for reviewers to read.
+
+Current SSE examples are:
+
+- `sse::event_id::tests::arbitrary_byte_validation_matches_spec`, which checks
+  `EventId::try_from(String)` over arbitrary byte vectors that decode as
+  UTF-8.
+- `sse::cache_control::tests::apply_event_stream_cache_control_is_idempotent_over_arbitrary_headers`,
+  which checks cache-control canonicalization over generated header vectors.
 
 ### Behavioural tests
 
