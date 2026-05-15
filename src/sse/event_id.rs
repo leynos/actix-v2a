@@ -217,22 +217,21 @@ mod tests {
     proptest! {
         #[test]
         fn arbitrary_byte_validation_matches_spec(input_bytes in prop::collection::vec(any::<u8>(), 0..128)) {
-            if let Ok(input) = String::from_utf8(input_bytes) {
-                let result = EventId::try_from(input.clone());
+            let input = String::from_utf8_lossy(&input_bytes).into_owned();
+            let result = EventId::try_from(input.clone());
 
-                if input.is_empty() {
-                    prop_assert_eq!(result, Err(EventIdValidationError::Empty));
-                } else if input
-                    .as_bytes()
-                    .iter()
-                    .any(|byte| matches!(byte, b'\n' | b'\r' | b'\0'))
-                {
-                    prop_assert_eq!(result, Err(EventIdValidationError::ForbiddenCharacter));
-                } else {
-                    prop_assert!(result.is_ok());
-                    if let Ok(id) = result {
-                        prop_assert_eq!(id.as_str(), input.as_str());
-                    }
+            if input.is_empty() {
+                prop_assert_eq!(result, Err(EventIdValidationError::Empty));
+            } else if input
+                .as_bytes()
+                .iter()
+                .any(|byte| matches!(byte, b'\n' | b'\r' | b'\0'))
+            {
+                prop_assert_eq!(result, Err(EventIdValidationError::ForbiddenCharacter));
+            } else {
+                prop_assert!(result.is_ok());
+                if let Ok(id) = result {
+                    prop_assert_eq!(id.as_str(), input.as_str());
                 }
             }
         }
