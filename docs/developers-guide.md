@@ -386,7 +386,7 @@ one canonical header". Property tests should:
 - use `prop_assert!` and `prop_assert_eq!` for failures that shrink clearly;
 - avoid returning `Result` from the generated test body unless the property
   genuinely needs fallible setup outside the assertion path; and
-- preserve hand-written regression tests for named boundary cases that are easy
+- preserve handwritten regression tests for named boundary cases that are easy
   for reviewers to read.
 
 Current SSE examples are:
