@@ -48,7 +48,7 @@ impl ReplayCursorError {
     }
 }
 
-pub(crate) fn log_replay_cursor_error(error: &ReplayCursorError, message: &'static str) {
+fn log_replay_cursor_extraction_error(error: &ReplayCursorError, message: &'static str) {
     tracing::error!(
         error = %error,
         header_name = LAST_EVENT_ID_HEADER,
@@ -147,7 +147,7 @@ pub fn extract_replay_cursor(
     };
     if header_values.next().is_some() {
         return Err(ReplayCursorError::InvalidHeader).inspect_err(|error| {
-            log_replay_cursor_error(error, "replay cursor header extraction failed");
+            log_replay_cursor_extraction_error(error, "replay cursor header extraction failed");
         });
     }
 
@@ -161,7 +161,7 @@ pub fn extract_replay_cursor(
         .map(|id| Some(ReplayCursor::new(id)))
         .map_err(Into::into)
         .inspect_err(|error: &ReplayCursorError| {
-            log_replay_cursor_error(error, "replay cursor header extraction failed");
+            log_replay_cursor_extraction_error(error, "replay cursor header extraction failed");
         })
 }
 
