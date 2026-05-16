@@ -309,6 +309,20 @@ tests cover:
 - Conversion traits (`AsRef<str>`, `Display`, `From`, `TryFrom`)
 - Error mapping to API error envelope
 
+### Testing dependencies
+
+Test-only dependencies live under `[dev-dependencies]` in `Cargo.toml`.
+Approved testing libraries are:
+
+- `rstest` for fixtures and named parameterized examples.
+- `rstest-bdd` and `rstest-bdd-macros` for downstream-facing behavioural
+  scenarios where Gherkin structure clarifies the contract.
+- `proptest` for compact invariants that should hold across generated input
+  spaces, such as validation, parsing, normalization, and idempotence.
+- `insta` for snapshot coverage of stable rendered output, such as error
+  display text and OpenAPI schema JSON.
+- `tracing-test` for assertions over emitted tracing spans and events.
+
 ### Documentation
 
 ```bash
