@@ -368,7 +368,7 @@ without forbidden bytes are valid" or "applying this header policy twice leaves
 one canonical header". Property tests should:
 
 - use narrow strategies that match the invariant under test;
-- keep generated collection sizes bounded so `make test` remains fast;
+- keep generated collection sizes bounded so `netsuke build test` remains fast;
 - use `prop_assert!` and `prop_assert_eq!` for failures that shrink clearly;
 - avoid returning `Result` from the generated test body unless the property
   genuinely needs fallible setup outside the assertion path; and
@@ -378,8 +378,9 @@ one canonical header". Property tests should:
 Current SSE examples are:
 
 - `sse::event_id::tests::arbitrary_byte_validation_matches_spec`, which checks
-  `EventId::try_from(String)` over arbitrary byte vectors that decode as
-  UTF-8.
+  `EventId::try_from(String)` over arbitrary byte vectors converted to a
+  `String` with lossy UTF-8 decoding (`String::from_utf8_lossy`). This does not
+  filter out invalid-UTF-8 inputs before calling `EventId::try_from(String)`.
 - `sse::cache_control::tests::apply_event_stream_cache_control_is_idempotent_over_arbitrary_headers`,
   which checks cache-control canonicalization over generated header vectors.
 
