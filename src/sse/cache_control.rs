@@ -56,6 +56,12 @@ mod tests {
     };
     use crate::SseHeader;
 
+    /// Generate SSE header strategies for cache-control idempotence tests.
+    ///
+    /// The strategy mixes arbitrary header names with common `Cache-Control`
+    /// casing variants and arbitrary string values, so the property test can
+    /// prove canonical cache-control replacement without losing unrelated
+    /// headers.
     fn arbitrary_sse_header() -> impl Strategy<Value = SseHeader> {
         let arbitrary_name = any::<String>();
         let cache_control_name = prop_oneof![
