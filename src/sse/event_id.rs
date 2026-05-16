@@ -125,6 +125,27 @@ mod tests {
 
     use super::{EventId, EventIdValidationError};
 
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    enum EventIdInputKind {
+        Empty,
+        ContainsForbiddenByte,
+        Valid,
+    }
+
+    fn classify_event_id_input(input: &str) -> EventIdInputKind {
+        if input.is_empty() {
+            EventIdInputKind::Empty
+        } else if input
+            .as_bytes()
+            .iter()
+            .any(|byte| matches!(byte, b'\n' | b'\r' | b'\0'))
+        {
+            EventIdInputKind::ContainsForbiddenByte
+        } else {
+            EventIdInputKind::Valid
+        }
+    }
+
     #[test]
     fn new_accepts_simple_ascii_identifier() {
         let id = EventId::new("evt-001").expect("simple ASCII identifier should validate");
@@ -220,17 +241,15 @@ mod tests {
             let input = String::from_utf8_lossy(&input_bytes).into_owned();
             let result = EventId::try_from(input.clone());
 
-            if input.is_empty() {
-                prop_assert_eq!(result, Err(EventIdValidationError::Empty));
-            } else if input
-                .as_bytes()
-                .iter()
-                .any(|byte| matches!(byte, b'\n' | b'\r' | b'\0'))
-            {
-                prop_assert_eq!(result, Err(EventIdValidationError::ForbiddenCharacter));
-            } else {
-                prop_assert!(result.is_ok());
-                if let Ok(id) = result {
+            match classify_event_id_input(&input) {
+                EventIdInputKind::Empty => {
+                    prop_assert_eq!(result, Err(EventIdValidationError::Empty));
+                }
+                EventIdInputKind::ContainsForbiddenByte => {
+                    prop_assert_eq!(result, Err(EventIdValidationError::ForbiddenCharacter));
+                }
+                EventIdInputKind::Valid => {
+                    let id = result.expect("valid input should be accepted");
                     prop_assert_eq!(id.as_str(), input.as_str());
                 }
             }
