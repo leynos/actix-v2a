@@ -47,12 +47,36 @@ pub fn apply_event_stream_cache_control(headers: &mut Vec<SseHeader>) {
 mod tests {
     //! Regression coverage for event-stream cache-control helpers.
 
+    use proptest::prelude::*;
+
     use super::{
         CACHE_CONTROL_HEADER,
         EVENT_STREAM_CACHE_CONTROL,
         apply_event_stream_cache_control,
     };
     use crate::SseHeader;
+
+    /// Generate SSE header strategies for cache-control idempotence tests.
+    ///
+    /// The strategy mixes arbitrary header names with common `Cache-Control`
+    /// casing variants and arbitrary string values, so the property test can
+    /// prove canonical cache-control replacement without losing unrelated
+    /// headers.
+    fn arbitrary_sse_header() -> impl Strategy<Value = SseHeader> {
+        let arbitrary_name = any::<String>();
+        let cache_control_name = prop_oneof![
+            Just(CACHE_CONTROL_HEADER.to_owned()),
+            Just("cache-control".to_owned()),
+            Just("CACHE-CONTROL".to_owned()),
+            Just("Cache-control".to_owned()),
+        ];
+
+        (
+            prop_oneof![arbitrary_name, cache_control_name],
+            any::<String>(),
+        )
+            .prop_map(|(name, value)| SseHeader::new(name, value))
+    }
 
     #[test]
     fn apply_event_stream_cache_control_sets_expected_value() {
@@ -109,5 +133,39 @@ mod tests {
                 .value(),
             EVENT_STREAM_CACHE_CONTROL
         );
+    }
+
+    proptest! {
+        #[test]
+        fn apply_event_stream_cache_control_is_idempotent_over_arbitrary_headers(
+            mut headers in prop::collection::vec(arbitrary_sse_header(), 0..20),
+        ) {
+            let unrelated_headers: Vec<_> = headers
+                .iter()
+                .filter(|header| !header.has_name(CACHE_CONTROL_HEADER))
+                .cloned()
+                .collect();
+
+            apply_event_stream_cache_control(&mut headers);
+            apply_event_stream_cache_control(&mut headers);
+
+            let cache_headers: Vec<_> = headers
+                .iter()
+                .filter(|header| header.has_name(CACHE_CONTROL_HEADER))
+                .collect();
+            prop_assert_eq!(cache_headers.len(), 1);
+
+            if let Some(cache_header) = cache_headers.first() {
+                prop_assert_eq!(cache_header.name(), CACHE_CONTROL_HEADER);
+                prop_assert_eq!(cache_header.value(), EVENT_STREAM_CACHE_CONTROL);
+            }
+
+            let retained_unrelated_headers: Vec<_> = headers
+                .iter()
+                .filter(|header| !header.has_name(CACHE_CONTROL_HEADER))
+                .cloned()
+                .collect();
+            prop_assert_eq!(retained_unrelated_headers, unrelated_headers);
+        }
     }
 }

@@ -120,9 +120,31 @@ impl TryFrom<String> for EventId {
 mod tests {
     //! Regression coverage for SSE event identifier validation.
 
+    use proptest::prelude::*;
     use rstest::rstest;
 
     use super::{EventId, EventIdValidationError};
+
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    enum EventIdInputKind {
+        Empty,
+        ContainsForbiddenByte,
+        Valid,
+    }
+
+    fn classify_event_id_input(input: &str) -> EventIdInputKind {
+        if input.is_empty() {
+            EventIdInputKind::Empty
+        } else if input
+            .as_bytes()
+            .iter()
+            .any(|byte| matches!(byte, b'\n' | b'\r' | b'\0'))
+        {
+            EventIdInputKind::ContainsForbiddenByte
+        } else {
+            EventIdInputKind::Valid
+        }
+    }
 
     #[test]
     fn new_accepts_simple_ascii_identifier() {
@@ -211,6 +233,27 @@ mod tests {
         let id = EventId::try_from("evt-123".to_owned()).expect("should validate");
 
         assert_eq!(id.as_str(), "evt-123");
+    }
+
+    proptest! {
+        #[test]
+        fn arbitrary_byte_validation_matches_spec(input_bytes in prop::collection::vec(any::<u8>(), 0..128)) {
+            let input = String::from_utf8_lossy(&input_bytes).into_owned();
+            let result = EventId::try_from(input.clone());
+
+            match classify_event_id_input(&input) {
+                EventIdInputKind::Empty => {
+                    prop_assert_eq!(result, Err(EventIdValidationError::Empty));
+                }
+                EventIdInputKind::ContainsForbiddenByte => {
+                    prop_assert_eq!(result, Err(EventIdValidationError::ForbiddenCharacter));
+                }
+                EventIdInputKind::Valid => {
+                    let id = result.expect("valid input should be accepted");
+                    prop_assert_eq!(id.as_str(), input.as_str());
+                }
+            }
+        }
     }
 
     #[rstest]
