@@ -48,17 +48,8 @@ impl ReplayCursorError {
     }
 }
 
-fn log_replay_cursor_extraction_error(error: &ReplayCursorError, message: &'static str) {
+pub(crate) fn log_replay_cursor_extraction_error(error: &ReplayCursorError, message: &'static str) {
     tracing::error!(
-        error = %error,
-        header_name = LAST_EVENT_ID_HEADER,
-        error_variant = error.variant_name(),
-        "{message}"
-    );
-}
-
-pub(crate) fn log_replay_cursor_warning(error: &ReplayCursorError, message: &'static str) {
-    tracing::warn!(
         error = %error,
         header_name = LAST_EVENT_ID_HEADER,
         error_variant = error.variant_name(),

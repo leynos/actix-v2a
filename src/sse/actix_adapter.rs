@@ -9,7 +9,7 @@ use crate::sse::{
     ReplayCursorError,
     SseHeader,
     extract_replay_cursor,
-    replay_cursor::log_replay_cursor_warning,
+    replay_cursor::log_replay_cursor_extraction_error,
 };
 
 /// Apply the canonical SSE cache-control policy to Actix response headers.
@@ -41,7 +41,10 @@ pub fn extract_actix_replay_cursor(
                 .map(|text| SseHeader::new(LAST_EVENT_ID_HEADER, text))
                 .map_err(|_| ReplayCursorError::InvalidHeader)
                 .inspect_err(|error| {
-                    log_replay_cursor_warning(error, "replay cursor header is invalid UTF-8");
+                    log_replay_cursor_extraction_error(
+                        error,
+                        "replay cursor header is invalid UTF-8",
+                    );
                 })
         })
         .collect::<Result<Vec<_>, _>>()?;
