@@ -6,14 +6,14 @@ It assumes familiarity with Rust, Actix Web, and HTTP fundamentals.
 ## Cursor pagination helpers
 
 The `pagination` module provides shared cursor, query parameter, response
-envelope, and link-building primitives for keyset pagination. Keyset
-pagination means that each page uses an opaque cursor containing an ordered
-boundary key rather than a numeric offset.
+envelope, and link-building primitives for keyset pagination. Keyset pagination
+means that each page uses an opaque cursor containing an ordered boundary key
+rather than a numeric offset.
 
 ### Query parameters (`PageParams`)
 
-Use `PageParams` with Actix Web's query extractor to parse the shared
-`cursor` and `limit` query parameters:
+Use `PageParams` with Actix Web's query extractor to parse the shared `cursor`
+and `limit` query parameters:
 
 ```rust
 use actix_v2a::pagination::{PageParams, Paginated, PaginationLinks};
@@ -74,8 +74,8 @@ struct UserCursorKey {
 }
 ```
 
-The backing query must use the same fields in the same order for every page.
-If the ordering changes between requests, clients may see skipped or duplicated
+The backing query must use the same fields in the same order for every page. If
+the ordering changes between requests, clients may see skipped or duplicated
 records. `actix-v2a` validates cursor encoding and decoding, but it cannot
 prove that a downstream database index or query predicate is correct. Consumers
 should cover those ordering invariants in their own repository or integration
@@ -203,8 +203,7 @@ fn handle_sse_request(req: HttpRequest) -> Result<(), Error> {
 `ReplayCursorError`, but they do not expose the same variants:
 
 - `InvalidHeader` — the `Last-Event-ID` header was malformed because it was
-  duplicated or contained a non-UTF-8 value. This variant is returned only by
-  `extract_replay_cursor`.
+  duplicated or, at the Actix adapter boundary, contained a non-UTF-8 value.
 - `ReplayCursorError::Empty` — the event identifier value was empty. This
   variant exists for API completeness via `From<EventIdValidationError>` and is
   observable when converting `EventIdValidationError::Empty` into
@@ -219,10 +218,9 @@ reset semantics, so callers only see `ReplayCursorError::Empty` after an
 explicit `From<EventIdValidationError>` conversion.
 
 ```rust
-use actix_v2a::{EventIdValidationError, ReplayCursorError, extract_replay_cursor};
-use actix_web::http::header::HeaderMap;
+use actix_v2a::{EventIdValidationError, ReplayCursorError, SseHeader, extract_replay_cursor};
 
-fn classify(headers: &HeaderMap) -> Result<&'static str, ReplayCursorError> {
+fn classify(headers: &[SseHeader]) -> Result<&'static str, ReplayCursorError> {
     match extract_replay_cursor(headers) {
         Ok(Some(_)) => Ok("resume"),
         Ok(None) => Ok("start"),
@@ -244,6 +242,44 @@ fn classify_converted(error: EventIdValidationError) -> &'static str {
     }
 }
 ```
+
+#### Operator observability
+
+`extract_actix_replay_cursor` emits a `tracing::error!` event whenever header
+extraction fails at the Actix adapter boundary. Operators can observe these
+events with any `tracing` subscriber, such as `tracing-subscriber` with
+`EnvFilter`.
+
+Each error event carries two structured fields:
+
+- `header_name` — always `"Last-Event-ID"`.
+- `error_variant` — the name of the `ReplayCursorError` variant:
+  `"InvalidHeader"`, `"Empty"`, or `"ForbiddenCharacter"`.
+
+To capture these events, configure a subscriber that accepts ERROR-level events
+from the crate:
+
+```sh
+RUST_LOG=actix_v2a=error cargo run
+```
+
+Example event fields emitted for a duplicate `Last-Event-ID` header:
+
+```text
+ERROR actix_v2a::sse::replay_cursor: replay cursor header extraction failed
+  header_name="Last-Event-ID"
+  error_variant="InvalidHeader"
+```
+
+The message text differs by call site:
+
+- `"replay cursor header extraction failed"` — duplicate or
+  forbidden-character header values.
+- `"replay cursor header is invalid UTF-8"` — non-UTF-8 bytes in the Actix
+  header value.
+
+The framework-agnostic `extract_replay_cursor` function remains a pure query
+and returns typed errors without emitting tracing events itself.
 
 #### Header extraction behaviour
 

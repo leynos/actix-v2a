@@ -18,3 +18,18 @@ Feature: Shared SSE wire contract
     Given a downstream event with id "evt-100", event "message_created", and payload "hello"
     When the stream reset frame is rendered
     Then the event and stream reset frames match the approved wire format
+
+  Scenario: Duplicate Last-Event-ID headers are rejected and logged
+    Given a request with duplicate Last-Event-ID headers "evt-001" and "evt-002"
+    When the replay cursor extraction fails
+    Then a tracing error is emitted with header_name "Last-Event-ID" and error_variant "InvalidHeader"
+
+  Scenario: Forbidden characters in Last-Event-ID are rejected and logged
+    Given a request with a Last-Event-ID header containing a forbidden character
+    When the replay cursor extraction fails
+    Then a tracing error is emitted with header_name "Last-Event-ID" and error_variant "ForbiddenCharacter"
+
+  Scenario: Non-UTF-8 Last-Event-ID headers are rejected and logged
+    Given an Actix request with a non-UTF-8 Last-Event-ID header value
+    When the Actix replay cursor extraction fails
+    Then a tracing error is emitted with header_name "Last-Event-ID" and error_variant "InvalidHeader"

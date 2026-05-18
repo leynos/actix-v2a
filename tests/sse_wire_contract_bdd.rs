@@ -10,24 +10,31 @@ use actix_v2a::{
     HeartbeatPolicy,
     LAST_EVENT_ID_HEADER,
     ReplayCursor,
+    ReplayCursorError,
     SseHeader,
     apply_event_stream_cache_control,
+    extract_actix_replay_cursor,
     extract_replay_cursor,
     render_event_frame,
     render_heartbeat_frame,
     render_stream_reset_frame,
 };
+use actix_web::http::header::{HeaderMap, HeaderName, HeaderValue};
 use rstest::fixture;
 use rstest_bdd::Slot;
 use rstest_bdd_macros::{ScenarioState, given, scenario, then, when};
+use tracing_test::traced_test;
 
 #[derive(Debug, Default, ScenarioState)]
 struct World {
+    actix_headers: Slot<HeaderMap>,
     headers: Slot<Vec<SseHeader>>,
+    replay_cursor_error: Slot<ReplayCursorError>,
     replay_cursor: Slot<Option<ReplayCursor>>,
     response_headers: Slot<Vec<SseHeader>>,
     heartbeat_frame: Slot<String>,
     event_frame: Slot<String>,
+    should_use_actix_path: Slot<bool>,
     stream_reset_frame: Slot<String>,
 }
 
@@ -42,6 +49,73 @@ fn a_reconnect_request_with_last_event_id(world: &World, event_id: String) {
     world
         .headers
         .set(vec![SseHeader::new(LAST_EVENT_ID_HEADER, event_id)]);
+    world.should_use_actix_path.set(false);
+}
+
+#[given("a request with duplicate Last-Event-ID headers {first_id} and {second_id}")]
+#[expect(
+    clippy::expect_used,
+    reason = "BDD steps use expect for clear failures"
+)]
+fn a_request_with_duplicate_last_event_id_headers(
+    world: &World,
+    first_id: String,
+    second_id: String,
+) {
+    let mut headers = HeaderMap::new();
+    let header_name = HeaderName::from_static("last-event-id");
+    headers.append(
+        header_name.clone(),
+        HeaderValue::from_str(&first_id).expect("fixture header should be valid"),
+    );
+    headers.append(
+        header_name,
+        HeaderValue::from_str(&second_id).expect("fixture header should be valid"),
+    );
+
+    world.actix_headers.set(headers);
+    world.should_use_actix_path.set(true);
+}
+
+#[given("a request with a Last-Event-ID header containing a forbidden character")]
+#[expect(
+    unsafe_code,
+    reason = "BDD fixture needs an otherwise impossible Actix header value"
+)]
+fn a_request_with_a_last_event_id_header_containing_a_forbidden_character(world: &World) {
+    let mut headers = HeaderMap::new();
+    let header_name = HeaderName::from_static("last-event-id");
+    let forbidden_bytes = b"evt\n123";
+    // SAFETY: This BDD fixture intentionally builds an invalid but UTF-8
+    // Last-Event-ID payload so the adapter can exercise domain-level replay
+    // cursor validation. The byte slice is static test data and the unsafe
+    // call is scoped to test input construction, so no aliasing or ownership
+    // invariants are changed.
+    let header_value = unsafe { HeaderValue::from_maybe_shared_unchecked(forbidden_bytes) };
+    headers.insert(header_name, header_value);
+
+    world.actix_headers.set(headers);
+    world.should_use_actix_path.set(true);
+}
+
+#[given("an Actix request with a non-UTF-8 Last-Event-ID header value")]
+#[expect(
+    unsafe_code,
+    reason = "BDD fixture needs to construct invalid UTF-8 header value"
+)]
+fn an_actix_request_with_a_non_utf_8_last_event_id_header_value(world: &World) {
+    let mut headers = HeaderMap::new();
+    let header_name = HeaderName::from_static("last-event-id");
+    let non_utf8_bytes = &[0xff, 0xfe, 0xfd];
+    // SAFETY: This BDD fixture intentionally builds a non-UTF-8 header payload
+    // to exercise `to_str()` failure. The byte slice is static test-only data
+    // and the unsafe call is scoped to test input construction, so no aliasing
+    // or ownership invariants are changed.
+    let header_value = unsafe { HeaderValue::from_maybe_shared_unchecked(non_utf8_bytes) };
+    headers.insert(header_name, header_value);
+
+    world.actix_headers.set(headers);
+    world.should_use_actix_path.set(true);
 }
 
 #[given("an event-stream response")]
@@ -73,6 +147,48 @@ fn the_replay_cursor_is_extracted(world: &World) {
     let headers = world.headers.get().expect("request headers should be set");
     let cursor = extract_replay_cursor(&headers).expect("valid reconnect header should parse");
     world.replay_cursor.set(cursor);
+}
+
+#[when("the replay cursor extraction fails")]
+#[expect(
+    clippy::expect_used,
+    reason = "BDD steps use expect for clear failures"
+)]
+fn the_replay_cursor_extraction_fails(world: &World) {
+    clear_traced_scenario_logs();
+    let should_use_actix_path = world
+        .should_use_actix_path
+        .get()
+        .expect("extraction path should be set");
+    let error = if should_use_actix_path {
+        let headers = world
+            .actix_headers
+            .get()
+            .expect("Actix request headers should be set");
+        extract_actix_replay_cursor(&headers).expect_err("replay cursor extraction should fail")
+    } else {
+        let headers = world.headers.get().expect("request headers should be set");
+        extract_replay_cursor(&headers).expect_err("replay cursor extraction should fail")
+    };
+
+    world.replay_cursor_error.set(error);
+}
+
+#[when("the Actix replay cursor extraction fails")]
+#[expect(
+    clippy::expect_used,
+    reason = "BDD steps use expect for clear failures"
+)]
+fn the_actix_replay_cursor_extraction_fails(world: &World) {
+    clear_traced_scenario_logs();
+    let headers = world
+        .actix_headers
+        .get()
+        .expect("Actix request headers should be set");
+    let error = extract_actix_replay_cursor(&headers)
+        .expect_err("Actix replay cursor extraction should fail");
+
+    world.replay_cursor_error.set(error);
 }
 
 #[when("the live-stream cache policy and heartbeat are applied")]
@@ -136,6 +252,42 @@ fn the_shared_last_event_id_header_name_ignores_non_matching_headers() {
         "extract_replay_cursor should return None when header name does not match \
          LAST_EVENT_ID_HEADER"
     );
+}
+
+#[then(
+    "a tracing error is emitted with header_name {header_name} and error_variant {error_variant}"
+)]
+#[expect(
+    clippy::expect_used,
+    reason = "BDD steps use expect for clear failures"
+)]
+fn a_tracing_error_is_emitted_with_header_name_and_error_variant(
+    world: &World,
+    header_name: String,
+    error_variant: String,
+) {
+    world
+        .replay_cursor_error
+        .get()
+        .expect("replay cursor error should be set");
+
+    assert!(traced_scenario_logs_contain(&format!(
+        "header_name=\"{header_name}\""
+    )));
+    assert!(traced_scenario_logs_contain(&format!(
+        "error_variant=\"{error_variant}\""
+    )));
+}
+
+fn traced_scenario_logs_contain(value: &str) -> bool {
+    tracing_test::internal::logs_with_scope_contain("shared_sse_wire_contract", value)
+}
+
+fn clear_traced_scenario_logs() {
+    tracing_test::internal::global_buf()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clear();
 }
 
 #[then("the response uses the canonical no-store cache policy")]
@@ -204,4 +356,5 @@ fn the_event_and_stream_reset_frames_match_the_approved_wire_format(world: &Worl
 }
 
 #[scenario(path = "tests/features/sse_wire_contract.feature")]
+#[traced_test]
 fn shared_sse_wire_contract(world: World) { drop(world); }
