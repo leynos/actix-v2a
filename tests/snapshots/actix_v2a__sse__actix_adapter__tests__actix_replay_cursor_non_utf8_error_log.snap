@@ -1,0 +1,5 @@
+---
+source: src/sse/actix_adapter.rs
+expression: error_log
+---
+header_name=Last-Event-ID error_variant=InvalidHeader message=replay cursor header is invalid UTF-8

@@ -78,6 +78,8 @@ identifier generation strategy.
   - `ForbiddenCharacter` — replay cursor contained CR, LF, or NULL
   - `InvalidHeader` — `Last-Event-ID` header was malformed (duplicate or
     non-UTF-8)
+  - `variant_name()` — internal helper returning a stable structured-log field
+    value for each variant
 - `SseFrameError` — event/comment frame rendering error enum:
   - `EmptyEventName` — an explicit event name was provided but empty
   - `InvalidEventName` — event name contained CR, LF, or NULL
@@ -105,7 +107,8 @@ let Some(header_value) = header_values.next() else {
     return Ok(None);  // Missing header is allowed
 };
 if header_values.next().is_some() {
-    return Err(ReplayCursorError::InvalidHeader);  // Duplicate header fails
+    // Duplicate header fails; adapter logs before returning.
+    return Err(ReplayCursorError::InvalidHeader);
 }
 ```
 
@@ -180,6 +183,28 @@ import `actix_web` types. It exposes two public functions:
 The `SseHeader` type (in `src/sse/header.rs`) is a plain name/value pair with
 case-insensitive name comparison. Domain functions accept `&[SseHeader]` or
 `&mut Vec<SseHeader>` to remain framework-independent.
+
+### Tracing
+
+`extract_replay_cursor` is a pure query and must not emit tracing events. The
+Actix adapter boundary logs replay cursor extraction failures with structured
+`tracing::error!` events before returning typed errors to callers. Two internal
+helpers support this:
+
+- `ReplayCursorError::variant_name() -> &'static str` — maps each error variant
+  to a stable string (`"InvalidHeader"`, `"Empty"`, `"ForbiddenCharacter"`) for
+  use as a structured log field.
+- `log_replay_cursor_extraction_error(error, message)` — emits
+  `tracing::error!` with fields `header_name = LAST_EVENT_ID_HEADER`,
+  `error_variant = error.variant_name()`, and the provided static message.
+
+Both helpers are `pub(crate)` and live in `src/sse/replay_cursor.rs`.
+
+The tracing design follows the same principle as the pagination module:
+operator-relevant failures are logged at the framework adapter boundary.
+Caller-controlled failures, such as malformed client headers, are still
+returned as typed errors for the caller to map to HTTP responses; the Actix
+adapter additionally logs them to aid operators diagnosing misbehaving clients.
 
 ### Error mapping
 
@@ -472,6 +497,7 @@ every page. Downstream persistence logic owns that invariant.
 - limits greater than `MAX_LIMIT` are clamped to `MAX_LIMIT`;
 - `limit=0` is rejected with `PageParamsError::InvalidLimit`.
 
+<!-- markdownlint-disable-next-line MD024 -->
 ### Tracing
 
 `Cursor::encode` and `Cursor::decode` are instrumented with `#[instrument]`

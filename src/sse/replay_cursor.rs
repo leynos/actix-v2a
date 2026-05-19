@@ -38,6 +38,25 @@ impl From<EventIdValidationError> for ReplayCursorError {
     }
 }
 
+impl ReplayCursorError {
+    pub(crate) const fn variant_name(&self) -> &'static str {
+        match self {
+            Self::InvalidHeader => "InvalidHeader",
+            Self::Empty => "Empty",
+            Self::ForbiddenCharacter => "ForbiddenCharacter",
+        }
+    }
+}
+
+pub(crate) fn log_replay_cursor_extraction_error(error: &ReplayCursorError, message: &'static str) {
+    tracing::error!(
+        error = %error,
+        header_name = LAST_EVENT_ID_HEADER,
+        error_variant = error.variant_name(),
+        "{message}"
+    );
+}
+
 /// Replay cursor extracted from the `Last-Event-ID` request header.
 ///
 /// This type wraps a validated [`EventId`] to distinguish between "an
@@ -232,6 +251,15 @@ mod tests {
         let result = EventId::new(forbidden);
 
         assert_eq!(result, Err(EventIdValidationError::ForbiddenCharacter));
+    }
+
+    #[test]
+    fn extract_replay_cursor_rejects_forbidden_header_value() {
+        let headers = vec![SseHeader::new("last-event-id", "evt\n123")];
+
+        let error = extract_replay_cursor(&headers).expect_err("forbidden character should fail");
+
+        assert_eq!(error, ReplayCursorError::ForbiddenCharacter);
     }
 
     #[test]
