@@ -53,3 +53,7 @@
     module](execplans/1-2-1-unit-and-integration-tests-for-the-shared-sse-module.md):
     execution plan for proving the shared SSE wire contract with unit and
     downstream-facing integration coverage (task 1.2.1).
+  - [Update documentation after the SSE module
+    lands](execplans/1-2-2-update-documentation-after-sse-module-lands.md):
+    draft execution plan for closing the shared SSE documentation loop and
+    scrubbing implementation-time path references (task 1.2.2).
