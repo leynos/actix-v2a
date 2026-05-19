@@ -1,9 +1,8 @@
 # Import shared HTTP primitives from Wildside
 
-This ExecPlan (execution plan) is a living document. The sections
-`Constraints`, `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`,
-`Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work
-proceeds.
+This ExecPlan (execution plan) is a living document. The sections `Constraints`,
+ `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
+and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
 Status: IN PROGRESS
 
@@ -72,8 +71,8 @@ The Wildside source surface relevant to this plan is:
   `../wildside/backend/tests/openapi_schemas_bdd.rs`.
 
 No dedicated SSE helper module has been confirmed in this Wildside checkout.
-The only nearby source found during planning was WebSocket heartbeat handling
-in `../wildside/backend/src/inbound/ws/session.rs`, which is useful as design
+The only nearby source found during planning was WebSocket heartbeat handling in
+ `../wildside/backend/src/inbound/ws/session.rs`, which is useful as design
 inspiration but is not itself an SSE helper that can be imported verbatim.
 
 Corbusier already has documented SSE expectations in the canonical upstream
@@ -400,8 +399,8 @@ Implementation must not begin until the following gates are satisfied:
   discrimination, replay/conflict record types, and HTTP header helpers into
   `src/idempotency/`.
 - [x] 2026-04-02 12:35 BST: completed Milestone 3 by adding a transport-agnostic
-  shared API error envelope in `src/error.rs` plus an Actix responder adapter
-  in `src/http/error.rs` with status mapping, trace identifier propagation, and
+  shared API error envelope in `src/error.rs` plus an Actix responder adapter in
+   `src/http/error.rs` with status mapping, trace identifier propagation, and
   internal error redaction.
 - [x] 2026-04-02 12:35 BST: completed Milestone 4 by adding reusable `utoipa`
   schema fragments in `src/openapi/schemas.rs` and BDD coverage that verifies
@@ -479,8 +478,8 @@ did not uncover an authoritative SSE helper to extract, while Milestone 6
 shipped as part of the documentation clean-up that removed machine-local
 references from the finished docs.
 
-Final gate outcomes for this implementation pass were green for the Rust gates
-(`make check-fmt`, `make lint`, and `make test`) and green for the
+Final gate outcomes for this implementation pass were green for the Rust gates (
+ `make check-fmt`, `make lint`, and `make test`) and green for the
 documentation gates (`make markdownlint` and `make nixie`) after the final doc
 updates landed.
 

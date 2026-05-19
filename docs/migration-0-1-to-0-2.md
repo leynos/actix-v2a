@@ -26,7 +26,7 @@ The domain function `extract_replay_cursor` now accepts `&[SseHeader]` and is
 framework-independent. Actix Web callers must use `extract_actix_replay_cursor`
 from the same crate root.
 
----
+______________________________________________________________________
 
 ### `apply_event_stream_cache_control` - signature change
 

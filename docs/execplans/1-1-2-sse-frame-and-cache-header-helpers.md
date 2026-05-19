@@ -1,20 +1,19 @@
 # Implement SSE frame and cache-header helpers
 
-This ExecPlan (execution plan) is a living document. The sections
-`Constraints`, `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`,
-`Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work
-proceeds.
+This ExecPlan (execution plan) is a living document. The sections `Constraints`,
+ `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
+and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
 Status: COMPLETED
 
 ## Purpose / big picture
 
 `actix-v2a` already exposes the first slice of the shared Server-Sent Events
-(SSE) contract from [Architecture Decision Record (ADR) 001][adr-001]:
-validated `EventId` values and `Last-Event-ID` replay cursor parsing. Roadmap
-task 1.1.2 is the next delivery unit in that contract. It adds the wire helpers
-that downstream applications need to emit browser-compatible SSE frames and to
-mark live event-stream responses as non-reusable by intermediaries.
+(SSE) contract from [Architecture Decision Record (ADR) 001][adr-001]: validated
+ `EventId` values and `Last-Event-ID` replay cursor parsing. Roadmap task 1.1.2
+is the next delivery unit in that contract. It adds the wire helpers that
+downstream applications need to emit browser-compatible SSE frames and to mark
+live event-stream responses as non-reusable by intermediaries.
 
 After this change, downstream services should be able to do three things
 without reimplementing wire details:
@@ -66,8 +65,8 @@ Success is observable when:
 - Public Rust interfaces require Rustdoc comments with examples, and every
   module file requires a module-level `//!` comment.
 - New code must satisfy the repository lint posture, including deny-level
-  Clippy rules such as `expect_used`, `unwrap_used`, `cognitive_complexity`,
-  and `missing_const_for_fn`.
+  Clippy rules such as `expect_used`, `unwrap_used`, `cognitive_complexity`, and
+   `missing_const_for_fn`.
 - File size must remain below the repository guidance of 400 lines per file.
 - Tests must use `rstest` fixtures and parameterized cases where they improve
   clarity. `rstest-bdd` should be used only where scenario structure adds real

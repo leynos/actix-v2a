@@ -1,20 +1,19 @@
 # Port Wildside pagination documentation hardening
 
-This ExecPlan (execution plan) is a living document. The sections
-`Constraints`, `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`,
-`Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work
-proceeds.
+This ExecPlan (execution plan) is a living document. The sections `Constraints`,
+ `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
+and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
 Status: COMPLETE
 
 ## Purpose / big picture
 
-Wildside commit `9d6b7655e3ad1a666a0e96beebd0a27b0d139388` published
-stronger pagination documentation, documentation-invariant tests, and several
-related test cleanups. `actix-v2a` already contains the shared pagination
-primitives imported from Wildside, but its local documentation and tests do not
-yet carry the full ordering, limit, error-mapping, and scope-boundary guidance
-from that later Wildside commit.
+Wildside commit `9d6b7655e3ad1a666a0e96beebd0a27b0d139388` published stronger
+pagination documentation, documentation-invariant tests, and several related
+test cleanups. `actix-v2a` already contains the shared pagination primitives
+imported from Wildside, but its local documentation and tests do not yet carry
+the full ordering, limit, error-mapping, and scope-boundary guidance from that
+later Wildside commit.
 
 The goal is to port the parts of that commit that improve the reusable
 `actix-v2a` library without importing Wildside application code. Success is
@@ -33,9 +32,8 @@ began after user approval.
   Wildside domain, repository, route, or service concepts.
 - Preserve the current public pagination API unless the user approves a public
   API change. The existing surface includes `Cursor`, `CursorError`,
-  `Direction`, `PageParams`, `PageParamsError`, `Paginated`,
-  `PaginationLinks`, `DEFAULT_LIMIT`, `MAX_LIMIT`, `PAGE_PARAM_LIMIT`, and
-  `PAGE_PARAM_CURSOR`.
+  `Direction`, `PageParams`, `PageParamsError`, `Paginated`, `PaginationLinks`,
+  `DEFAULT_LIMIT`, `MAX_LIMIT`, `PAGE_PARAM_LIMIT`, and `PAGE_PARAM_CURSOR`.
 - Do not add new runtime dependencies without approval. The current crate
   already has `base64`, `serde`, `serde_json`, `thiserror`, `url`, `utoipa`,
   `rstest`, and `rstest-bdd`, which are enough for the planned port.
@@ -77,35 +75,29 @@ began after user approval.
 ## Risks
 
 - Risk: Wildside's error-mapping table names envelope codes that do not exist
-  in `actix-v2a`.
-  Severity: medium.
-  Likelihood: high.
-  Mitigation: port the client-versus-server classification, not the literal
-  code strings. Document `CursorError::InvalidBase64`,
-  `CursorError::Deserialize`, `CursorError::TokenTooLong`, and
-  `PageParamsError::InvalidLimit` as `ErrorCode::InvalidRequest`, and
-  `CursorError::Serialize` as `ErrorCode::InternalError`.
+  in `actix-v2a`. Severity: medium. Likelihood: high. Mitigation: port the
+  client-versus-server classification, not the literal code strings. Document
+  `CursorError::InvalidBase64`, `CursorError::Deserialize`,
+  `CursorError::TokenTooLong`, and `PageParamsError::InvalidLimit` as
+  `ErrorCode::InvalidRequest`, and `CursorError::Serialize` as
+  `ErrorCode::InternalError`.
 
 - Risk: The upstream commit contains many non-pagination test and domain
-  refactors that are tempting but not suitable for this library.
-  Severity: medium.
-  Likelihood: high.
-  Mitigation: limit implementation to pagination docs, pagination tests,
-  documentation-invariant tests, and directly relevant guide updates.
+  refactors that are tempting but not suitable for this library. Severity:
+  medium. Likelihood: high. Mitigation: limit implementation to pagination
+  docs, pagination tests, documentation-invariant tests, and directly relevant
+  guide updates.
 
 - Risk: Adding a shared BDD fixture module could duplicate too much of the
-  existing `tests/pagination_bdd.rs` setup.
-  Severity: low.
-  Likelihood: medium.
+  existing `tests/pagination_bdd.rs` setup. Severity: low. Likelihood: medium.
   Mitigation: extract only the state and helper functions that are needed by
   both existing pagination scenarios and the new documentation scenarios.
 
 - Risk: Markdown formatting and Rustdoc examples can fail after prose changes.
-  Severity: medium.
-  Likelihood: medium.
-  Mitigation: run `make fmt`, `make markdownlint`, `make nixie`, `make lint`,
-  and `make test`, and keep examples executable unless they intentionally
-  demonstrate pseudocode or endpoint-local integration.
+  Severity: medium. Likelihood: medium. Mitigation: run `make fmt`,
+  `make markdownlint`, `make nixie`, `make lint`, and `make test`, and keep
+  examples executable unless they intentionally demonstrate pseudocode or
+  endpoint-local integration.
 
 ## Progress
 
@@ -213,151 +205,135 @@ began after user approval.
 
 - Observation: `actix-v2a` already contains the imported pagination foundation,
   including direction-aware cursors, `PageParams` normalization, and
-  `PaginationLinks::from_request`.
-  Evidence: `src/pagination/mod.rs`, `src/pagination/cursor.rs`,
-  `src/pagination/params.rs`, `src/pagination/envelope.rs`, and
-  `tests/pagination_bdd.rs` already cover these behaviours.
-  Impact: The port should harden documentation and coverage, not re-import the
-  pagination implementation.
+  `PaginationLinks::from_request`. Evidence: `src/pagination/mod.rs`,
+  `src/pagination/cursor.rs`, `src/pagination/params.rs`,
+  `src/pagination/envelope.rs`, and `tests/pagination_bdd.rs` already cover
+  these behaviours. Impact: The port should harden documentation and coverage,
+  not re-import the pagination implementation.
 
 - Observation: Wildside commit `9d6b7655` changed 71 files, but most changes
   are Wildside-specific domain, adapter, example-data, and script fixes.
   Evidence: `git show --stat 9d6b7655` lists broad backend modules such as
   catalogue, offline bundles, Overpass enrichment, users, WebSocket sessions,
-  `bun.lock`, and example-data generator modules.
-  Impact: These are excluded from the `actix-v2a` port unless a later user
-  request asks for a separate test-fixture refactor.
+  `bun.lock`, and example-data generator modules. Impact: These are excluded
+  from the `actix-v2a` port unless a later user request asks for a separate
+  test-fixture refactor.
 
 - Observation: Wildside's pagination documentation says OpenAPI schema
   generation is out of scope for its standalone pagination crate, while
   `actix-v2a` already has reusable `utoipa` schema fragments for other shared
-  envelopes.
-  Evidence: Wildside `backend/crates/pagination/src/lib.rs` documents OpenAPI
-  schema generation as a consumer responsibility; local
+  envelopes. Evidence: Wildside `backend/crates/pagination/src/lib.rs`
+  documents OpenAPI schema generation as a consumer responsibility; local
   `src/openapi/schemas.rs` contains `ErrorCodeSchema`, `ErrorSchema`, and
-  `ReplayMetadataSchema` only.
-  Impact: The plan should document endpoint-local pagination query parameters
-  rather than introduce a new reusable pagination OpenAPI schema by default.
+  `ReplayMetadataSchema` only. Impact: The plan should document endpoint-local
+  pagination query parameters rather than introduce a new reusable pagination
+  OpenAPI schema by default.
 
 - Observation: `make fmt` is not fully runnable in this environment because
-  `mdformat-all` is missing.
-  Evidence: `/tmp/fmt-actix-v2a-feat-portwildsidepagination.out` records
+  `mdformat-all` is missing. Evidence:
+  `/tmp/fmt-actix-v2a-feat-portwildsidepagination.out` records
   `make: mdformat-all: No such file or directory` after
-  `cargo +nightly fmt --all` completed.
-  Impact: The planning commit can still be gated by `make check-fmt`,
-  `make markdownlint`, and `make nixie`, but the implementation phase should
-  either install `mdformat-all` or record the same environmental limitation.
+  `cargo +nightly fmt --all` completed. Impact: The planning commit can still
+  be gated by `make check-fmt`, `make markdownlint`, and `make nixie`, but the
+  implementation phase should either install `mdformat-all` or record the same
+  environmental limitation.
 
 - Observation: Adding a pagination "Error mapping" heading to
   `docs/users-guide.md` conflicted with the existing SSE "Error mapping"
-  heading under Markdown lint's duplicate-heading rule.
-  Evidence: `make markdownlint` reported `MD024/no-duplicate-heading` for
-  `docs/users-guide.md`.
-  Impact: The pagination heading was renamed to "Pagination error mapping",
-  preserving the intended content while keeping the guide lint-clean.
+  heading under Markdown lint's duplicate-heading rule. Evidence:
+  `make markdownlint` reported `MD024/no-duplicate-heading` for
+  `docs/users-guide.md`. Impact: The pagination heading was renamed to
+  "Pagination error mapping", preserving the intended content while keeping the
+  guide lint-clean.
 
 - Observation: A self-contained documentation-invariant BDD suite avoided
   pushing the existing `tests/pagination_bdd.rs` file over the repository's
-  400-line limit.
-  Evidence: `tests/pagination_bdd.rs` was already 367 lines before Stage B, and
-  the new scenarios fit cleanly in `tests/pagination_documentation_bdd.rs`.
-  Impact: No shared fixture extraction was needed for this port, keeping the
-  change smaller than the optional common-fixture path in the plan.
+  400-line limit. Evidence: `tests/pagination_bdd.rs` was already 367 lines
+  before Stage B, and the new scenarios fit cleanly in
+  `tests/pagination_documentation_bdd.rs`. Impact: No shared fixture extraction
+  was needed for this port, keeping the change smaller than the optional
+  common-fixture path in the plan.
 
 - Observation: The first isolated run of the new BDD suite caught a borrowed
   `Err(...)` comparison and a macro-expanded unused-braces warning in the
-  `world` fixture.
-  Evidence: `cargo test --test pagination_documentation_bdd` failed before
-  those local issues were fixed, then passed after the targeted correction.
-  Impact: The focused red/green run validated the new suite before the full
-  repository gates.
+  `world` fixture. Evidence: `cargo test --test pagination_documentation_bdd`
+  failed before those local issues were fixed, then passed after the targeted
+  correction. Impact: The focused red/green run validated the new suite before
+  the full repository gates.
 
 - Observation: The post-turn hook runs with a reduced `PATH` that did not
-  include the existing Cargo installation directory.
-  Evidence: The hook reported `make: cargo: No such file or directory` while
-  running `make check-fmt lint`; `env PATH=/usr/bin:/bin make check-fmt lint`
-  reproduced the same environment shape.
-  Impact: The Makefile now prepends `$HOME/.cargo/bin` to Cargo recipe `PATH`
-  values, while continuing to call `cargo` by name. No shim, install step, or
-  recreated system script was introduced.
+  include the existing Cargo installation directory. Evidence: The hook reported
+   `make: cargo: No such file or directory` while running `make check-fmt lint`;
+   `env PATH=/usr/bin:/bin make check-fmt lint` reproduced the same environment
+  shape. Impact: The Makefile now prepends `$HOME/.cargo/bin` to Cargo recipe
+  `PATH` values, while continuing to call `cargo` by name. No shim, install
+  step, or recreated system script was introduced.
 
 - Observation: The original user-guide pagination example parsed
   `req.uri().to_string()` directly, but Actix request URIs are usually relative
-  paths.
-  Evidence: Code review noted that `Url::parse` expects an absolute URL for
-  this use, so the example would normally fail at runtime.
-  Impact: The example now combines Actix connection information with
-  `path_and_query()` before parsing the URL used for pagination links.
+  paths. Evidence: Code review noted that `Url::parse` expects an absolute URL
+  for this use, so the example would normally fail at runtime. Impact: The
+  example now combines Actix connection information with `path_and_query()`
+  before parsing the URL used for pagination links.
 
 - Observation: Checking `CursorError` display text made the documentation BDD
-  coverage sensitive to wording-only changes.
-  Evidence: Code review highlighted that substring checks were too tightly
-  coupled to error message prose.
+  coverage sensitive to wording-only changes. Evidence: Code review highlighted
+  that substring checks were too tightly coupled to error message prose.
   Impact: The BDD step now asserts the documented variants and structured
   fields instead of matching display strings.
 
 - Observation: The stricter lint toolchain now detects `expect` in helper
   functions that are compiled only for tests, but are not themselves test
-  functions.
-  Evidence: `make lint` reported `no_expect_outside_tests` for helper
-  functions in `src/http/error.rs`, `src/openapi/schemas.rs`, and
-  `src/pagination/cursor.rs`.
-  Impact: Those helpers now return `Result` where they perform fallible work,
-  and the actual test functions keep the assertion and failure-message
-  responsibility.
+  functions. Evidence: `make lint` reported `no_expect_outside_tests` for
+  helper functions in `src/http/error.rs`, `src/openapi/schemas.rs`, and
+  `src/pagination/cursor.rs`. Impact: Those helpers now return `Result` where
+  they perform fallible work, and the actual test functions keep the assertion
+  and failure-message responsibility.
 
 ## Decision Log
 
 - Decision: Treat this as a documentation and test hardening port, not an
-  implementation import.
-  Rationale: The implementation was already imported by
+  implementation import. Rationale: The implementation was already imported by
   `docs/execplans/import-components-from-wildside.md`; the later Wildside
-  commit mainly improves crate-level explanation and verification.
-  Date/Author: 2026-04-26 23:31Z / Codex.
+  commit mainly improves crate-level explanation and verification. Date/Author:
+  2026-04-26 23:31Z / Codex.
 
 - Decision: Exclude Wildside domain, example-data, Bun/script, and broad
-  backend test-fixture changes from this port.
-  Rationale: Those changes target Wildside's application architecture and do
-  not map cleanly to a small shared Actix helper library.
-  Date/Author: 2026-04-26 23:31Z / Codex.
+  backend test-fixture changes from this port. Rationale: Those changes target
+  Wildside's application architecture and do not map cleanly to a small shared
+  Actix helper library. Date/Author: 2026-04-26 23:31Z / Codex.
 
 - Decision: Adapt Wildside's error-mapping guidance to `actix-v2a`'s current
-  `ErrorCode` enum.
-  Rationale: Porting literal `invalid_cursor` or `invalid_page_params` codes
-  would require public API changes and contradict this plan's compatibility
-  constraint.
-  Date/Author: 2026-04-26 23:31Z / Codex.
+  `ErrorCode` enum. Rationale: Porting literal `invalid_cursor` or
+  `invalid_page_params` codes would require public API changes and contradict
+  this plan's compatibility constraint. Date/Author: 2026-04-26 23:31Z / Codex.
 
 - Decision: Document endpoint-local `utoipa::path` query parameters in the user
-  guide instead of adding reusable pagination schema wrappers.
-  Rationale: The plan's compatibility constraint forbids public API expansion
-  without approval, and pagination response schemata depend on each endpoint's
-  concrete item type.
-  Date/Author: 2026-04-27 00:46Z / Codex.
+  guide instead of adding reusable pagination schema wrappers. Rationale: The
+  plan's compatibility constraint forbids public API expansion without
+  approval, and pagination response schemata depend on each endpoint's concrete
+  item type. Date/Author: 2026-04-27 00:46Z / Codex.
 
 - Decision: Keep the documentation-invariant BDD suite self-contained rather
-  than extracting shared pagination BDD fixtures.
-  Rationale: The existing pagination BDD file was already near the line-count
-  limit, and the new suite needed only small state and helper functions.
-  Date/Author: 2026-04-27 00:52Z / Codex.
+  than extracting shared pagination BDD fixtures. Rationale: The existing
+  pagination BDD file was already near the line-count limit, and the new suite
+  needed only small state and helper functions. Date/Author: 2026-04-27 00:52Z
+  / Codex.
 
 - Decision: Make Cargo discovery recipe-local, not global, in the Makefile.
   Rationale: The hook needed the existing Cargo binary directory on `PATH`, but
   the repository should still call `cargo` directly and avoid shims or
-  generated wrapper scripts.
-  Date/Author: 2026-04-27 01:00Z / Codex.
+  generated wrapper scripts. Date/Author: 2026-04-27 01:00Z / Codex.
 
 - Decision: Use Actix connection information for the user-guide pagination URL
-  example.
-  Rationale: `PaginationLinks::from_request` needs an absolute `Url`, while
-  `HttpRequest::uri()` is commonly relative. Combining scheme, host, and
-  `path_and_query()` documents a runtime-valid pattern.
-  Date/Author: 2026-04-27 01:54Z / Codex.
+  example. Rationale: `PaginationLinks::from_request` needs an absolute `Url`,
+  while `HttpRequest::uri()` is commonly relative. Combining scheme, host, and
+  `path_and_query()` documents a runtime-valid pattern. Date/Author: 2026-04-27
+  01:54Z / Codex.
 
 - Decision: Keep documentation-invariant tests structural.
   Rationale: The purpose is to verify documented error classes, not freeze
-  human-facing error wording.
-  Date/Author: 2026-04-27 01:54Z / Codex.
+  human-facing error wording. Date/Author: 2026-04-27 01:54Z / Codex.
 
 - Decision: Fix the lint-exposed test helpers without adding suppressions.
   Rationale: Returning `Result` from helpers keeps failure causes structured
@@ -377,8 +353,8 @@ The implementation deliberately did not add public API, new dependencies, or
 Wildside application-specific code. Full validation passed with
 `make check-fmt`, `make lint`, `make test`, `make markdownlint`, and
 `make nixie`. `make fmt` remains partially blocked in this environment because
-`mdformat-all` is not installed, but `cargo fmt --all` and
-`make check-fmt` both succeeded.
+`mdformat-all` is not installed, but `cargo fmt --all` and `make check-fmt`
+both succeeded.
 
 After completion, the post-turn hook exposed a reduced-`PATH` environment that
 could not find `cargo`. The Makefile now prepends the existing Cargo bin
@@ -392,19 +368,18 @@ constructs an absolute URL from Actix connection information, the
 documentation-invariant BDD test inspects `CursorError` variants and fields
 instead of message substrings, and uncommon acronyms are expanded on first use.
 The URL example was then tightened to show explicit `path_and_query()` handling
-instead of interpolating the full request URI.
-Later inline review findings were verified against the current code. The
-contents index now describes the plan as complete, the `Paginated<T>` OpenAPI
-sentence no longer has a comma before its "because" clause, and the URL example
-already builds an absolute URL before parsing.
-The remaining stale Stage B wording now describes documented cursor error
-variants and structured fields instead of display-string checks. The HTTP error
-test helper now decodes observed response values and leaves status and trace
-header assertions to the individual tests.
-The stricter lint run also exposed test helper `expect` calls; these were
-converted to fallible helpers and the review-response change passed
-`cargo test --test pagination_documentation_bdd`, `make check-fmt`,
-`make lint`, `make markdownlint`, and `make test`.
+instead of interpolating the full request URI. Later inline review findings
+were verified against the current code. The contents index now describes the
+plan as complete, the `Paginated<T>` OpenAPI sentence no longer has a comma
+before its "because" clause, and the URL example already builds an absolute URL
+before parsing. The remaining stale Stage B wording now describes documented
+cursor error variants and structured fields instead of display-string checks.
+The HTTP error test helper now decodes observed response values and leaves
+status and trace header assertions to the individual tests. The stricter lint
+run also exposed test helper `expect` calls; these were converted to fallible
+helpers and the review-response change passed
+`cargo test --test pagination_documentation_bdd`, `make check-fmt`, `make lint`,
+ `make markdownlint`, and `make test`.
 
 ## Context and orientation
 
@@ -463,26 +438,25 @@ limits, maximum limits, zero-limit rejection, invalid base64 cursor errors,
 invalid JSON cursor errors, token-too-long errors, and documented cursor error
 variants with their structured fields. Create
 `tests/pagination_documentation_bdd.rs` to implement those scenarios. If shared
-state duplication becomes material, create
-`tests/pagination_common.rs` or `tests/common/pagination.rs` and move only
-shared `World`, `FixtureKey`, and limit setup helpers there, then update
-`tests/pagination_bdd.rs` to use that helper module. Keep this extraction small
-and purely test-local.
+state duplication becomes material, create `tests/pagination_common.rs` or
+`tests/common/pagination.rs` and move only shared `World`, `FixtureKey`, and
+limit setup helpers there, then update `tests/pagination_bdd.rs` to use that
+helper module. Keep this extraction small and purely test-local.
 
 Stage C adds unit test hardening copied in spirit from Wildside. In
 `src/pagination/cursor.rs`, add a test-only key type whose `Serialize`
 implementation fails, then assert `Cursor::encode` returns
-`CursorError::Serialize` with a useful message. In
-`src/pagination/params.rs`, replace the single oversized-limit test with
-focused `rstest` cases showing `MAX_LIMIT - 1` passes through unchanged,
-`MAX_LIMIT` passes through unchanged, and values above `MAX_LIMIT` clamp to
-`MAX_LIMIT`. Keep existing zero-limit and deserialization coverage.
+`CursorError::Serialize` with a useful message. In `src/pagination/params.rs`,
+replace the single oversized-limit test with focused `rstest` cases showing
+`MAX_LIMIT - 1` passes through unchanged, `MAX_LIMIT` passes through unchanged,
+and values above `MAX_LIMIT` clamp to `MAX_LIMIT`. Keep existing zero-limit and
+deserialization coverage.
 
 Stage D validates and commits. Run formatting and quality gates sequentially
 with `tee` logs in `/tmp`, inspect failures from the logs, make only focused
-fixes, and commit the approved implementation with a file-based commit
-message. If Stage A through C require more scope than the tolerances allow,
-update this ExecPlan and stop for direction.
+fixes, and commit the approved implementation with a file-based commit message.
+If Stage A through C require more scope than the tolerances allow, update this
+ExecPlan and stop for direction.
 
 ## Concrete steps
 
