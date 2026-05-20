@@ -448,7 +448,19 @@ tolerances above. Silence is not approval.
 - [x] 2026-05-20: Passed the first documentation gate set:
   `make fmt`, `make markdownlint`, and `make nixie`, with logs under `/tmp`
   using the branch-specific filenames from this plan.
-- [ ] 2026-05-20: Commit the first documentation-closure milestone.
+- [x] 2026-05-20: Committed the first documentation-closure milestone as
+  `90c7dc1` (`Normalize SSE documentation provenance`).
+- [x] 2026-05-20: Passed the full repository gate set:
+  `make check-fmt`, `make lint`, and `make test`, with branch-specific logs
+  under `/tmp`. The test gate ran 162 nextest tests and 26 doctests.
+- [x] 2026-05-20: Marked `docs/execplans/import-components-from-wildside.md`
+  complete and marked roadmap task 1.2.2 done after the full gate set passed.
+- [x] 2026-05-20: Passed the final documentation gate set after the roadmap and
+  import-plan closure edits: `make fmt`, `make markdownlint`, and `make nixie`.
+- [x] 2026-05-20: Re-ran `coderabbit review --agent` for the final closure
+  diff after a recoverable rate-limit wait; it completed with zero findings.
+- [ ] 2026-05-20: Commit the closure edits, push, and update the draft pull
+  request.
 
 ## Surprises & Discoveries
 
@@ -498,6 +510,12 @@ tolerances above. Silence is not approval.
 Not started. This section must be updated during implementation and completed
 only after the documentation closure, validation gates, CodeRabbit review,
 roadmap update, push, and draft pull request are complete.
+
+Interim outcome: the documentation closure work has scrubbed the configured
+environment-specific path patterns from `docs` and `README.md`, recorded the
+landed SSE helper sequence in the Wildside import plan, and marked roadmap task
+1.2.2 done after the documentation and full Rust gate sets passed. Final push
+and pull request updates remain before this plan can be marked complete.
 
 ## External references
 

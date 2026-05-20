@@ -4,7 +4,7 @@ This ExecPlan (execution plan) is a living document. The sections `Constraints`,
  `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
 and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
-Status: IN PROGRESS
+Status: COMPLETE
 
 ## Purpose / big picture
 
@@ -409,8 +409,14 @@ Implementation must not begin until the following gates are satisfied:
   wording and repository-relative paths, updated ADR 001 and the documentation
   contents index, and removed the stale absolute worktree path from the
   pagination hardening execplan.
-- [ ] During implementation, keep this section updated after each milestone and
-  after every gate run.
+- [x] 2026-05-20 CEST: passed the final documentation closure gates for
+  roadmap task 1.2.2: `make fmt`, `make markdownlint`, `make nixie`,
+  `make check-fmt`, `make lint`, and `make test`, with logs captured under
+  `/tmp` using the 1.2.2 branch name.
+- [x] 2026-05-20 CEST: marked this import plan complete after the SSE helper
+  sequence from roadmap tasks 1.1.1 through 1.2.1 had landed, the
+  implementation-time path scrub had no remaining hits, and roadmap task 1.2.2
+  was marked done.
 
 ## Surprises & Discoveries
 
@@ -475,18 +481,21 @@ Implementation must not begin until the following gates are satisfied:
 Milestone 1 shipped the pagination foundation, Milestone 2 shipped the
 idempotency primitives and HTTP helpers, Milestone 3 shipped the shared error
 envelope plus Actix adapter, and Milestone 4 shipped the reusable `utoipa`
-schema fragments. Milestone 5 was deferred because the Wildside source review
-did not uncover an authoritative SSE helper to extract, while Milestone 6
-shipped as part of the documentation clean-up that removed machine-local
-references from the finished docs.
+schema fragments. Milestone 5 produced ADR 001 and the later roadmap sequence
+from 1.1.1 through 1.2.1 shipped the shared SSE wire helpers and their
+contract-proof coverage. Milestone 6 closed in roadmap task 1.2.2 by removing
+machine-local and sibling-checkout paths from the finished documentation set
+and recording the completed SSE milestone.
 
 Final gate outcomes for this implementation pass were green for the Rust gates (
  `make check-fmt`, `make lint`, and `make test`) and green for the
-documentation gates (`make markdownlint` and `make nixie`) after the final doc
-updates landed.
+documentation gates (`make fmt`, `make markdownlint`, and `make nixie`) after
+the final documentation updates landed. `coderabbit review --agent` also
+reported zero findings for the closure milestone before the roadmap was marked
+done.
 
 Lessons learned: Wildside's pagination crate transferred cleanly because it was
 already transport-neutral; the shared error and OpenAPI surfaces needed tighter
 test coverage around external contracts than the initial import suggested; and
-SSE reuse should stay contract-first until there is source-backed helper code
-to extract.
+SSE reuse benefits from a contract-first path when there is no source-backed
+helper code to extract.
