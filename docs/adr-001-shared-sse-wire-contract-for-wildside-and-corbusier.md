@@ -13,9 +13,9 @@ Proposed.
 `actix-v2a` is being positioned as the shared home for reusable version 2a
 Actix components. During planning for the Wildside import, reusable source was
 confirmed for pagination, idempotency, the common API error envelope, and
-OpenAPI wrappers in `../wildside/backend` (canonical upstream:
-`https://github.com/leynos/wildside`). The same planning pass did not find a
-reusable Server-Sent Events (SSE) helper module in that checkout.
+OpenAPI wrappers in the canonical upstream Wildside repository at
+`https://github.com/leynos/wildside`. The same planning pass did not find a
+reusable Server-Sent Events (SSE) helper module in that source.
 
 At the same time, Corbusier already has explicit SSE expectations in its
 canonical upstream repository, `https://github.com/leynos/corbusier`. Its API

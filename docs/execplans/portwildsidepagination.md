@@ -471,7 +471,7 @@ git status --short
 Expected orientation:
 
 ```plaintext
-/home/leynos/.lody/repos/github---leynos---actix-v2a/worktrees/5e4b6a0b-5a00-4e8c-b862-6b6b7fe27926
+<actix-v2a worktree path>
 feat/portwildsidepagination
 ```
 

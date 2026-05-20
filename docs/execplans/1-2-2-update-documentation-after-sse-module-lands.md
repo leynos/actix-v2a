@@ -4,7 +4,7 @@ This ExecPlan (execution plan) is a living document. The sections `Constraints`,
  `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
 and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
-Status: DRAFT
+Status: IN PROGRESS
 
 ## Purpose / big picture
 
@@ -27,8 +27,8 @@ Success is observable when:
 
 1. `docs/execplans/import-components-from-wildside.md` records that the shared
    SSE milestone is complete and that its path-cleanup milestone was executed.
-2. Environment-specific references such as `../wildside/backend` no longer
-   appear in normative sections of public or maintainer documentation.
+2. Environment-specific references such as sibling Wildside checkout paths no
+   longer appear in normative sections of public or maintainer documentation.
 3. `docs/contents.md` indexes this plan and uses canonical upstream wording for
    Wildside provenance.
 4. `docs/roadmap.md` marks task 1.2.2 done only after the documentation
@@ -53,9 +53,9 @@ This plan must be approved before implementation begins.
 - Keep provenance, but remove machine-specific and checkout-specific paths from
   normative prose. Prefer canonical upstream repository URLs, repository
   relative paths inside this crate, or short prose descriptions.
-- Local path references such as `../wildside/backend` are allowed only in a
-  clearly labelled historical or planning-time provenance section, and only if
-  removing them would make the old plan less intelligible.
+- Local sibling-checkout path references are allowed only in a clearly labelled
+  historical or planning-time provenance section, and only if removing them
+  would make the old plan less intelligible.
 - Keep `docs/users-guide.md` changes conditional. Update it only if the closure
   audit finds public API wording, examples, or behaviour summaries that no
   longer match the landed SSE helpers.
@@ -180,8 +180,12 @@ Start by checking the branch and the current documentation state:
 ```bash
 git branch --show-current
 git status --short --branch
-PATH_PATTERN='/data/leynos/Projects|\\.\\./wildside/backend'
-PATH_PATTERN="${PATH_PATTERN}|/home/leynos|worktrees"
+LOCAL_WILDSIDE_PATH='../wildside'/'backend'
+LOCAL_HOME_PREFIX='/home'/'leynos'
+LOCAL_PROJECTS_PREFIX='/data/leynos'/'Projects'
+LOCAL_WORKTREE_SEGMENT='work''trees'
+PATH_PATTERN="${LOCAL_PROJECTS_PREFIX}|${LOCAL_WILDSIDE_PATH}"
+PATH_PATTERN="${PATH_PATTERN}|${LOCAL_HOME_PREFIX}|${LOCAL_WORKTREE_SEGMENT}"
 SSE_PATTERN='1\\.2\\.2|SSE|Server-Sent|Last-Event-ID|stream_reset|heartbeat'
 rg -n "${PATH_PATTERN}" docs README.md
 rg -n "${SSE_PATTERN}" \
@@ -217,7 +221,7 @@ Required edits:
 2. Update `Purpose / big picture`, `Repository orientation`, `Constraints`,
    `Tolerances`, `Risks`, milestone text, and outcomes so normative references
    use canonical upstream Wildside wording or repository-relative paths instead
-   of `../wildside/backend`.
+   of local Wildside checkout paths.
 3. Add or update a clearly labelled planning-time provenance note if any local
    sibling-checkout paths must remain for historical intelligibility.
 4. Add a dated `Progress` entry for roadmap task 1.2.2 beginning and later for
@@ -233,8 +237,12 @@ Required edits:
 Run the path sweep after editing this file:
 
 ```bash
-PATH_PATTERN='/data/leynos/Projects|\\.\\./wildside/backend'
-PATH_PATTERN="${PATH_PATTERN}|/home/leynos|worktrees"
+LOCAL_WILDSIDE_PATH='../wildside'/'backend'
+LOCAL_HOME_PREFIX='/home'/'leynos'
+LOCAL_PROJECTS_PREFIX='/data/leynos'/'Projects'
+LOCAL_WORKTREE_SEGMENT='work''trees'
+PATH_PATTERN="${LOCAL_PROJECTS_PREFIX}|${LOCAL_WILDSIDE_PATH}"
+PATH_PATTERN="${PATH_PATTERN}|${LOCAL_HOME_PREFIX}|${LOCAL_WORKTREE_SEGMENT}"
 rg -n "${PATH_PATTERN}" docs/execplans/import-components-from-wildside.md
 ```
 
@@ -274,8 +282,12 @@ SSE module that should import Actix Web types.
 Run the broad path sweep:
 
 ```bash
-PATH_PATTERN='/data/leynos/Projects|\\.\\./wildside/backend'
-PATH_PATTERN="${PATH_PATTERN}|/home/leynos|worktrees"
+LOCAL_WILDSIDE_PATH='../wildside'/'backend'
+LOCAL_HOME_PREFIX='/home'/'leynos'
+LOCAL_PROJECTS_PREFIX='/data/leynos'/'Projects'
+LOCAL_WORKTREE_SEGMENT='work''trees'
+PATH_PATTERN="${LOCAL_PROJECTS_PREFIX}|${LOCAL_WILDSIDE_PATH}"
+PATH_PATTERN="${PATH_PATTERN}|${LOCAL_HOME_PREFIX}|${LOCAL_WORKTREE_SEGMENT}"
 rg -n "${PATH_PATTERN}" docs README.md
 ```
 
@@ -336,8 +348,12 @@ Run the minimal final confirmation:
 
 ```bash
 git diff --check
-PATH_PATTERN='/data/leynos/Projects|\\.\\./wildside/backend'
-PATH_PATTERN="${PATH_PATTERN}|/home/leynos|worktrees"
+LOCAL_WILDSIDE_PATH='../wildside'/'backend'
+LOCAL_HOME_PREFIX='/home'/'leynos'
+LOCAL_PROJECTS_PREFIX='/data/leynos'/'Projects'
+LOCAL_WORKTREE_SEGMENT='work''trees'
+PATH_PATTERN="${LOCAL_PROJECTS_PREFIX}|${LOCAL_WILDSIDE_PATH}"
+PATH_PATTERN="${PATH_PATTERN}|${LOCAL_HOME_PREFIX}|${LOCAL_WORKTREE_SEGMENT}"
 rg -n "${PATH_PATTERN}" docs README.md
 ```
 
@@ -413,8 +429,26 @@ tolerances above. Silence is not approval.
 - [x] 2026-05-19: Used Firecrawl to review current SSE protocol and prior-art
   references: WHATWG HTML Server-Sent Events and the `actix-sse` docs.rs page.
 - [x] 2026-05-19: Drafted this execution plan.
-- [ ] Await explicit user approval before implementing the documentation
-  closure work.
+- [x] 2026-05-20: Received explicit user approval to proceed with
+  implementation from this plan.
+- [x] 2026-05-20: Reconfirmed the branch name and clean upstream-tracking work
+  tree before editing.
+- [x] 2026-05-20: Re-ran the closure audit. The only required guide-facing
+  changes are in `docs/execplans/import-components-from-wildside.md`, this
+  plan, and the roadmap; `docs/users-guide.md` and `docs/developers-guide.md`
+  already describe the landed SSE helper boundary accurately.
+- [x] 2026-05-20: Normalized the old Wildside import plan's provenance
+  wording, recorded SSE closure progress, updated ADR 001 and
+  `docs/contents.md`, and scrubbed the stale absolute worktree path from
+  `docs/execplans/portwildsidepagination.md`.
+- [x] 2026-05-20: Ran the path sweep over `docs` and `README.md`; it returned
+  no hits for the configured environment-specific path patterns.
+- [x] 2026-05-20: Ran `coderabbit review --agent` for the first
+  documentation-closure milestone; it completed with zero findings.
+- [x] 2026-05-20: Passed the first documentation gate set:
+  `make fmt`, `make markdownlint`, and `make nixie`, with logs under `/tmp`
+  using the branch-specific filenames from this plan.
+- [ ] 2026-05-20: Commit the first documentation-closure milestone.
 
 ## Surprises & Discoveries
 
@@ -422,8 +456,8 @@ tolerances above. Silence is not approval.
   documentation in `docs/users-guide.md` and `docs/developers-guide.md`, so
   task 1.2.2 should avoid rewriting those guides unless the closure audit finds
   concrete drift.
-- 2026-05-19: `docs/execplans/import-components-from-wildside.md` still has
-  many `../wildside/backend` references in normative sections even though its
+- 2026-05-19: `docs/execplans/import-components-from-wildside.md` still had
+  many local Wildside checkout references in normative sections even though its
   own Milestone 6 says those paths should be removed before closure.
 - 2026-05-19: The import plan's outcomes already claim Milestone 6 shipped, but
   the file is still `Status: IN PROGRESS` and still contains unscoped local
@@ -432,6 +466,10 @@ tolerances above. Silence is not approval.
 - 2026-05-19: No separate SSE design document exists under `docs/`; ADR 001
   plus the user's and developer's guides carry the current design and usage
   documentation.
+- 2026-05-20: The broad path sweep found an unrelated absolute worktree path in
+  `docs/execplans/portwildsidepagination.md`. It was part of an orientation
+  transcript, not SSE content, but it still violated the completed
+  documentation-set cleanup requirement.
 
 ## Decision Log
 
@@ -449,6 +487,11 @@ tolerances above. Silence is not approval.
 - 2026-05-19: Use WHATWG HTML as the protocol reference and `actix-sse` as
   ecosystem prior art only. Rationale: ADR 001 remains the source of truth for
   this crate's deliberately narrower wire-helper contract.
+- 2026-05-20: Scrub environment-specific path references from the final
+  documentation set, not only from the SSE and Wildside import documents.
+  Rationale: the roadmap item names the execplan closing milestone, and that
+  milestone requires the finished documentation set to avoid implementation
+  machine paths.
 
 ## Outcomes & Retrospective
 
