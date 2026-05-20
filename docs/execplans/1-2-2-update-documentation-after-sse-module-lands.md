@@ -4,7 +4,7 @@ This ExecPlan (execution plan) is a living document. The sections `Constraints`,
  `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
 and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
-Status: IN PROGRESS
+Status: COMPLETE
 
 ## Purpose / big picture
 
@@ -459,8 +459,9 @@ tolerances above. Silence is not approval.
   import-plan closure edits: `make fmt`, `make markdownlint`, and `make nixie`.
 - [x] 2026-05-20: Re-ran `coderabbit review --agent` for the final closure
   diff after a recoverable rate-limit wait; it completed with zero findings.
-- [ ] 2026-05-20: Commit the closure edits, push, and update the draft pull
-  request.
+- [x] 2026-05-20: Committed the closure edits as `f134e2d` (`Close SSE
+  documentation roadmap item`), pushed the branch to `origin
+  `, and updated draft pull request #30 at <https://github.com/leynos/actix-v2a/pull/30>.
 
 ## Surprises & Discoveries
 
@@ -511,11 +512,19 @@ Not started. This section must be updated during implementation and completed
 only after the documentation closure, validation gates, CodeRabbit review,
 roadmap update, push, and draft pull request are complete.
 
-Interim outcome: the documentation closure work has scrubbed the configured
+Completed outcome: the documentation closure work scrubbed the configured
 environment-specific path patterns from `docs` and `README.md`, recorded the
-landed SSE helper sequence in the Wildside import plan, and marked roadmap task
-1.2.2 done after the documentation and full Rust gate sets passed. Final push
-and pull request updates remain before this plan can be marked complete.
+landed SSE helper sequence in the Wildside import plan, marked roadmap task
+1.2.2 done, and updated draft pull request #30 for reviewer inspection. The
+work stayed documentation-only; `docs/users-guide.md` and
+`docs/developers-guide.md` did not need changes because their landed SSE helper
+sections already matched the current crate boundary.
+
+Validation passed with branch-specific logs under `/tmp`: `make fmt`,
+`make markdownlint`, `make nixie`, `make check-fmt`, `make lint`, and
+`make test`. The test gate ran 162 nextest tests and 26 doctests. CodeRabbit
+reported zero findings for the first documentation milestone and zero findings
+for the final closure diff after a recoverable rate-limit wait.
 
 ## External references
 
