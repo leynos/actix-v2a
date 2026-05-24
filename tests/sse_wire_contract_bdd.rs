@@ -18,6 +18,7 @@ use actix_v2a::{
     render_event_frame,
     render_heartbeat_frame,
     render_stream_reset_frame,
+    apply_actix_event_stream_cache_control,
 };
 use actix_web::http::header::{HeaderMap, HeaderName, HeaderValue};
 use rstest::fixture;
@@ -358,3 +359,29 @@ fn the_event_and_stream_reset_frames_match_the_approved_wire_format(world: &Worl
 #[scenario(path = "tests/features/sse_wire_contract.feature")]
 #[traced_test]
 fn shared_sse_wire_contract(world: World) { drop(world); }
+
+fn documented_crate_root_actix_adapter_imports_match_wire_contract() {
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        HeaderName::from_bytes(LAST_EVENT_ID_HEADER.as_bytes())
+            .expect("LAST_EVENT_ID_HEADER should be a valid Actix header name"),
+        HeaderValue::from_static("evt-crate-root"),
+    );
+
+    apply_actix_event_stream_cache_control(&mut headers);
+    let replay_cursor = extract_actix_replay_cursor(&headers)
+        .expect("documented replay cursor import should parse");
+
+    assert_eq!(
+        headers
+            .get(CACHE_CONTROL)
+            .expect("cache-control header should be present"),
+        EVENT_STREAM_CACHE_CONTROL
+    );
+    assert_eq!(
+        replay_cursor
+            .expect("replay cursor should be present")
+            .as_ref(),
+        "evt-crate-root"
+    );
+}
