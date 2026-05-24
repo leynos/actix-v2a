@@ -12,15 +12,15 @@ use actix_v2a::{
     ReplayCursor,
     ReplayCursorError,
     SseHeader,
+    apply_actix_event_stream_cache_control,
     apply_event_stream_cache_control,
     extract_actix_replay_cursor,
     extract_replay_cursor,
     render_event_frame,
     render_heartbeat_frame,
     render_stream_reset_frame,
-    apply_actix_event_stream_cache_control,
 };
-use actix_web::http::header::{HeaderMap, HeaderName, HeaderValue};
+use actix_web::http::header::{CACHE_CONTROL, HeaderMap, HeaderName, HeaderValue};
 use rstest::fixture;
 use rstest_bdd::Slot;
 use rstest_bdd_macros::{ScenarioState, given, scenario, then, when};
@@ -360,6 +360,7 @@ fn the_event_and_stream_reset_frames_match_the_approved_wire_format(world: &Worl
 #[traced_test]
 fn shared_sse_wire_contract(world: World) { drop(world); }
 
+#[test]
 fn documented_crate_root_actix_adapter_imports_match_wire_contract() {
     let mut headers = HeaderMap::new();
     headers.insert(
