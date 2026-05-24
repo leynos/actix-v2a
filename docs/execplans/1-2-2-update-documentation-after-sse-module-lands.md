@@ -150,12 +150,13 @@ event-stream cache headers. The maintainer guide in `docs/developers-guide.md`
 documents the `src/sse/` module layout, framework adapter boundary, and the
 current `rstest`, `rstest-bdd`, and `proptest` testing split.
 
-The older import plan at `docs/execplans/import-components-from-wildside.md` is
-still marked `Status: IN PROGRESS`. It contains the historical milestones that
-imported pagination, idempotency, shared error handling, OpenAPI fragments, and
-the initial SSE contract decision. Its Milestone 6 already requires a final
-documentation scrub for environment-specific paths. Roadmap item 1.2.2 is the
-task that should execute that clean-up and then close the plan honestly.
+The older import plan at `docs/execplans/import-components-from-wildside.md`
+was marked `Status: IN PROGRESS` when this task began. It contains the
+historical milestones that imported pagination, idempotency, shared error
+handling, OpenAPI fragments, and the initial SSE contract decision. Its
+Milestone 6 already required a final documentation scrub for
+environment-specific paths. Roadmap item 1.2.2 executed that clean-up and
+closed the plan honestly.
 
 ADR 001 remains the normative SSE contract. It says that `actix-v2a` provides
 wire-only helpers for browser-compatible Server-Sent Events, including

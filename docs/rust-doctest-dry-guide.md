@@ -170,8 +170,8 @@ itself is a complete, well-behaved program.[^9]
 #### Solution 2: The implicit Result-returning main
 
 rustdoc provides a lesser-known but more concise shorthand for this exact
-scenario. If a code block ends with the literal token (()), rustdoc will
-automatically wrap the code in a main function that returns a Result.
+scenario. If a code block ends with `# Ok::<(), E>(())`, rustdoc will infer a
+`Result`-returning `main` without requiring you to write one explicitly.
 
 ```rust,no_run
 /// # Examples
@@ -179,14 +179,14 @@ automatically wrap the code in a main function that returns a Result.
 /// ```
 /// let config = "key=value".parse::<MyConfig>()?;
 /// assert_eq!(config.get("key"), Some("value"));
-/// (()) // Note: No whitespace between parentheses
+/// # Ok::<(), Box<dyn Error>>(())
 /// ```
 ```
 
 This is functionally equivalent to the explicit `main` but requires less
-boilerplate. However, it is critical that the `(())` be written as a single,
-contiguous sequence of characters, as `rustdoc`'s detection mechanism is purely
-textual and will not recognize `( () )`.[^3]
+boilerplate. The hidden `Ok::<(), E>(())` suffix is what tells `rustdoc` to
+treat the example as returning a `Result`; without it, the example uses the
+normal `fn main() -> ()` wrapper.[^3]
 
 ### 2.4 The power of hidden lines (`#`): creating clean examples
 
