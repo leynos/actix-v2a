@@ -178,8 +178,8 @@ Use this shared path sweep helper anywhere this plan says to run the path sweep:
 ```bash
 path_sweep() {
   LOCAL_WILDSIDE_PATH='../wildside'/'backend'
-  LOCAL_HOME_PREFIX='/home'/'leynos'
-  LOCAL_PROJECTS_PREFIX='/data/leynos'/'Projects'
+  LOCAL_HOME_PREFIX='/home'/'user'
+  LOCAL_PROJECTS_PREFIX='/home'/'user'/'Projects'
   LOCAL_WORKTREE_SEGMENT='work''trees'
   PATH_PATTERN="${LOCAL_PROJECTS_PREFIX}|${LOCAL_WILDSIDE_PATH}"
   PATH_PATTERN="${PATH_PATTERN}|${LOCAL_HOME_PREFIX}|${LOCAL_WORKTREE_SEGMENT}"
@@ -451,7 +451,7 @@ tolerances above. Silence is not approval.
   diff after a recoverable rate-limit wait; it completed with zero findings.
 - [x] 2026-05-20: Committed the closure edits as `f134e2d`, pushed to the
   remote branch, and updated draft pull request #30 at
-  <https://github.com/leynos/actix-v2a/pull/30>.
+  <https://github.com/example-org/actix-v2a/pull/30>.
 
 ## Surprises & Discoveries
 

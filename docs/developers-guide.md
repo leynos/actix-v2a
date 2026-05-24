@@ -228,7 +228,7 @@ Netsuke before running repository gates:
 
 ```bash
 sudo dnf install ninja-build
-cargo install --git https://github.com/leynos/netsuke.git \
+cargo install --git https://github.com/example-org/netsuke.git \
   --rev 2fe314a58d7311758640b3daa086c401d79838cf \
   netsuke --locked
 ```

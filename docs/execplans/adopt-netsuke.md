@@ -20,7 +20,7 @@ gate behaviour currently exposed by `make check-fmt`, `make lint`, and
 Success is observable in two places. Locally, the Netsuke commands pass and
 produce the same effective Cargo, Markdown, and Mermaid checks as the existing
 Makefile. In CI, `.github/workflows/ci.yml` installs Netsuke from
-`https://github.com/leynos/netsuke/` source, installs Ninja, and invokes
+`https://github.com/example-org/netsuke/` source, installs Ninja, and invokes
 Netsuke for repository gates instead of invoking `make` directly. This is a
 dogfooding pilot, so the plan keeps rollback straightforward and captures any
 Netsuke limitations discovered while translating the existing Makefile targets.
@@ -103,9 +103,10 @@ record the conflict in `Decision Log`, and ask for direction.
 - [x] 2026-05-02: Inspect the current `Makefile`, `.github/workflows/ci.yml`,
   `docs/developers-guide.md`, and `docs/netsuke-users-guide.md`.
 - [x] 2026-05-02: Confirm upstream Netsuke source metadata from
-  `https://github.com/leynos/netsuke/`; the package name is `netsuke`, current
-  `HEAD` during drafting was `2fe314a58d7311758640b3daa086c401d79838cf`, and
-  the crate declares Rust `1.89.0`.
+  `https://github.com/example-org/netsuke/`; the package name is `netsuke`,
+  current `HEAD` during drafting was
+  `2fe314a58d7311758640b3daa086c401d79838cf`, and the crate declares Rust
+  `1.89.0`.
 - [x] 2026-05-02: Receive explicit approval to proceed with implementation.
 - [x] 2026-05-02: Re-check upstream Netsuke `HEAD`; it remains
   `2fe314a58d7311758640b3daa086c401d79838cf`.
@@ -132,7 +133,7 @@ record the conflict in `Decision Log`, and ask for direction.
   `make markdownlint`, `make nixie`, `make lint`, and `make test`.
 - [x] 2026-05-02: Prepare the gated implementation change for commit.
 - [x] 2026-05-02: Inspect
-  `leynos/agent-helper-scripts/hooks/post-turn-quality-stop-hook.py` and
+  `example-org/agent-helper-scripts/hooks/post-turn-quality-stop-hook.py` and
   document the external hook changes needed for Netsuke-native quality gates.
 - [x] 2026-05-02: Address CI runtime failure `markdownlint-cli2: not found` by
   installing Bun and `markdownlint-cli2` via GitHub Actions.
@@ -145,9 +146,9 @@ record the conflict in `Decision Log`, and ask for direction.
 
 - 2026-05-02: The current CI only calls `make` directly for `check-fmt` and
   `lint`. Tests and coverage are delegated to
-  `leynos/shared-actions/.github/actions/generate-coverage`, so implementation
-  must check whether that shared action invokes `make` internally before
-  claiming CI is fully Make-free.
+  `example-org/shared-actions/.github/actions/generate-coverage`, so
+  implementation must check whether that shared action invokes `make`
+  internally before claiming CI is fully Make-free.
 - 2026-05-02: The Makefile already contains compatibility work for reduced
   `PATH` environments by prepending `$HOME/.cargo/bin`, `$HOME/.bun/bin`, and
   `$HOME/.local/bin`. The Netsuke manifest must preserve this behaviour.
@@ -219,8 +220,8 @@ record the conflict in `Decision Log`, and ask for direction.
   Markdown formatting.
 - Decision: Document agent-helper-scripts changes here instead of editing the
   external repository in this branch. Rationale: The requested script lives in
-  `leynos/agent-helper-scripts`, while this pull request belongs to
-  `leynos/actix-v2a`. Keeping the requirement in this ExecPlan lets the
+  `example-org/agent-helper-scripts`, while this pull request belongs to
+  `example-org/actix-v2a`. Keeping the requirement in this ExecPlan lets the
   follow-up be implemented in the owning repository.
 - Decision: Install `markdownlint-cli2` in CI through Bun with
   `oven-sh/setup-bun` and `bun install -g markdownlint-cli2`. Rationale: the
@@ -254,7 +255,7 @@ Actions.
 ## Required agent-helper-scripts hook changes
 
 The stop hook at
-`https://github.com/leynos/agent-helper-scripts/blob/main/hooks/post-turn-quality-stop-hook.py`
+`https://github.com/example-org/agent-helper-scripts/blob/main/hooks/post-turn-quality-stop-hook.py`
  must become build-driver aware before repositories can retire Makefile shims.
 The current script assumes Make at the data-model, discovery, execution, and
 reporting layers:
@@ -432,7 +433,7 @@ Ninja and install Netsuke from source:
   run: sudo apt-get update && sudo apt-get install -y ninja-build
 - name: Install Netsuke
   run: >-
-    cargo install --git https://github.com/leynos/netsuke.git
+    cargo install --git https://github.com/example-org/netsuke.git
     --rev 2fe314a58d7311758640b3daa086c401d79838cf
     netsuke --locked
 - name: Show Netsuke version

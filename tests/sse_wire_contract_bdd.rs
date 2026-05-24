@@ -20,7 +20,7 @@ use actix_v2a::{
     render_heartbeat_frame,
     render_stream_reset_frame,
 };
-use actix_web::http::header::{CACHE_CONTROL, HeaderMap, HeaderName, HeaderValue};
+use actix_web::http::header::{CACHE_CONTROL, CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue};
 use rstest::fixture;
 use rstest_bdd::Slot;
 use rstest_bdd_macros::{ScenarioState, given, scenario, then, when};
@@ -156,7 +156,6 @@ fn the_replay_cursor_is_extracted(world: &World) {
     reason = "BDD steps use expect for clear failures"
 )]
 fn the_replay_cursor_extraction_fails(world: &World) {
-    clear_traced_scenario_logs();
     let should_use_actix_path = world
         .should_use_actix_path
         .get()
@@ -181,7 +180,6 @@ fn the_replay_cursor_extraction_fails(world: &World) {
     reason = "BDD steps use expect for clear failures"
 )]
 fn the_actix_replay_cursor_extraction_fails(world: &World) {
-    clear_traced_scenario_logs();
     let headers = world
         .actix_headers
         .get()
@@ -284,13 +282,6 @@ fn traced_scenario_logs_contain(value: &str) -> bool {
     tracing_test::internal::logs_with_scope_contain("shared_sse_wire_contract", value)
 }
 
-fn clear_traced_scenario_logs() {
-    tracing_test::internal::global_buf()
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner)
-        .clear();
-}
-
 #[then("the response uses the canonical no-store cache policy")]
 #[expect(
     clippy::expect_used,
@@ -384,5 +375,74 @@ fn documented_crate_root_actix_adapter_imports_match_wire_contract() {
             .expect("replay cursor should be present")
             .as_ref(),
         "evt-crate-root"
+    );
+}
+
+#[test]
+fn documented_crate_root_actix_adapter_import_rejects_non_utf8_cursor() {
+    let mut headers = HeaderMap::new();
+    let non_utf8_bytes = &[0xff, 0xfe, 0xfd];
+    #[expect(
+        unsafe_code,
+        reason = "Test needs to construct invalid UTF-8 header value"
+    )]
+    let header_value = unsafe { HeaderValue::from_maybe_shared_unchecked(non_utf8_bytes) };
+    headers.insert(
+        HeaderName::from_bytes(LAST_EVENT_ID_HEADER.as_bytes())
+            .expect("LAST_EVENT_ID_HEADER should be a valid Actix header name"),
+        header_value,
+    );
+
+    assert!(
+        extract_actix_replay_cursor(&headers).is_err(),
+        "documented crate-root import should reject non-UTF-8 Last-Event-ID values"
+    );
+}
+
+#[test]
+fn documented_crate_root_actix_adapter_import_returns_none_without_cursor() {
+    let headers = HeaderMap::new();
+
+    let replay_cursor = extract_actix_replay_cursor(&headers)
+        .expect("documented crate-root import should accept missing Last-Event-ID");
+
+    assert_eq!(replay_cursor, None);
+}
+
+#[test]
+fn documented_crate_root_actix_adapter_import_replaces_cache_policy() {
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        CACHE_CONTROL,
+        HeaderValue::from_static("public, max-age=60"),
+    );
+
+    apply_actix_event_stream_cache_control(&mut headers);
+
+    assert_eq!(
+        headers
+            .get(CACHE_CONTROL)
+            .expect("cache-control header should be present"),
+        EVENT_STREAM_CACHE_CONTROL
+    );
+}
+
+#[test]
+fn documented_crate_root_actix_adapter_import_preserves_unrelated_headers() {
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+    headers.insert(
+        HeaderName::from_bytes(LAST_EVENT_ID_HEADER.as_bytes())
+            .expect("LAST_EVENT_ID_HEADER should be a valid Actix header name"),
+        HeaderValue::from_static("evt-crate-root"),
+    );
+
+    apply_actix_event_stream_cache_control(&mut headers);
+
+    assert_eq!(
+        headers
+            .get(CONTENT_TYPE)
+            .expect("content-type header should be present"),
+        "application/json"
     );
 }

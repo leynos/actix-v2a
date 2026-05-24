@@ -9,10 +9,10 @@ Status: COMPLETE
 ## Purpose / big picture
 
 `actix-v2a` began as a stub library entrypoint, while the canonical Wildside
-upstream repository at `https://github.com/leynos/wildside` already carried
-working implementations for cursor pagination, idempotency helpers, a shared
-JSON error envelope, and OpenAPI schema wrappers around that envelope. The goal
-of this plan was to extract the reusable parts of those features into
+upstream repository at `https://github.com/example-org/wildside` already
+carried working implementations for cursor pagination, idempotency helpers, a
+shared JSON error envelope, and OpenAPI schema wrappers around that envelope.
+The goal of this plan was to extract the reusable parts of those features into
 `actix-v2a` so this repository becomes the common home for version 2a Actix
 components instead of each application re-implementing them.
 
@@ -72,7 +72,7 @@ handling in Wildside's `src/inbound/ws/session.rs`, which was useful as design
 inspiration but was not itself an SSE helper that could be imported verbatim.
 
 Corbusier already has documented SSE expectations in the canonical upstream
-repository `https://github.com/leynos/corbusier`, especially in
+repository `https://github.com/example-org/corbusier`, especially in
 `docs/corbusier-api-design.md` where `Last-Event-ID`, replay-aware
 reconnection, global event streams, and explicit event identifiers are all part
 of the planned application contract.
@@ -359,8 +359,8 @@ Implementation must not begin until the following gates are satisfied:
   concrete pagination, idempotency, error, and OpenAPI source files relevant to
   extraction.
 - [x] 2026-04-02 08:16 BST: recorded the canonical upstream note that Wildside
-  is hosted at `https://github.com/leynos/wildside`, with source paths in this
-  completed plan written relative to that repository.
+  is hosted at `https://github.com/example-org/wildside`, with source paths in
+  this completed plan written relative to that repository.
 - [x] 2026-04-02 08:24 BST: inspected Corbusier planning documents and
   confirmed they already require replay-aware SSE semantics with
   `Last-Event-ID`, making an ADR necessary if `actix-v2a` is to host shared SSE

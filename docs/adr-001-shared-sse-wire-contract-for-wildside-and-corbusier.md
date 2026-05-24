@@ -14,12 +14,12 @@ Proposed.
 Actix components. During planning for the Wildside import, reusable source was
 confirmed for pagination, idempotency, the common API error envelope, and
 OpenAPI wrappers in the canonical upstream Wildside repository at
-`https://github.com/leynos/wildside`. The same planning pass did not find a
-reusable Server-Sent Events (SSE) helper module in that source.
+`https://github.com/example-org/wildside`. The same planning pass did not find
+a reusable Server-Sent Events (SSE) helper module in that source.
 
 At the same time, Corbusier already has explicit SSE expectations in its
-canonical upstream repository, `https://github.com/leynos/corbusier`. Its API
-design documents require stable event identifiers, reconnection through the
+canonical upstream repository, `https://github.com/example-org/corbusier`. Its
+API design documents require stable event identifiers, reconnection through the
 `Last-Event-ID` header, replay-aware semantics, and event-stream endpoints that
 work with browser `EventSource` clients.
 

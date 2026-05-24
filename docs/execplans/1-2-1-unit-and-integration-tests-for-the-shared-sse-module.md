@@ -86,8 +86,8 @@ exhaustiveness and `apply_event_stream_cache_control` idempotence over arbitrary
  `\0`) and the empty-string guard; idempotence is verified over hand-crafted
 initial states (empty, single pre-existing entry, multiple entries). Exhaustive
 property coverage is tracked in
-[issue `#18`](https://github.com/leynos/actix-v2a/issues/18) and deferred to a
-subsequent PR.
+[issue `#18`](https://github.com/example-org/actix-v2a/issues/18) and deferred
+to a subsequent PR.
 
 ## Tolerances (exception triggers)
 
