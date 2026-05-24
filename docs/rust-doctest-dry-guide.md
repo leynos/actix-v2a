@@ -108,8 +108,9 @@ Doctests reside within documentation comments. Rust recognizes two types:
 denoted by triple back-ticks (```). While `rustdoc` defaults to Rust syntax,
 explicitly add the `rust` language specifier for clarity.[^3] A doctest
 "passes" when it compiles and runs without panicking. To assert specific
-outcomes, use the standard macros `assert!`, `assert_eq!`, and `assert_ne!`.[
-^3] <!-- markdownlint-enable MD013 -->
+outcomes, use the standard macros `assert!`, `assert_eq!`, and `assert_ne!`.
+Reference [^3] covers the underlying rustdoc behaviour.
+<!-- markdownlint-enable MD013 -->
 
 ### 2.2 The philosophy of a good example
 

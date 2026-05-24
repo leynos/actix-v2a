@@ -173,6 +173,20 @@ owning responder lifecycle.
 
 ## Implementation plan
 
+Use this shared path sweep helper anywhere this plan says to run the path sweep:
+
+```bash
+path_sweep() {
+  LOCAL_WILDSIDE_PATH='../wildside'/'backend'
+  LOCAL_HOME_PREFIX='/home'/'leynos'
+  LOCAL_PROJECTS_PREFIX='/data/leynos'/'Projects'
+  LOCAL_WORKTREE_SEGMENT='work''trees'
+  PATH_PATTERN="${LOCAL_PROJECTS_PREFIX}|${LOCAL_WILDSIDE_PATH}"
+  PATH_PATTERN="${PATH_PATTERN}|${LOCAL_HOME_PREFIX}|${LOCAL_WORKTREE_SEGMENT}"
+  rg -n "${PATH_PATTERN}" "$@"
+}
+```
+
 ### Milestone 1: audit the documentation closure surface
 
 Start by checking the branch and the current documentation state:
@@ -180,14 +194,8 @@ Start by checking the branch and the current documentation state:
 ```bash
 git branch --show-current
 git status --short --branch
-LOCAL_WILDSIDE_PATH='../wildside'/'backend'
-LOCAL_HOME_PREFIX='/home'/'leynos'
-LOCAL_PROJECTS_PREFIX='/data/leynos'/'Projects'
-LOCAL_WORKTREE_SEGMENT='work''trees'
-PATH_PATTERN="${LOCAL_PROJECTS_PREFIX}|${LOCAL_WILDSIDE_PATH}"
-PATH_PATTERN="${PATH_PATTERN}|${LOCAL_HOME_PREFIX}|${LOCAL_WORKTREE_SEGMENT}"
 SSE_PATTERN='1\\.2\\.2|SSE|Server-Sent|Last-Event-ID|stream_reset|heartbeat'
-rg -n "${PATH_PATTERN}" docs README.md
+path_sweep docs README.md
 rg -n "${SSE_PATTERN}" \
   docs/roadmap.md docs/contents.md docs/execplans \
   docs/users-guide.md docs/developers-guide.md
@@ -237,13 +245,7 @@ Required edits:
 Run the path sweep after editing this file:
 
 ```bash
-LOCAL_WILDSIDE_PATH='../wildside'/'backend'
-LOCAL_HOME_PREFIX='/home'/'leynos'
-LOCAL_PROJECTS_PREFIX='/data/leynos'/'Projects'
-LOCAL_WORKTREE_SEGMENT='work''trees'
-PATH_PATTERN="${LOCAL_PROJECTS_PREFIX}|${LOCAL_WILDSIDE_PATH}"
-PATH_PATTERN="${PATH_PATTERN}|${LOCAL_HOME_PREFIX}|${LOCAL_WORKTREE_SEGMENT}"
-rg -n "${PATH_PATTERN}" docs/execplans/import-components-from-wildside.md
+path_sweep docs/execplans/import-components-from-wildside.md
 ```
 
 The milestone is complete when the import plan accurately records the SSE
@@ -282,13 +284,7 @@ SSE module that should import Actix Web types.
 Run the broad path sweep:
 
 ```bash
-LOCAL_WILDSIDE_PATH='../wildside'/'backend'
-LOCAL_HOME_PREFIX='/home'/'leynos'
-LOCAL_PROJECTS_PREFIX='/data/leynos'/'Projects'
-LOCAL_WORKTREE_SEGMENT='work''trees'
-PATH_PATTERN="${LOCAL_PROJECTS_PREFIX}|${LOCAL_WILDSIDE_PATH}"
-PATH_PATTERN="${PATH_PATTERN}|${LOCAL_HOME_PREFIX}|${LOCAL_WORKTREE_SEGMENT}"
-rg -n "${PATH_PATTERN}" docs README.md
+path_sweep docs README.md
 ```
 
 The milestone is complete when all changed documentation is internally
@@ -348,13 +344,7 @@ Run the minimal final confirmation:
 
 ```bash
 git diff --check
-LOCAL_WILDSIDE_PATH='../wildside'/'backend'
-LOCAL_HOME_PREFIX='/home'/'leynos'
-LOCAL_PROJECTS_PREFIX='/data/leynos'/'Projects'
-LOCAL_WORKTREE_SEGMENT='work''trees'
-PATH_PATTERN="${LOCAL_PROJECTS_PREFIX}|${LOCAL_WILDSIDE_PATH}"
-PATH_PATTERN="${PATH_PATTERN}|${LOCAL_HOME_PREFIX}|${LOCAL_WORKTREE_SEGMENT}"
-rg -n "${PATH_PATTERN}" docs README.md
+path_sweep docs README.md
 ```
 
 If the final roadmap edit or status update touches Markdown formatting, rerun:
@@ -459,9 +449,9 @@ tolerances above. Silence is not approval.
   import-plan closure edits: `make fmt`, `make markdownlint`, and `make nixie`.
 - [x] 2026-05-20: Re-ran `coderabbit review --agent` for the final closure
   diff after a recoverable rate-limit wait; it completed with zero findings.
-- [x] 2026-05-20: Committed the closure edits as `f134e2d` (`Close SSE
-  documentation roadmap item`), pushed the branch to `origin
-  `, and updated draft pull request #30 at <https://github.com/leynos/actix-v2a/pull/30>.
+- [x] 2026-05-20: Committed the closure edits as `f134e2d`, pushed to the
+  remote branch, and updated draft pull request #30 at
+  <https://github.com/leynos/actix-v2a/pull/30>.
 
 ## Surprises & Discoveries
 
@@ -507,10 +497,6 @@ tolerances above. Silence is not approval.
   machine paths.
 
 ## Outcomes & Retrospective
-
-Not started. This section must be updated during implementation and completed
-only after the documentation closure, validation gates, CodeRabbit review,
-roadmap update, push, and draft pull request are complete.
 
 Completed outcome: the documentation closure work scrubbed the configured
 environment-specific path patterns from `docs` and `README.md`, recorded the
