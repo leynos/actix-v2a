@@ -774,9 +774,10 @@ To improve the ergonomics of working with async fixtures and values in tests,
 
 - `#[future]`: When an async fixture, or an async block, is passed as an
   argument, its type is `impl Future<Output = T>`. The `#[future]` attribute on
-  argument allows developers to refer to it with type `T` directly in the test
-  signature, removing the `impl Future` boilerplate. However, the value still
-  needs to be `.await`ed explicitly within the test body or by using `#[awt]`.
+  an argument allows developers to refer to it with type `T` directly in the
+  test signature, removing the `impl Future` boilerplate. However, the value
+  still needs to be `.await`ed explicitly within the test body or by using
+  `#[awt]`.
 - `#[awt]` (or `#[future(awt)]`): This attribute, when applied to the entire
   test function (`#[awt]`) or a specific `#[future]` argument (
   `#[future(awt)]`), tells `rstest` to automatically insert `.await` calls for
