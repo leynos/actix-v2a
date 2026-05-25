@@ -1,6 +1,10 @@
 //! Behavioural tests for the shared SSE wire contract.
 
-use std::time::Duration;
+use std::{
+    fmt,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use actix_v2a::{
     CACHE_CONTROL_HEADER,
@@ -23,7 +27,53 @@ use actix_web::http::header::{HeaderMap, HeaderName, HeaderValue};
 use rstest::fixture;
 use rstest_bdd::Slot;
 use rstest_bdd_macros::{ScenarioState, given, scenario, then, when};
-use tracing_test::traced_test;
+use tracing_subscriber::{Layer, prelude::*};
+
+struct BufferLayer(Arc<Mutex<Vec<String>>>);
+
+impl<S: tracing::Subscriber> Layer<S> for BufferLayer {
+    fn on_event(
+        &self,
+        event: &tracing::Event<'_>,
+        _ctx: tracing_subscriber::layer::Context<'_, S>,
+    ) {
+        use tracing_subscriber::field::Visit;
+
+        struct Collector(String);
+
+        impl Visit for Collector {
+            fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn fmt::Debug) {
+                use fmt::Write as _;
+
+                let result = write!(self.0, " {}={:?}", field.name(), value);
+                debug_assert!(result.is_ok(), "writing to String should not fail");
+            }
+        }
+
+        let mut collector = Collector(String::new());
+        event.record(&mut collector);
+
+        if let Ok(mut buffer) = self.0.lock() {
+            buffer.push(collector.0.trim_start().to_owned());
+        }
+    }
+}
+
+struct TracingGuard(Mutex<Option<tracing::subscriber::DefaultGuard>>);
+
+impl fmt::Debug for TracingGuard {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("TracingGuard(..)")
+    }
+}
+
+impl Drop for TracingGuard {
+    fn drop(&mut self) {
+        if let Ok(mut guard) = self.0.lock() {
+            let _ = guard.take();
+        }
+    }
+}
 
 #[derive(Debug, Default, ScenarioState)]
 struct World {
@@ -34,14 +84,31 @@ struct World {
     response_headers: Slot<Vec<SseHeader>>,
     heartbeat_frame: Slot<String>,
     event_frame: Slot<String>,
+    log_buffer: Slot<Arc<Mutex<Vec<String>>>>,
     should_use_actix_path: Slot<bool>,
     stream_reset_frame: Slot<String>,
+    tracing_guard: Slot<TracingGuard>,
+}
+
+impl World {
+    fn install_tracing(&self) {
+        let buffer = Arc::new(Mutex::new(Vec::new()));
+        let subscriber = tracing_subscriber::registry().with(BufferLayer(Arc::clone(&buffer)));
+        let guard = TracingGuard(Mutex::new(Some(tracing::subscriber::set_default(
+            subscriber,
+        ))));
+
+        self.log_buffer.set(buffer);
+        self.tracing_guard.set(guard);
+    }
 }
 
 #[fixture]
 fn world() -> World {
     // Keep the fixture explicit so scenario failures print a useful state type.
-    World::default()
+    let world = World::default();
+    world.install_tracing();
+    world
 }
 
 #[given("a reconnect request with Last-Event-ID {event_id}")]
@@ -269,16 +336,24 @@ fn a_tracing_error_is_emitted_with_header_name_and_error_variant(
         .get()
         .expect("replay cursor error should be set");
 
-    assert!(traced_scenario_logs_contain(&format!(
-        "header_name=\"{header_name}\""
-    )));
-    assert!(traced_scenario_logs_contain(&format!(
-        "error_variant=\"{error_variant}\""
-    )));
+    assert!(traced_scenario_logs_contain(
+        world,
+        &format!("header_name=\"{header_name}\"")
+    ));
+    assert!(traced_scenario_logs_contain(
+        world,
+        &format!("error_variant=\"{error_variant}\"")
+    ));
 }
 
-fn traced_scenario_logs_contain(value: &str) -> bool {
-    tracing_test::internal::logs_with_scope_contain("shared_sse_wire_contract", value)
+fn traced_scenario_logs_contain(world: &World, value: &str) -> bool {
+    let Some(buffer) = world.log_buffer.get() else {
+        return false;
+    };
+
+    buffer
+        .lock()
+        .is_ok_and(|lines| lines.iter().any(|line| line.contains(value)))
 }
 
 #[then("the response uses the canonical no-store cache policy")]
@@ -347,5 +422,4 @@ fn the_event_and_stream_reset_frames_match_the_approved_wire_format(world: &Worl
 }
 
 #[scenario(path = "tests/features/sse_wire_contract.feature")]
-#[traced_test]
 fn shared_sse_wire_contract(world: World) { drop(world); }
