@@ -4,7 +4,7 @@
 
 Netsuke is a modern, declarative build system designed to be intuitive, fast,
 and safe. Think of it not just as a `make` replacement, but as a **build system
-compiler**. You describe your build process in a human-readable YAML manifest (
+compiler**. The build process is described in a human-readable YAML manifest (
 `Netsukefile`), leveraging the power of Jinja templating for dynamic logic.
 Netsuke then compiles this high-level description into an optimized build plan
 executed by the high-performance [Ninja](https://ninja-build.org/ "null") build
