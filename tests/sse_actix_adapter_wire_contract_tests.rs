@@ -43,6 +43,11 @@ fn documented_crate_root_actix_adapter_import_rejects_non_utf8_cursor() {
         unsafe_code,
         reason = "Test needs to construct invalid UTF-8 header value"
     )]
+    // SAFETY: `HeaderValue::from_maybe_shared_unchecked(non_utf8_bytes)` is
+    // used here because this integration test must exercise the public
+    // adapter's non-UTF-8 header path, which safe constructors reject. The
+    // bytes are static, test-only raw header bytes with no null bytes and no
+    // invalid internal representation for this controlled `HeaderValue`.
     let header_value = unsafe { HeaderValue::from_maybe_shared_unchecked(non_utf8_bytes) };
     headers.insert(
         HeaderName::from_bytes(LAST_EVENT_ID_HEADER.as_bytes())
