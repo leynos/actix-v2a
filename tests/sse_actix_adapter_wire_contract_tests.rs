@@ -1,4 +1,20 @@
 //! Crate-root Actix adapter wire-contract tests.
+//!
+//! These tests validate the four public symbols re-exported from the
+//! `actix_v2a` crate root for downstream Actix consumers:
+//! `EVENT_STREAM_CACHE_CONTROL`, `LAST_EVENT_ID_HEADER`,
+//! `apply_actix_event_stream_cache_control`, and `extract_actix_replay_cursor`.
+//! They use the published crate-root import paths rather than internal module
+//! paths.
+//!
+//! ADR 001 (`docs/adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md`)
+//! is the normative SSE wire contract. These tests verify that the crate-root
+//! adapter surface honours its header-transformation and
+//! replay-cursor-extraction semantics.
+//!
+//! Detailed validation-error permutations and frame-rendering rules are covered
+//! by module-level unit tests in `src/sse/`. This file focuses on the
+//! observable public API boundary.
 
 use actix_v2a::{
     EVENT_STREAM_CACHE_CONTROL,
