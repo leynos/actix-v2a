@@ -8,14 +8,19 @@
 //! The buffer model is intentionally simple: each BDD `World` owns a
 //! `LogBuffer = Arc<Mutex<Vec<String>>>`; `BufferLayer` implements
 //! `tracing_subscriber::Layer` and captures every tracing event's fields into
-//! that buffer for the duration of the scenario; and `TracingGuard` holds the
-//! `DefaultGuard` returned by `tracing::subscriber::set_default` so the
-//! subscriber is deregistered when the guard drops.
+//! that buffer.
+//!
+//! `with_tracing_buffer` wraps each call under test in
+//! `tracing::subscriber::with_default`, scoping capture hermetically to that
+//! call's execution on the current thread. Because no `DefaultGuard` escapes
+//! the closure, concurrent test threads each have their own independent
+//! thread-local subscriber and the buffer contains only events from the
+//! function under test.
 //!
 //! `tests/sse_wire_contract_bdd.rs` wires this module into the `World`
-//! through `log_buffer` and `tracing_guard`, calls `install_tracing` from the
-//! `world()` fixture, and uses `logs_contain` from step functions to assert on
-//! the captured output.
+//! through `log_buffer`, calls `with_tracing_buffer` around extraction paths
+//! that should emit tracing events, and uses `logs_contain` from step
+//! functions to assert on the captured output.
 
 use std::{
     fmt,
@@ -23,7 +28,7 @@ use std::{
 };
 
 use rstest_bdd::Slot;
-use tracing_subscriber::{Layer, prelude::*};
+use tracing_subscriber::{Layer, layer::SubscriberExt};
 
 /// Thread-safe in-memory log storage for one BDD `World`.
 ///
@@ -60,40 +65,23 @@ impl<S: tracing::Subscriber> Layer<S> for BufferLayer {
     }
 }
 
-/// Holds the installed default tracing subscriber for one BDD `World`.
+/// Execute `f` with a `BufferLayer` subscriber active, capturing all tracing
+/// events emitted during the call into `log_buffer`.
 ///
-/// The inner `DefaultGuard` comes from `set_default` and is stored inside a
-/// `Mutex` so the guard wrapper is `Send + Sync`. Dropping this guard
-/// deregisters the subscriber and restores the previous default subscriber.
-pub(crate) struct TracingGuard(Mutex<Option<tracing::subscriber::DefaultGuard>>);
-
-impl fmt::Debug for TracingGuard {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("TracingGuard(..)")
-    }
-}
-
-impl Drop for TracingGuard {
-    fn drop(&mut self) {
-        let mut guard = self.0.lock().unwrap_or_else(PoisonError::into_inner);
-        let _ = guard.take();
-    }
-}
-
-/// Install the tracing subscriber used by the SSE BDD world.
-///
-/// The `log_buffer` slot receives a fresh `LogBuffer`, and the `tracing_guard`
-/// slot receives the `TracingGuard` that keeps the `BufferLayer`-backed
-/// subscriber installed for the scenario.
-pub(crate) fn install_tracing(log_buffer: &Slot<LogBuffer>, tracing_guard: &Slot<TracingGuard>) {
-    let buffer = Arc::new(Mutex::new(Vec::new()));
+/// The subscriber is installed with `tracing::subscriber::with_default` and is
+/// scoped exclusively to the duration of `f`. No tracing from code outside `f`
+/// is captured. `log_buffer` must already contain the `LogBuffer` for this
+/// scenario; if the slot is not yet populated this function is a no-op wrapper.
+pub(crate) fn with_tracing_buffer<F, T>(log_buffer: &Slot<LogBuffer>, f: F) -> T
+where
+    F: FnOnce() -> T,
+{
+    let Some(buffer) = log_buffer.get() else {
+        return f();
+    };
     let subscriber = tracing_subscriber::registry().with(BufferLayer(Arc::clone(&buffer)));
-    let guard = TracingGuard(Mutex::new(Some(tracing::subscriber::set_default(
-        subscriber,
-    ))));
 
-    log_buffer.set(buffer);
-    tracing_guard.set(guard);
+    tracing::subscriber::with_default(subscriber, f)
 }
 
 /// Check whether the world-owned trace buffer contains `value`.

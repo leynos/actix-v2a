@@ -1,6 +1,9 @@
 //! Behavioural tests for the shared SSE wire contract.
 
-use std::time::Duration;
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use actix_v2a::{
     CACHE_CONTROL_HEADER,
@@ -27,7 +30,7 @@ use rstest_bdd_macros::{ScenarioState, given, scenario, then, when};
 #[path = "support/sse_trace_buffer.rs"]
 mod sse_trace_buffer;
 
-use sse_trace_buffer::{LogBuffer, TracingGuard};
+use sse_trace_buffer::LogBuffer;
 
 type StepResult = Result<(), Box<dyn std::error::Error>>;
 
@@ -43,20 +46,13 @@ struct World {
     log_buffer: Slot<LogBuffer>,
     should_use_actix_path: Slot<bool>,
     stream_reset_frame: Slot<String>,
-    tracing_guard: Slot<TracingGuard>,
-}
-
-impl World {
-    fn install_tracing(&self) {
-        sse_trace_buffer::install_tracing(&self.log_buffer, &self.tracing_guard);
-    }
 }
 
 #[fixture]
 fn world() -> World {
     // Keep the fixture explicit so scenario failures print a useful state type.
     let world = World::default();
-    world.install_tracing();
+    world.log_buffer.set(Arc::new(Mutex::new(Vec::new())));
     world
 }
 
@@ -170,9 +166,11 @@ fn the_replay_cursor_extraction_fails(world: &World) -> StepResult {
             .actix_headers
             .get()
             .ok_or("Actix request headers should be set")?;
-        extract_actix_replay_cursor(&headers)
-            .err()
-            .ok_or("replay cursor extraction should fail")?
+        sse_trace_buffer::with_tracing_buffer(&world.log_buffer, || {
+            extract_actix_replay_cursor(&headers)
+        })
+        .err()
+        .ok_or("replay cursor extraction should fail")?
     } else {
         let headers = world.headers.get().ok_or("request headers should be set")?;
         extract_replay_cursor(&headers)
@@ -190,9 +188,11 @@ fn the_actix_replay_cursor_extraction_fails(world: &World) -> StepResult {
         .actix_headers
         .get()
         .ok_or("Actix request headers should be set")?;
-    let error = extract_actix_replay_cursor(&headers)
-        .err()
-        .ok_or("Actix replay cursor extraction should fail")?;
+    let error = sse_trace_buffer::with_tracing_buffer(&world.log_buffer, || {
+        extract_actix_replay_cursor(&headers)
+    })
+    .err()
+    .ok_or("Actix replay cursor extraction should fail")?;
 
     world.replay_cursor_error.set(error);
     Ok(())
