@@ -78,9 +78,10 @@ reconnection, global event streams, and explicit event identifiers are all part
 of the planned application contract.
 
 For SSE specifically, this execplan owns delivery sequencing, extraction
-boundaries, and gates. The normative shared SSE wire contract belongs in the
-[Architectural decision record (ADR) 001](../adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md),
- which must stay authoritative if the two documents ever diverge.
+boundaries, and gates. The normative shared SSE wire contract belongs in [ADR
+001][adr-001], which must stay authoritative if the two documents ever diverge.
+
+[adr-001]: ../adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md
 
 ## Constraints
 
