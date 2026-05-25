@@ -346,11 +346,11 @@ Approved testing libraries are:
   spaces, such as validation, parsing, normalization, and idempotence.
 - `insta` for snapshot coverage of stable rendered output, such as error
   display text and OpenAPI schema JSON.
-- `tracing-subscriber` (with the `env-filter` feature) for composable tracing
-  subscriber layers used in integration and behavioural tests.
-- `tests/support/sse_trace_buffer.rs` provides a `BufferLayer` and `LogBuffer`
-  abstraction that captures per-scenario tracing events into a `World`-owned
-  buffer, avoiding reliance on `tracing-test`'s internal API.
+- `tracing-subscriber` (with the `env-filter` feature) provides composable
+  tracing subscriber layers used in integration and behavioural tests.
+- `tests/support/sse_trace_buffer.rs` provides `BufferLayer` and `LogBuffer`,
+  which capture per-scenario tracing events into a `World`-owned buffer,
+  removing the dependency on `tracing-test`'s internal API.
 
 ### Documentation
 
