@@ -14,8 +14,8 @@ the power and the inherent limitations of doctests.
 ### 1.1 The "separate crate" paradigm
 
 At its heart, `rustdoc` treats each documentation test not as a snippet of code
-running within the library's own context, but as an entirely separate,
-temporary crate.[^1] When a developer executes
+running within the library's own context, but as an entirely separate, temporary
+ crate.[^1] When a developer executes
 
 `cargo test --doc`, `rustdoc` initiates a multi-stage process for every code
 block found in the documentation comments[^3]:
@@ -40,8 +40,8 @@ block found in the documentation comments[^3]:
 
 4. **Execution and Verification**: Finally, if compilation succeeds, the
    resulting executable is run. The test is considered to have passed if the
-   program runs to completion without panicking. The executable is then
-   deleted. [^2]
+   program runs to completion without panicking. The executable is then deleted.
+    [^2]
 
 The significance of this model cannot be overstated. It effectively transforms
 every doctest into a true integration test.[^6] The test code does not have
@@ -276,8 +276,8 @@ table provides a comparative reference for the most common doctest attributes.
 
 - `edition20xx`: This attribute allows an example to be tested against a
   specific Rust edition. This is important for crates that support multiple
-  editions and need to demonstrate edition-specific features or migration
-  paths. [^4]
+  editions and need to demonstrate edition-specific features or migration paths.
+   [^4]
 
 ## The DRY principle in doctests: managing shared and complex logic
 
