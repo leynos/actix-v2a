@@ -1,21 +1,19 @@
 # Implement validated SSE event identifier and replay cursor helpers
 
-This ExecPlan (execution plan) is a living document. The sections
-`Constraints`, `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`,
-`Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work
-proceeds.
+This ExecPlan (execution plan) is a living document. The sections `Constraints`,
+ `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
+and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
 Status: COMPLETE
 
 ## Purpose / big picture
 
-`actix-v2a` is the shared Actix component library for the v2a web stack.
-[Architecture Decision Record (ADR) 001][adr-001] defines a wire-only
-Server-Sent Events (SSE) contract that both Wildside and Corbusier can adopt
-without surrendering control of their own event stores or stream routing. This
-plan delivers the first concrete piece of that contract: validated event
-identifiers for SSE `id:` lines and a replay cursor type that parses the
-`Last-Event-ID` request header.
+`actix-v2a` is the shared Actix component library for the v2a web stack. [ADR
+001][adr-001] defines a wire-only Server-Sent Events (SSE) contract that both
+Wildside and Corbusier can adopt without surrendering control of their own
+event stores or stream routing. This plan delivers the first concrete piece of
+that contract: validated event identifiers for SSE `id:` lines and a replay
+cursor type that parses the `Last-Event-ID` request header.
 
 After this change, downstream services gain two capabilities:
 
@@ -186,8 +184,8 @@ escalation rather than improvisation.
 
 Task 1.1.1 delivered validated SSE event identifiers and replay cursor helpers
 with all quality gates passing. Key learnings: (1) separating header-specific
-errors (`ReplayCursorError`) from identifier content errors
-(`EventIdValidationError`) improved API clarity and followed existing patterns;
+errors (`ReplayCursorError`) from identifier content errors (
+`EventIdValidationError`) improved API clarity and followed existing patterns;
 (2) optimizing `TryFrom<String>` to avoid allocation reinforced zero-copy
 principles; (3) UTF-8 decoding via `std::str::from_utf8` instead of
 `HeaderValue::to_str` fixed rejection of valid Unicode identifiers. Follow-up:

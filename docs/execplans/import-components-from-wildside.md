@@ -1,34 +1,34 @@
 # Import shared HTTP primitives from Wildside
 
-This ExecPlan (execution plan) is a living document. The sections
-`Constraints`, `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`,
-`Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work
-proceeds.
+This ExecPlan (execution plan) is a living document. Keep `Constraints`,
+`Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
+and `Outcomes & Retrospective` up to date as work proceeds.
 
-Status: IN PROGRESS
+Status: COMPLETE
 
 ## Purpose / big picture
 
-`actix-v2a` currently contains only a stub library entrypoint, while
-`../wildside/backend` already has working implementations for cursor
-pagination, idempotency helpers, a shared JSON error envelope, and OpenAPI
-schema wrappers around that envelope. The goal of this plan is to extract the
-reusable parts of those features into `actix-v2a` so this repository becomes
-the common home for version 2a Actix components instead of each application
-re-implementing them.
+`actix-v2a` began as a stub library entrypoint, while the canonical Wildside
+upstream repository at `https://github.com/example-org/wildside` already
+carried working implementations for cursor pagination, idempotency helpers, a
+shared JSON error envelope, and OpenAPI schema wrappers around that envelope.
+The goal of this plan was to extract the reusable parts of those features into
+`actix-v2a` so this repository becomes the common home for version 2a Actix
+components instead of each application re-implementing them.
 
-The canonical upstream project is `https://github.com/leynos/wildside`, but for
-local development and source inspection the implementation source of truth for
-this plan is `../wildside/backend`.
+Planning used a local Wildside checkout as source material, but the completed
+documentation records provenance with canonical upstream repository wording and
+repository-relative paths rather than requiring a particular sibling directory
+layout.
 
 Success is observable in five ways:
 
 1. `src/lib.rs` exposes reusable modules for pagination, idempotency, shared
    error handling, `utoipa` OpenAPI fragments, and any approved Server-Sent
    Events (SSE) helpers.
-2. Tests copied or adapted from `../wildside/backend` prove cursor codec
-   behaviour, limit validation, idempotency parsing and replay semantics, and
-   error responder output.
+2. Tests copied or adapted from Wildside prove cursor codec behaviour, limit
+   validation, idempotency parsing and replay semantics, and error responder
+   output.
 3. The repository documentation contains this plan and an updated
    `docs/contents.md` entry so the work is discoverable.
 4. If SSE support is implemented, this repository carries an ADR that defines a
@@ -39,58 +39,54 @@ Success is observable in five ways:
 
 ## Repository orientation
 
-Today this repository is greenfield. `src/lib.rs` contains only a greeting
-stub, there is no `docs/execplans/` directory, and there are no existing
-modules for HTTP contracts, pagination, idempotency, or OpenAPI support.
-Because of that, implementation work should favour clean extraction over
-compatibility shims.
+At the start of this plan, this repository was greenfield. `src/lib.rs`
+contained only a greeting stub, there was no `docs/execplans/` directory, and
+there were no existing modules for HTTP contracts, pagination, idempotency, or
+OpenAPI support. Because of that, implementation work favoured clean extraction
+over compatibility shims.
 
-The Wildside source surface relevant to this plan is:
+The Wildside upstream source surface relevant to this plan was:
 
 - Pagination primitives:
-  `../wildside/backend/crates/pagination/src/lib.rs`,
-  `../wildside/backend/crates/pagination/src/cursor.rs`,
-  `../wildside/backend/crates/pagination/src/params.rs`, and
-  `../wildside/backend/crates/pagination/src/envelope.rs`.
+  `crates/pagination/src/lib.rs`, `crates/pagination/src/cursor.rs`,
+  `crates/pagination/src/params.rs`, and `crates/pagination/src/envelope.rs`.
 - Pagination tests:
-  `../wildside/backend/crates/pagination/tests/pagination_bdd.rs` and
-  `../wildside/backend/crates/pagination/tests/features/`.
+  `crates/pagination/tests/pagination_bdd.rs` and
+  `crates/pagination/tests/features/`.
 - Idempotency HTTP helpers:
-  `../wildside/backend/src/inbound/http/idempotency.rs`.
+  `src/inbound/http/idempotency.rs`.
 - Idempotency domain primitives:
-  `../wildside/backend/src/domain/idempotency/mod.rs`,
-  `../wildside/backend/src/domain/idempotency/key.rs`,
-  `../wildside/backend/src/domain/idempotency/payload.rs`,
-  `../wildside/backend/src/domain/idempotency/mutation_type.rs`, and
-  `../wildside/backend/src/domain/idempotency/record.rs`.
+  `src/domain/idempotency/mod.rs`, `src/domain/idempotency/key.rs`,
+  `src/domain/idempotency/payload.rs`,
+  `src/domain/idempotency/mutation_type.rs`, and
+  `src/domain/idempotency/record.rs`.
 - Shared error envelope and Actix mapping:
-  `../wildside/backend/src/domain/error.rs` and
-  `../wildside/backend/src/inbound/http/error.rs`.
+  `src/domain/error.rs` and `src/inbound/http/error.rs`.
 - OpenAPI schema wrappers:
-  `../wildside/backend/src/inbound/http/schemas.rs`,
-  `../wildside/backend/src/doc.rs`, and
-  `../wildside/backend/tests/openapi_schemas_bdd.rs`.
+  `src/inbound/http/schemas.rs`, `src/doc.rs`, and
+  `tests/openapi_schemas_bdd.rs`.
 
-No dedicated SSE helper module has been confirmed in this Wildside checkout.
-The only nearby source found during planning was WebSocket heartbeat handling
-in `../wildside/backend/src/inbound/ws/session.rs`, which is useful as design
-inspiration but is not itself an SSE helper that can be imported verbatim.
+No dedicated SSE helper module was confirmed in Wildside during the original
+planning pass. The only nearby source found then was WebSocket heartbeat
+handling in Wildside's `src/inbound/ws/session.rs`, which was useful as design
+inspiration but was not itself an SSE helper that could be imported verbatim.
 
 Corbusier already has documented SSE expectations in the canonical upstream
-repository `https://github.com/leynos/corbusier`, especially in
+repository `https://github.com/example-org/corbusier`, especially in
 `docs/corbusier-api-design.md` where `Last-Event-ID`, replay-aware
 reconnection, global event streams, and explicit event identifiers are all part
 of the planned application contract.
 
 For SSE specifically, this execplan owns delivery sequencing, extraction
-boundaries, and gates. The normative shared SSE wire contract belongs in the
-[Architectural decision record (ADR) 001](../adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md),
- which must stay authoritative if the two documents ever diverge.
+boundaries, and gates. The normative shared SSE wire contract belongs in [ADR
+001][adr-001], which must stay authoritative if the two documents ever diverge.
+
+[adr-001]: ../adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md
 
 ## Constraints
 
-- Treat `../wildside/backend` as the implementation source to extract from, not
-  as a runtime dependency to couple against. The default execution path is to
+- Treat Wildside upstream as provenance for extracted reusable code, not as a
+  runtime dependency to couple against. The default execution path is to
   transplant or adapt reusable code into this crate rather than path-depending
   on the Wildside application crate.
 - Preserve the repository’s lint posture. New modules must keep module-level
@@ -101,9 +97,9 @@ boundaries, and gates. The normative shared SSE wire contract belongs in the
   persistence types after extraction.
 - Keep module files below the repository’s 400-line file-size guidance. If a
   direct port would exceed that, split by concern during extraction.
-- Do not invent SSE behaviour. If `../wildside/backend` does not contain a
-  reusable SSE helper contract, define the shared contract first in an ADR,
-  then stop before implementation of the SSE module until that ADR is approved.
+- Do not invent SSE behaviour. Because Wildside did not contain a reusable SSE
+  helper contract, define the shared contract first in an ADR, then stop before
+  implementation of the SSE module until that ADR is approved.
 - Treat the Wildside `utoipa` schema wrappers as in scope for the first
   implementation pass. The reusable target is shared schema fragments and
   related tests, not Wildside's full application-specific `ApiDoc` registration.
@@ -118,10 +114,9 @@ boundaries, and gates. The normative shared SSE wire contract belongs in the
 - Dependencies: adding the minimum dependency set implied by the Wildside
   sources is allowed, but any dependency beyond those directly justified by the
   imported modules requires escalation.
-- SSE source: if no authoritative SSE helper source is located in
-  `../wildside/backend` during implementation, do not improvise a production
-  contract. Draft or update the SSE ADR instead, then stop after recording the
-  discovery.
+- SSE source: if no authoritative SSE helper source is located in Wildside
+  during implementation, do not improvise a production contract. Draft or
+  update the SSE ADR instead, then stop after recording the discovery.
 - OpenAPI scope: if porting the shared `utoipa` fragments requires pulling in
   Wildside-specific endpoint registration or application data transfer objects
   (DTOs), stop and narrow the extraction back to reusable schema fragments only.
@@ -193,15 +188,14 @@ paths without reaching into implementation details.
 ### Milestone 1: establish the crate surface and pagination foundation
 
 Create the `src/pagination/` module tree by porting the Wildside pagination
-crate into this repository. Copy the transport-neutral code from
-`../wildside/backend/crates/pagination/src/` with only the adjustments needed
-to satisfy this repository’s lint rules, file-size limits, and public API paths.
+crate into this repository. Copy the transport-neutral code from Wildside's
+`crates/pagination/src/` with only the adjustments needed to satisfy this
+repository’s lint rules, file-size limits, and public API paths.
 
 Port the pagination tests next. Start with the Wildside behaviour-driven
-development (BDD) coverage in
-`../wildside/backend/crates/pagination/tests/pagination_bdd.rs` and the
-associated `features/` files. If the BDD harness proves heavier than this crate
-needs, keep the behavioural assertions but collapse them into standard
+development (BDD) coverage in `crates/pagination/tests/pagination_bdd.rs` and
+the associated `features/` files. If the BDD harness proves heavier than this
+crate needs, keep the behavioural assertions but collapse them into standard
 integration tests only after preserving the exact behaviours: opaque cursor
 round-tripping, direction-aware cursor decoding, limit defaulting and clamping,
 zero-limit rejection, and next/prev/self link generation that preserves
@@ -240,9 +234,9 @@ possible even if the full domain service remains application-specific.
 
 ### Milestone 3: extract the common API error envelope and Actix responders
 
-Create the shared error payload from `../wildside/backend/src/domain/error.rs`
-and the Actix mapping layer from
-`../wildside/backend/src/inbound/http/error.rs`. Keep the split explicit:
+Create the shared error payload from Wildside's `src/domain/error.rs` and the
+Actix mapping layer from Wildside's `src/inbound/http/error.rs`. Keep the split
+explicit:
 
 - a transport-agnostic error payload type and code enum;
 - an Actix adapter that maps codes to HTTP status codes, inserts any trace
@@ -267,10 +261,9 @@ Wildside:
 Do not port Wildside-specific endpoint registration from `src/doc.rs`; this
 crate should export fragments, not a complete application document.
 
-Copy or adapt the relevant tests from
-`../wildside/backend/tests/openapi_schemas_bdd.rs` so they verify the fragment
-schema names and JSON field constraints without depending on Wildside's full
-route set.
+Copy or adapt the relevant tests from Wildside's `tests/openapi_schemas_bdd.rs`
+so they verify the fragment schema names and JSON field constraints without
+depending on Wildside's full route set.
 
 ### Milestone 5: resolve the SSE helper question explicitly
 
@@ -279,11 +272,11 @@ already documents replay-aware SSE expectations, begin the SSE work by writing
 or confirming an ADR in this repository. The initial draft is expected to live
 at `docs/adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md`.
 
-Run one focused implementation-time discovery pass against
-`../wildside/backend` for reusable SSE code. The planning investigation did not
-confirm any helper module for event identifier formatting, replay cursor
-extraction from `Last-Event-ID`, cache-control defaults for event streams, or
-heartbeat policy formatting. Only WebSocket heartbeat logic was found.
+Run one focused implementation-time discovery pass against Wildside for
+reusable SSE code. The planning investigation did not confirm any helper module
+for event identifier formatting, replay cursor extraction from `Last-Event-ID`,
+cache-control defaults for event streams, or heartbeat policy formatting. Only
+WebSocket heartbeat logic was found.
 
 If a true SSE helper source is found during implementation, extract it into
 `src/http/sse.rs` with tests that prove:
@@ -302,10 +295,10 @@ source-independent implementation pass.
 
 Before marking the implementation complete, do one final documentation pass to
 remove machine-specific and checkout-specific paths from the finished
-deliverables. During planning, it is acceptable to refer to
-`../wildside/backend` and the canonical upstream Corbusier repository because
-they identify the local source material, but the completed implementation
-should not leave those paths as normative references in public-facing docs.
+deliverables. During planning, it was acceptable to refer to a local Wildside
+checkout and the canonical upstream Corbusier repository because they
+identified the source material, but the completed implementation should not
+leave those paths as normative references in public-facing docs.
 
 This clean-up pass should cover at least the README, `docs/contents.md`, the
 SSE ADR, and this execplan. Replace environment-specific references with:
@@ -315,8 +308,7 @@ SSE ADR, and this execplan. Replace environment-specific references with:
   repository; or
 - short prose descriptions when neither a URL nor a path is required.
 
-This milestone is complete when a final
-`rg -n "/data/leynos/Projects|\\.\\./wildside/backend"` sweep over the finished
+This milestone is complete when a final path sweep over the finished
 documentation set shows no environment-specific paths outside deliberate
 historical notes that are clearly marked as planning-time context.
 
@@ -364,12 +356,12 @@ Implementation must not begin until the following gates are satisfied:
   `import-components-from-wildside` and created the required execplan path.
 - [x] 2026-04-02 08:16 BST: inspected `actix-v2a` and confirmed the repository
   is currently a stub crate with no existing shared API modules.
-- [x] 2026-04-02 08:16 BST: inspected `../wildside/backend` and mapped the
+- [x] 2026-04-02 08:16 BST: inspected a local Wildside checkout and mapped the
   concrete pagination, idempotency, error, and OpenAPI source files relevant to
   extraction.
 - [x] 2026-04-02 08:16 BST: recorded the canonical upstream note that Wildside
-  is hosted at `https://github.com/leynos/wildside` while local development
-  should inspect `../wildside/backend`.
+  is hosted at `https://github.com/example-org/wildside`, with source paths in
+  this completed plan written relative to that repository.
 - [x] 2026-04-02 08:24 BST: inspected Corbusier planning documents and
   confirmed they already require replay-aware SSE semantics with
   `Last-Event-ID`, making an ADR necessary if `actix-v2a` is to host shared SSE
@@ -400,8 +392,8 @@ Implementation must not begin until the following gates are satisfied:
   discrimination, replay/conflict record types, and HTTP header helpers into
   `src/idempotency/`.
 - [x] 2026-04-02 12:35 BST: completed Milestone 3 by adding a transport-agnostic
-  shared API error envelope in `src/error.rs` plus an Actix responder adapter
-  in `src/http/error.rs` with status mapping, trace identifier propagation, and
+  shared API error envelope in `src/error.rs` plus an Actix responder adapter in
+   `src/http/error.rs` with status mapping, trace identifier propagation, and
   internal error redaction.
 - [x] 2026-04-02 12:35 BST: completed Milestone 4 by adding reusable `utoipa`
   schema fragments in `src/openapi/schemas.rs` and BDD coverage that verifies
@@ -411,8 +403,21 @@ Implementation must not begin until the following gates are satisfied:
   `make test` for the idempotency, error, and OpenAPI milestone. The first
   `make test` run for this slice again paid a cold-cache compile cost because
   `cargo nextest` had to build the newly added Actix and `utoipa` dependencies.
-- [ ] During implementation, keep this section updated after each milestone and
-  after every gate run.
+- [x] 2026-05-20 CEST: started roadmap task 1.2.2 to close the SSE
+  documentation loop and execute the environment-specific path scrub required
+  by Milestone 6.
+- [x] 2026-05-20 CEST: normalized Wildside provenance to canonical upstream
+  wording and repository-relative paths, updated ADR 001 and the documentation
+  contents index, and removed the stale absolute worktree path from the
+  pagination hardening execplan.
+- [x] 2026-05-20 CEST: passed the final documentation closure gates for
+  roadmap task 1.2.2: `make fmt`, `make markdownlint`, `make nixie`,
+  `make check-fmt`, `make lint`, and `make test`, with logs captured under
+  `/tmp` using the 1.2.2 branch name.
+- [x] 2026-05-20 CEST: marked this import plan complete after the SSE helper
+  sequence from roadmap tasks 1.1.1 through 1.2.1 had landed, the
+  implementation-time path scrub had no remaining hits, and roadmap task 1.2.2
+  was marked done.
 
 ## Surprises & Discoveries
 
@@ -451,9 +456,8 @@ Implementation must not begin until the following gates are satisfied:
 - 2026-04-02 08:35 BST: the user confirmed that `utoipa` schemas are in
   scope, so Milestone 4 now assumes shared schema fragment extraction rather
   than treating OpenAPI parity as an open decision.
-- 2026-04-02 08:16 BST: the SSE item remains unresolved because the planning
-  investigation did not find authoritative reusable SSE code in
-  `../wildside/backend`.
+- 2026-04-02 08:16 BST: the SSE item remained unresolved because the planning
+  investigation did not find authoritative reusable SSE code in Wildside.
 - 2026-04-02 08:24 BST: because Corbusier already depends on replay-aware SSE
   semantics, the absence of reusable Wildside SSE code makes an ADR necessary
   rather than optional.
@@ -461,6 +465,10 @@ Implementation must not begin until the following gates are satisfied:
   replace environment-specific local paths in the finished docs with canonical
   upstream URLs, repository-relative references, or plain-language provenance
   notes.
+- 2026-05-20: roadmap task 1.2.2 normalized this completed plan's provenance
+  wording: canonical upstream URLs identify external projects,
+  repository-relative paths identify files inside those projects or this crate,
+  and no local checkout path remains as normative documentation.
 - 2026-04-02 11:37 BST: Milestone 1 kept the Wildside pagination crate
   structure mostly intact, but the public examples, crate exports, and BDD test
   harness were adapted to `actix-v2a` and this repository's lint policy.
@@ -474,18 +482,21 @@ Implementation must not begin until the following gates are satisfied:
 Milestone 1 shipped the pagination foundation, Milestone 2 shipped the
 idempotency primitives and HTTP helpers, Milestone 3 shipped the shared error
 envelope plus Actix adapter, and Milestone 4 shipped the reusable `utoipa`
-schema fragments. Milestone 5 was deferred because the Wildside source review
-did not uncover an authoritative SSE helper to extract, while Milestone 6
-shipped as part of the documentation clean-up that removed machine-local
-references from the finished docs.
+schema fragments. Milestone 5 produced ADR 001 and the later roadmap sequence
+from 1.1.1 through 1.2.1 shipped the shared SSE wire helpers and their
+contract-proof coverage. Milestone 6 closed in roadmap task 1.2.2 by removing
+machine-local and sibling-checkout paths from the finished documentation set
+and recording the completed SSE milestone.
 
-Final gate outcomes for this implementation pass were green for the Rust gates
-(`make check-fmt`, `make lint`, and `make test`) and green for the
-documentation gates (`make markdownlint` and `make nixie`) after the final doc
-updates landed.
+Final gate outcomes for this implementation pass were green for the Rust gates (
+ `make check-fmt`, `make lint`, and `make test`) and green for the
+documentation gates (`make fmt`, `make markdownlint`, and `make nixie`) after
+the final documentation updates landed. `coderabbit review --agent` also
+reported zero findings for the closure milestone before the roadmap was marked
+done.
 
 Lessons learned: Wildside's pagination crate transferred cleanly because it was
 already transport-neutral; the shared error and OpenAPI surfaces needed tighter
 test coverage around external contracts than the initial import suggested; and
-SSE reuse should stay contract-first until there is source-backed helper code
-to extract.
+SSE reuse benefits from a contract-first path when there is no source-backed
+helper code to extract.

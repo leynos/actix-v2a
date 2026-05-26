@@ -35,8 +35,8 @@
     and retrospective for porting Wildside commit `9d6b7655` pagination
     documentation hardening and invariant tests into `actix-v2a`.
   - [Import components from Wildside](execplans/import-components-from-wildside.md):
-    draft plan for extracting shared HTTP and API primitives from
-    `../wildside/backend` into this crate.
+    completed plan and retrospective for extracting shared HTTP and API
+    primitives from Wildside into this crate.
   - [Implement SSE identifier and replay cursor
     helpers](execplans/1-1-1-implement-sse-identifier-and-replay-cursor-helpers.md):
     execution plan for validated SSE event identifiers and `Last-Event-ID`
@@ -53,3 +53,7 @@
     module](execplans/1-2-1-unit-and-integration-tests-for-the-shared-sse-module.md):
     execution plan for proving the shared SSE wire contract with unit and
     downstream-facing integration coverage (task 1.2.1).
+  - [Update documentation after the SSE module
+    lands](execplans/1-2-2-update-documentation-after-sse-module-lands.md):
+    execution plan for closing the shared SSE documentation loop and
+    scrubbing implementation-time path references (task 1.2.2).

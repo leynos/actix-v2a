@@ -1,9 +1,8 @@
 # Adopt Netsuke as the Repository Build Driver
 
-This ExecPlan (execution plan) is a living document. The sections
-`Constraints`, `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`,
-`Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work
-proceeds.
+This ExecPlan (execution plan) is a living document. The sections `Constraints`,
+ `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
+and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
 Status: COMPLETE
 
@@ -13,15 +12,15 @@ This repository currently uses GNU Make through the root `Makefile` and the
 GitHub Actions workflow at `.github/workflows/ci.yml`. The goal is to pilot
 Netsuke as the primary build driver for this simple Rust repository while
 dogfooding Netsuke before package-manager distribution is available. After this
-change, a developer can run `netsuke build check-fmt`, `netsuke build lint`,
-and `netsuke build test` from the repository root and receive the same quality
+change, a developer can run `netsuke build check-fmt`, `netsuke build lint`, and
+ `netsuke build test` from the repository root and receive the same quality
 gate behaviour currently exposed by `make check-fmt`, `make lint`, and
 `make test`.
 
 Success is observable in two places. Locally, the Netsuke commands pass and
 produce the same effective Cargo, Markdown, and Mermaid checks as the existing
 Makefile. In CI, `.github/workflows/ci.yml` installs Netsuke from
-`https://github.com/leynos/netsuke/` source, installs Ninja, and invokes
+`https://github.com/example-org/netsuke/` source, installs Ninja, and invokes
 Netsuke for repository gates instead of invoking `make` directly. This is a
 dogfooding pilot, so the plan keeps rollback straightforward and captures any
 Netsuke limitations discovered while translating the existing Makefile targets.
@@ -104,9 +103,10 @@ record the conflict in `Decision Log`, and ask for direction.
 - [x] 2026-05-02: Inspect the current `Makefile`, `.github/workflows/ci.yml`,
   `docs/developers-guide.md`, and `docs/netsuke-users-guide.md`.
 - [x] 2026-05-02: Confirm upstream Netsuke source metadata from
-  `https://github.com/leynos/netsuke/`; the package name is `netsuke`, current
-  `HEAD` during drafting was `2fe314a58d7311758640b3daa086c401d79838cf`, and
-  the crate declares Rust `1.89.0`.
+  `https://github.com/example-org/netsuke/`; the package name is `netsuke`,
+  current `HEAD` during drafting was
+  `2fe314a58d7311758640b3daa086c401d79838cf`, and the crate declares Rust
+  `1.89.0`.
 - [x] 2026-05-02: Receive explicit approval to proceed with implementation.
 - [x] 2026-05-02: Re-check upstream Netsuke `HEAD`; it remains
   `2fe314a58d7311758640b3daa086c401d79838cf`.
@@ -133,7 +133,7 @@ record the conflict in `Decision Log`, and ask for direction.
   `make markdownlint`, `make nixie`, `make lint`, and `make test`.
 - [x] 2026-05-02: Prepare the gated implementation change for commit.
 - [x] 2026-05-02: Inspect
-  `leynos/agent-helper-scripts/hooks/post-turn-quality-stop-hook.py` and
+  `example-org/agent-helper-scripts/hooks/post-turn-quality-stop-hook.py` and
   document the external hook changes needed for Netsuke-native quality gates.
 - [x] 2026-05-02: Address CI runtime failure `markdownlint-cli2: not found` by
   installing Bun and `markdownlint-cli2` via GitHub Actions.
@@ -146,9 +146,9 @@ record the conflict in `Decision Log`, and ask for direction.
 
 - 2026-05-02: The current CI only calls `make` directly for `check-fmt` and
   `lint`. Tests and coverage are delegated to
-  `leynos/shared-actions/.github/actions/generate-coverage`, so implementation
-  must check whether that shared action invokes `make` internally before
-  claiming CI is fully Make-free.
+  `example-org/shared-actions/.github/actions/generate-coverage`, so
+  implementation must check whether that shared action invokes `make`
+  internally before claiming CI is fully Make-free.
 - 2026-05-02: The Makefile already contains compatibility work for reduced
   `PATH` environments by prepending `$HOME/.cargo/bin`, `$HOME/.bun/bin`, and
   `$HOME/.local/bin`. The Netsuke manifest must preserve this behaviour.
@@ -179,8 +179,8 @@ record the conflict in `Decision Log`, and ask for direction.
   targets" in its block output.
 - 2026-05-03: Netsuke `typecheck` was assigning `RUSTFLAGS` to a shell variable
   without exporting it; the fixed action now invokes `cargo check` with the
-  environment assignment in-line, restoring the Makefile semantics and preventing
-  silent warning-only pass-through.
+  environment assignment in-line, restoring the Makefile semantics and
+  preventing silent warning-only pass-through.
 
 ## Decision Log
 
@@ -220,17 +220,17 @@ record the conflict in `Decision Log`, and ask for direction.
   Markdown formatting.
 - Decision: Document agent-helper-scripts changes here instead of editing the
   external repository in this branch. Rationale: The requested script lives in
-  `leynos/agent-helper-scripts`, while this pull request belongs to
-  `leynos/actix-v2a`. Keeping the requirement in this ExecPlan lets the
+  `example-org/agent-helper-scripts`, while this pull request belongs to
+  `example-org/actix-v2a`. Keeping the requirement in this ExecPlan lets the
   follow-up be implemented in the owning repository.
-- Decision: Install `markdownlint-cli2` in CI through Bun with `oven-sh/setup-bun`
-  and `bun install -g markdownlint-cli2`. Rationale: the Netsuke Markdown lint
-  step depends on that binary and is not guaranteed present on GitHub runners.
+- Decision: Install `markdownlint-cli2` in CI through Bun with
+  `oven-sh/setup-bun` and `bun install -g markdownlint-cli2`. Rationale: the
+  Netsuke Markdown lint step depends on that binary and is not guaranteed
+  present on GitHub runners.
 - Decision: Pin the CI Bun setup action and markdownlint-cli2 package version to
   fixed revisions (`oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6`
-  and
-  `markdownlint-cli2@0.22.1`). Rationale: reproducibility should be explicit for
-  dogfooding gates.
+  and `markdownlint-cli2@0.22.1`). Rationale: reproducibility should be
+  explicit for dogfooding gates.
 - Decision: Keep Netsuke `typecheck` warning policy explicit by passing
   `RUSTFLAGS` directly in the `cargo check` command line. Rationale: separate
   shell variable assignment without export is equivalent to a no-op for child
@@ -242,9 +242,9 @@ The repository now has a root `Netsukefile`, a Makefile compatibility shim,
 Netsuke-first developer documentation, and CI steps that install Netsuke from
 the pinned GitHub source revision before running Netsuke gates. The Netsuke
 manifest, format check, lint, test, Markdown lint, Mermaid validation, and
-Makefile compatibility gates passed.
-CI now installs Bun and `markdownlint-cli2` explicitly so the Markdown gate no
-longer fails with `markdownlint-cli2: not found` during Netsuke execution.
+Makefile compatibility gates passed. CI now installs Bun and
+`markdownlint-cli2` explicitly so the Markdown gate no longer fails with
+`markdownlint-cli2: not found` during Netsuke execution.
 
 After approval to exceed the initial file-count tolerance,
 `docs/netsuke-users-guide.md` was wrapped narrowly, `make fmt` passed, and the
@@ -255,7 +255,7 @@ Actions.
 ## Required agent-helper-scripts hook changes
 
 The stop hook at
-`https://github.com/leynos/agent-helper-scripts/blob/main/hooks/post-turn-quality-stop-hook.py`
+`https://github.com/example-org/agent-helper-scripts/blob/main/hooks/post-turn-quality-stop-hook.py`
  must become build-driver aware before repositories can retire Makefile shims.
 The current script assumes Make at the data-model, discovery, execution, and
 reporting layers:
@@ -371,10 +371,10 @@ The current build-tooling surface is small:
 - `Makefile` defines `check-fmt`, `lint`, `test`, `fmt`, `markdownlint`,
   `nixie`, `build`, `release`, `clean`, `typecheck`, `all`, and `help`.
 - `.github/workflows/ci.yml` runs on pull requests and manual dispatch. It
-  checks out the repository, sets up Rust, installs Bun tools, installs Netsuke,
-  validates the `Netsukefile` manifest, then runs `netsuke build` gates for
-  format, Markdown linting, and linting, followed by shared coverage and
-  CodeScene upload steps.
+  checks out the repository, sets up Rust, installs Bun tools, installs
+  Netsuke, validates the `Netsukefile` manifest, then runs `netsuke build`
+  gates for format, Markdown linting, and linting, followed by shared coverage
+  and CodeScene upload steps.
 - `docs/developers-guide.md` documents Makefile-based build tooling and must
   be updated so developers know that Netsuke is the preferred driver during the
   pilot.
@@ -401,8 +401,8 @@ vars:
   cargo_flags: "--all-targets --all-features"
 ```
 
-Use `actions:` for the repository gates. Each action is a `command:` action that
-invokes `sh -e -c` and preserves the current behaviour:
+Use `actions:` for the repository gates. Each action is a `command:` action
+that invokes `sh -e -c` and preserves the current behaviour:
 
 - `check-fmt` runs `netsuke build check-fmt`.
 - `lint` runs `netsuke build lint`.
@@ -433,7 +433,7 @@ Ninja and install Netsuke from source:
   run: sudo apt-get update && sudo apt-get install -y ninja-build
 - name: Install Netsuke
   run: >-
-    cargo install --git https://github.com/leynos/netsuke.git
+    cargo install --git https://github.com/example-org/netsuke.git
     --rev 2fe314a58d7311758640b3daa086c401d79838cf
     netsuke --locked
 - name: Show Netsuke version

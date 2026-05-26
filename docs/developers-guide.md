@@ -228,7 +228,7 @@ Netsuke before running repository gates:
 
 ```bash
 sudo dnf install ninja-build
-cargo install --git https://github.com/leynos/netsuke.git \
+cargo install --git https://github.com/example-org/netsuke.git \
   --rev 2fe314a58d7311758640b3daa086c401d79838cf \
   netsuke --locked
 ```
@@ -346,7 +346,11 @@ Approved testing libraries are:
   spaces, such as validation, parsing, normalization, and idempotence.
 - `insta` for snapshot coverage of stable rendered output, such as error
   display text and OpenAPI schema JSON.
-- `tracing-test` for assertions over emitted tracing spans and events.
+- `tracing-subscriber` (with the `env-filter` feature) provides composable
+  tracing subscriber layers used in integration and behavioural tests.
+- `tests/support/sse_trace_buffer.rs` provides `BufferLayer` and `LogBuffer`,
+  which capture per-scenario tracing events into a `World`-owned buffer,
+  removing the dependency on `tracing-test`'s internal API.
 
 ### Documentation
 

@@ -43,7 +43,7 @@ without pulling event-store, routing, or authorization logic into this crate.
     cache headers, heartbeat output, and `stream_reset` output.
   - Pass `make check-fmt`, `make lint`, and `make test` with the new coverage
     enabled.
-- [ ] 1.2.2. Update the execution plan and documentation after the SSE module
+- [x] 1.2.2. Update the execution plan and documentation after the SSE module
   lands. Requires 1.2.1.
   - Record the completed SSE milestone in
     `docs/execplans/import-components-from-wildside.md`.
