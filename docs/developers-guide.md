@@ -1,7 +1,9 @@
 # Developer's Guide
 
 This guide documents internal conventions, module structure, and quality gates
-for contributors working on the `actix-v2a` crate.
+for contributors working on the `actix-v2a` crate. For repository-wide
+orientation, start with [documentation contents](contents.md) and
+[repository layout](repository-layout.md).
 
 ## SSE module internals
 

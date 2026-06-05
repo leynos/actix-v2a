@@ -4,6 +4,9 @@
   set, including guides, references, and execution plans.
 - [Documentation style guide](documentation-style-guide.md): repository
   standards for structure, tone, formatting, and maintenance of documentation.
+- [Repository layout](repository-layout.md): canonical map of the repository
+  tree, the ownership of each major path, and where different kinds of files
+  belong.
 - [User's guide](users-guide.md): usage documentation for the `actix-v2a`
   crate's public API, including Server-Sent Events (SSE) helpers, error
   handling, and integration patterns.

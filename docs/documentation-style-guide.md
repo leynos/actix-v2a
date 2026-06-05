@@ -20,10 +20,6 @@ consistent, and easy to maintain across projects.
   - suffix -ogue in words such as _analogue_ and _catalogue_,
   - and so forth.
 - The words **"outwith"** and **"caveat"** are acceptable.
-- Prefer the spellings _improvise_ and _parameterize_.
-- Prefer _schemata_ as the plural of _schema_ in prose.
-- When naming canonical guides, prefer the possessive forms _user's guide_ and
-  _developer's guide_.
 - Keep United States (US) spelling when used in an API, for example, `color`.
 - The project uses the filename `LICENSE` for community consistency.
 
@@ -77,9 +73,10 @@ material, the user's guide explains how to use the project, the developer's
 guide explains how to work on the project, the design document explains why the
 system is shaped the way it is, and the repository layout document explains
 where important things live. For discoverability, use canonical filenames
-unless a stronger repository-specific constraint applies: `docs/contents.md`,
-`docs/users-guide.md`, `docs/developers-guide.md`, `docs/repository-layout.md`,
-and a primary design document with an explicit product or topic name such as
+unless a stronger repository-specific constraint applies. A minimal canonical
+set looks like
+`docs/{contents,users-guide,developers-guide,repository-layout}.md` plus a
+primary design document under `docs/*-design.md`, for example
 `docs/theoremc-design.md` or `docs/query-planner-design.md`.
 
 ### Contents file
@@ -123,7 +120,7 @@ this means operators, end users, or integrators.
 - Use tables where they clarify field sets, command options, or compatibility
   matrices.
 - Include concrete examples in code or data form when describing formats,
-  schemata, or command usage.
+  schemas, or command usage.
 - Higher-level user workflows belong here, for example "load a document",
   "configure the service", or "interpret diagnostics".
 - Link to design documents or maintainer references when deeper rationale would
@@ -139,8 +136,9 @@ the existing system, not as the place for the project's primary design document.
 
 - Open with one short paragraph that states the audience and the operational
   scope of the guide.
-- Link early to the design document, accepted decision records, and other
-  normative references that explain architecture or rationale in depth.
+- Link early to the design document, repository layout document, accepted
+  decision records, and other normative references that explain architecture or
+  rationale in depth.
 - Put maintainer-facing implementation guidance here, for example build, test,
   lint, release, debugging, extension, and contribution workflows.
 - Use numbered sections for long-form technical documents to improve
@@ -152,6 +150,9 @@ the existing system, not as the place for the project's primary design document.
 - Keep subsystem descriptions focused on current responsibilities,
   integration points, and operational expectations. Put design rationale, major
   trade-offs, and proposed architecture in design documents instead.
+- Do not embed repository-layout guidance here. The canonical location for
+  file-tree and path-responsibility documentation is
+  `docs/repository-layout.md`.
 - Keep the document synchronized with decision records, roadmap items, and the
   codebase. A stale developer's guide is worse than a shorter one.
 
@@ -412,7 +413,7 @@ Include these sections as appropriate to the decision's complexity:
 
 ### ADR template
 
-```markdown
+```plaintext
 # Architectural decision record (ADR) NNN: <title>
 
 ## Status
@@ -492,9 +493,9 @@ implementation is required.>
 ### Repository layout document
 
 Use a repository layout document, canonically `docs/repository-layout.md`, to
-explain the shape of the tree and the responsibilities of its major paths. This
-may be a standalone document or a clearly labelled section within the
-developer's guide, provided readers can find it easily from the contents file.
+explain the shape of the tree and the responsibilities of its major paths. Use
+this standalone document as the canonical location for repository-layout
+guidance rather than embedding that material in the developer's guide.
 
 - Document the top-level directories and any critical subdirectories that a new
   contributor must understand quickly.
@@ -508,6 +509,8 @@ developer's guide, provided readers can find it easily from the contents file.
   long-lived reference documents belong.
 - Call out any directories with unusual constraints, such as generated output,
   fixtures, snapshots, or capability-restricted paths.
+- Ensure the contents file links directly to `docs/repository-layout.md` so
+  readers can find it without scanning the developer's guide.
 - Update the layout document when the repository structure changes enough that
   a contributor could otherwise follow outdated guidance.
 
@@ -638,7 +641,7 @@ This hierarchy should align with the GIST framework:
 
 ### Roadmap example
 
-```markdown
+```plaintext
 ## 1. Core infrastructure
 
 ### 1.1. Logging subsystem
