@@ -27,6 +27,8 @@ day-to-day contributors and omits generated or implementation-specific detail.
 
 ## Top-level files
 
+Table: Top-level repository files and their responsibilities.
+
 | Path | Responsibility |
 | --- | --- |
 | `AGENTS.md` | Repository instructions for agents and maintainers. |
