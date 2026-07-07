@@ -238,14 +238,20 @@ targets:
 - `recipe`: How to build the target. Defined by one of `rule`, `command`, or
   `script` (mutually exclusive).
 
-- `sources`: Input file path(s) (`StringOrList`). If a source matches another
-  target's `name`, an implicit dependency is created.
+- `sources`: Input file path(s) (`StringOrList`). Sources are explicit recipe
+  inputs: they are passed to `$in` and `{{ ins }}` and trigger rebuilds when
+  changed.
 
-- `deps` (Optional): Explicit target dependencies (`StringOrList`). Changes
-  trigger rebuilds.
+- `deps` (Optional): Implicit target dependencies (`StringOrList`). Changes
+  trigger rebuilds, but these paths are not passed to `$in` or `{{ ins }}`.
+  Maps to Ninja `|`.
 
 - `order_only_deps` (Optional): Dependencies that must run first but whose
   changes don't trigger rebuilds (`StringOrList`). Maps to Ninja `||`.
+
+Cycle detection traverses `sources` and `deps`, because both classes affect the
+build graph and rebuild freshness. `order_only_deps` only enforce build
+ordering and do not participate in Netsuke's cycle detection.
 
 - `vars` (Optional): Target-specific variables that override global `vars`.
 
@@ -285,9 +291,12 @@ Netsuke processes the manifest in stages:
    `serde_json::Value`).
 
 2. Template Expansion (`foreach`, `when`): Evaluate `foreach` expressions to
-   generate multiple target definitions. The `item` (and optional `index`)
-   become available in the context. Evaluate `when` expressions to
-   conditionally include/exclude targets.
+   generate multiple target or action definitions. The `item` (and optional
+   `index`) become available in the context. Evaluate `when` expressions to
+   conditionally include/exclude entries (`when` can exclude both targets and
+   actions). This is a manifest-time selection step; skipped entries are
+   removed before Netsuke builds the typed manifest AST, creates its IR, emits
+   `build.ninja`, or runs Ninja.
 
 3. Deserialisation to AST: Convert the expanded intermediate structure into
    Netsuke's typed Rust structs (`NetsukeManifest`, `Target`, etc.).
@@ -298,7 +307,8 @@ Netsuke processes the manifest in stages:
 
 ### `foreach` and `when`
 
-These keys enable generating multiple similar targets programmatically.
+These keys enable generating multiple similar targets or actions
+programmatically.
 
 ```yaml
 targets:
@@ -315,11 +325,33 @@ targets:
 
 ```
 
+```yaml
+actions:
+  # Generate named test actions, skipping disabled suites.
+  - foreach:
+      - unit
+      - integration
+      - disabled
+    when: item != 'disabled'
+    name: "test-{{ item }}"
+    command: "cargo test --test {{ item }}"
+```
+
 - `foreach`: A Jinja expression evaluating to a list (or any iterable). A
-  target definition will be generated for each item.
+  target or action definition will be generated for each item.
 
 - `when` (Optional): A Jinja expression evaluating to a boolean. If false,
-  the target generated for the current `item` is skipped.
+  the target or action generated for the current `item` is skipped. `when` may
+  also appear without `foreach` to include or exclude a single entry.
+
+`foreach` and `when` do not create build-time branches. They decide which
+manifest entries exist while Netsuke loads the manifest. The generated Ninja
+file contains only the selected targets and actions, so a skipped entry cannot
+contribute rules, outputs, dependencies, defaults, or command text later in the
+build pipeline.
+
+When a decision must happen while a target is being built, put that branching
+inside the recipe command or script instead.
 
 ### User-defined Macros
 
@@ -382,7 +414,7 @@ Apply filters using the pipe `|` operator: `{{ value | filter_name(args...) }}`
 
 - `with_suffix(new_suffix, count=1, sep='.')`: Replaces the last `count`
   dot-separated extensions. `{{ 'archive.tar.gz' | with_suffix('.zip', 2) }}` ->
-   `"archive.zip"`
+  `"archive.zip"`
 
 - `relative_to(base_path)`: Makes a path relative.
   `{{ '/a/b/c' | relative_to('/a/b') }}` -> `"c"`
@@ -465,6 +497,31 @@ Apply filters using the pipe `|` operator: `{{ value | filter_name(args...) }}`
   `netsuke::jinja::which::not_found` along with a preview of the scanned
   `PATH`. Supplying unknown keyword arguments or invalid values raises
   `netsuke::jinja::which::args`.
+
+Use `command_available(name, **kwargs)` when absence should select another
+manifest-time branch instead of failing the render. It uses the same resolver
+and cache as `which`, accepts the same keyword arguments, returns `true` when
+at least one executable is found, and returns `false` for absent commands.
+Invalid arguments still raise `netsuke::jinja::which::args`.
+
+Use `command_available` in manifest-time `when` clauses when optional tooling
+selects between actions:
+
+```yaml
+actions:
+  - name: test-fast
+    command: cargo nextest run
+    when: command_available("cargo-nextest")
+  - name: test-fast
+    command: cargo test
+    when: not command_available("cargo-nextest")
+```
+
+Only the selected action reaches the typed manifest and generated Ninja file.
+Top-level actions selected this way still keep the normal implicit
+`phony: true` behaviour. The `which` filter remains the right choice when a
+missing tool should stop the manifest render; the predicate is for optional
+toolchains and complementary branches.
 
 **Impurity:** Filters like `shell` and functions like `fetch` interact with the
 outside world. Netsuke tracks this "impurity". Impure templates might affect

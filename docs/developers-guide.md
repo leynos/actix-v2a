@@ -231,7 +231,7 @@ Netsuke before running repository gates:
 ```bash
 sudo dnf install ninja-build
 cargo install --git https://github.com/example-org/netsuke.git \
-  --rev 2fe314a58d7311758640b3daa086c401d79838cf \
+  --rev bb1b6b66820f0088286272a25aa990a281602ab2 \
   netsuke --locked
 ```
 
@@ -547,7 +547,7 @@ Pagination tests are split by contract:
   normative specification for the SSE module
 - [ExecPlan: Implement SSE identifier and replay cursor
   helpers](execplans/1-1-1-implement-sse-identifier-and-replay-cursor-helpers.md)
-   — implementation plan for task 1.1.1
+  — implementation plan for task 1.1.1
 - [ExecPlan: Implement SSE frame and cache-header
   helpers](execplans/1-1-2-sse-frame-and-cache-header-helpers.md) —
   implementation plan for task 1.1.2

@@ -42,7 +42,7 @@ jobs:
       - name: Install Netsuke
         run: >-
           cargo install --git https://github.com/leynos/netsuke.git
-          --rev 2fe314a58d7311758640b3daa086c401d79838cf
+          --rev bb1b6b66820f0088286272a25aa990a281602ab2
           netsuke --locked
       - name: Show Netsuke version
         run: netsuke --version
