@@ -393,7 +393,7 @@ Implementation must not begin until the following gates are satisfied:
   `src/idempotency/`.
 - [x] 2026-04-02 12:35 BST: completed Milestone 3 by adding a transport-agnostic
   shared API error envelope in `src/error.rs` plus an Actix responder adapter in
-   `src/http/error.rs` with status mapping, trace identifier propagation, and
+  `src/http/error.rs` with status mapping, trace identifier propagation, and
   internal error redaction.
 - [x] 2026-04-02 12:35 BST: completed Milestone 4 by adding reusable `utoipa`
   schema fragments in `src/openapi/schemas.rs` and BDD coverage that verifies
@@ -489,7 +489,7 @@ machine-local and sibling-checkout paths from the finished documentation set
 and recording the completed SSE milestone.
 
 Final gate outcomes for this implementation pass were green for the Rust gates (
- `make check-fmt`, `make lint`, and `make test`) and green for the
+`make check-fmt`, `make lint`, and `make test`) and green for the
 documentation gates (`make fmt`, `make markdownlint`, and `make nixie`) after
 the final documentation updates landed. `coderabbit review --agent` also
 reported zero findings for the closure milestone before the roadmap was marked

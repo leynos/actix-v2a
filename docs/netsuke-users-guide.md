@@ -382,7 +382,7 @@ Apply filters using the pipe `|` operator: `{{ value | filter_name(args...) }}`
 
 - `with_suffix(new_suffix, count=1, sep='.')`: Replaces the last `count`
   dot-separated extensions. `{{ 'archive.tar.gz' | with_suffix('.zip', 2) }}` ->
-   `"archive.zip"`
+  `"archive.zip"`
 
 - `relative_to(base_path)`: Makes a path relative.
   `{{ '/a/b/c' | relative_to('/a/b') }}` -> `"c"`

@@ -1,7 +1,7 @@
 # Implement validated SSE event identifier and replay cursor helpers
 
 This ExecPlan (execution plan) is a living document. The sections `Constraints`,
- `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
+`Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
 and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
 Status: COMPLETE
@@ -252,7 +252,7 @@ SSE specification assigns special meaning to an empty identifier.
   1.1 "Build the shared wire-helper surface".
 - The
   [import-components-from-wildside execplan](import-components-from-wildside.md)
-   is the parent execution plan. Milestone 5 deferred SSE implementation
+  is the parent execution plan. Milestone 5 deferred SSE implementation
   because no authoritative source existed in Wildside; ADR 001 now provides the
   normative contract.
 

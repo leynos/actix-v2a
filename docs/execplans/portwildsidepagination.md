@@ -1,7 +1,7 @@
 # Port Wildside pagination documentation hardening
 
 This ExecPlan (execution plan) is a living document. The sections `Constraints`,
- `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
+`Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
 and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
 Status: COMPLETE
@@ -263,8 +263,8 @@ began after user approval.
 
 - Observation: The post-turn hook runs with a reduced `PATH` that did not
   include the existing Cargo installation directory. Evidence: The hook reported
-   `make: cargo: No such file or directory` while running `make check-fmt lint`;
-   `env PATH=/usr/bin:/bin make check-fmt lint` reproduced the same environment
+  `make: cargo: No such file or directory` while running `make check-fmt lint`;
+  `env PATH=/usr/bin:/bin make check-fmt lint` reproduced the same environment
   shape. Impact: The Makefile now prepends `$HOME/.cargo/bin` to Cargo recipe
   `PATH` values, while continuing to call `cargo` by name. No shim, install
   step, or recreated system script was introduced.
@@ -379,7 +379,7 @@ status and trace header assertions to the individual tests. The stricter lint
 run also exposed test helper `expect` calls; these were converted to fallible
 helpers and the review-response change passed
 `cargo test --test pagination_documentation_bdd`, `make check-fmt`, `make lint`,
- `make markdownlint`, and `make test`.
+`make markdownlint`, and `make test`.
 
 ## Context and orientation
 

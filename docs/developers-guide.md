@@ -547,7 +547,7 @@ Pagination tests are split by contract:
   normative specification for the SSE module
 - [ExecPlan: Implement SSE identifier and replay cursor
   helpers](execplans/1-1-1-implement-sse-identifier-and-replay-cursor-helpers.md)
-   — implementation plan for task 1.1.1
+  — implementation plan for task 1.1.1
 - [ExecPlan: Implement SSE frame and cache-header
   helpers](execplans/1-1-2-sse-frame-and-cache-header-helpers.md) —
   implementation plan for task 1.1.2

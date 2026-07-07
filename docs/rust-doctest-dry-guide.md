@@ -15,7 +15,7 @@ the power and the inherent limitations of doctests.
 
 At its heart, `rustdoc` treats each documentation test not as a snippet of code
 running within the library's own context, but as an entirely separate, temporary
- crate.[^1] When a developer executes
+crate.[^1] When a developer executes
 
 `cargo test --doc`, `rustdoc` initiates a multi-stage process for every code
 block found in the documentation comments[^3]:
@@ -276,8 +276,8 @@ table provides a comparative reference for the most common doctest attributes.
 
 - `edition20xx`: This attribute allows an example to be tested against a
   specific Rust edition. This is important for crates that support multiple
-  editions and need to demonstrate edition-specific features or migration paths.
-   [^4]
+  editions and need to demonstrate edition-specific features or migration
+  paths.[^4]
 
 ## The DRY principle in doctests: managing shared and complex logic
 
@@ -407,7 +407,7 @@ pub struct UnixSocket;
 ```
 
 This `any` directive ensures the struct is compiled either when the target OS is
- `unix` OR when `rustdoc` is running. This correctly makes the item visible in
+`unix` OR when `rustdoc` is running. This correctly makes the item visible in
 the generated HTML. However, it is crucial to understand that this **does not**
 make the doctest for `UnixSocket` pass on non-Unix platforms.
 
@@ -580,8 +580,8 @@ real-world challenges when working with doctests.
 
   `#[test]` function in a temporary file or test module. This allows the
   developer to leverage the full power of the IDE. Once the code is working
-  correctly, it can be copied into the doc comment, and the necessary
-  formatting (`///`, `#`, etc.) can be applied.[^15]
+  correctly, it can be copied into the doc comment, and the necessary formatting
+  (`///`, `#`, etc.) can be applied.[^15]
 
 ## Conclusion and recommendations
 
@@ -656,8 +656,8 @@ July 15, 2025, <https://doc.rust-lang.org/rustdoc/documentation-tests.html>
 [^14]: Stack Overflow — Conditionally executing a module-level doctest,
 accessed on July 15, 2025,
 <https://stackoverflow.com/questions/50312190/how-can-i-conditionally-execute-a-module-level-doctest-based-on-a-feature-flag>
- Stack Overflow — Conditional compilation with doctests, accessed on July 15,
-2025,
+Stack Overflow — Conditional compilation with doctests, accessed on
+July 15, 2025,
 <https://stackoverflow.com/questions/38292741/how-would-one-achieve-conditional-compilation-with-rust-projects-that-have-docte>
 [^15]: Reddit — Preferred approaches for doc tests, accessed on July 15,
 2025,
