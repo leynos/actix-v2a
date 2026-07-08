@@ -231,7 +231,7 @@ Netsuke before running repository gates:
 ```bash
 sudo dnf install ninja-build
 cargo install --git https://github.com/example-org/netsuke.git \
-  --rev 2fe314a58d7311758640b3daa086c401d79838cf \
+  --rev bb1b6b66820f0088286272a25aa990a281602ab2 \
   netsuke --locked
 ```
 
@@ -251,16 +251,25 @@ Override Cargo by exporting `CARGO` before invoking Netsuke:
 CARGO=/path/to/cargo netsuke build test
 ```
 
-The `test` action detects `cargo-nextest` through Cargo. Install
-`cargo-nextest` to `$HOME/.cargo/bin` to enable `netsuke build test` to use
-nextest.
+Optional tooling is probed at manifest time. The `test` and `whitaker-lint`
+actions use the `command_available` predicate in `when` clauses to select
+between complementary action variants while Netsuke loads the manifest, so only
+the applicable variant reaches the generated Ninja file. Because the probe
+resolves executables against the PATH of the Netsuke process itself, invoke
+Netsuke with the Cargo and local tool directories on `PATH`; the Makefile
+targets already do this.
+
+Install `cargo-nextest` to `$HOME/.cargo/bin` to enable `netsuke build test` to
+use nextest:
 
 ```bash
 cargo install cargo-nextest
 ```
 
-If `cargo-nextest` is absent, `netsuke build test` falls back to `cargo test`
-and still runs doctests.
+If `cargo-nextest` is absent when the manifest loads, `netsuke build test`
+selects the `cargo test` fallback variant instead. Similarly,
+`netsuke build lint` runs `whitaker` after Clippy when it is available and
+prints a skip notice otherwise.
 
 Markdown linting uses `MDLINT`, resolved through the same scoped prepend. In
 the standard development environment, `markdownlint-cli2` resolves from
@@ -547,7 +556,7 @@ Pagination tests are split by contract:
   normative specification for the SSE module
 - [ExecPlan: Implement SSE identifier and replay cursor
   helpers](execplans/1-1-1-implement-sse-identifier-and-replay-cursor-helpers.md)
-   — implementation plan for task 1.1.1
+  — implementation plan for task 1.1.1
 - [ExecPlan: Implement SSE frame and cache-header
   helpers](execplans/1-1-2-sse-frame-and-cache-header-helpers.md) —
   implementation plan for task 1.1.2

@@ -8,7 +8,7 @@ vars:
 
 actions:
   - name: all
-    sources:
+    deps:
       - check-fmt
       - lint
       - test
@@ -29,30 +29,51 @@ actions:
       sh -e -c 'PATH="{{ prepend_path }}:$$PATH"
       "$${CARGO:-cargo}" clean'
 
+  # Tool availability is probed at manifest time with command_available, so
+  # invoke Netsuke with cargo and local tool directories on PATH (the
+  # Makefile targets do this) for optional tooling to be discovered.
   - name: test
+    when: command_available("cargo-nextest")
     command: >-
       sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
-      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}";
-      if "$${CARGO:-cargo}" nextest --version >/dev/null 2>&1; then
       echo "[netsuke:test] cargo-nextest found; using nextest runner";
+      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}";
       RUSTFLAGS="$$RUSTFLAGS" "$${CARGO:-cargo}" nextest run {{ cargo_flags }} $${BUILD_JOBS:-};
-      RUSTFLAGS="$$RUSTFLAGS" "$${CARGO:-cargo}" test --doc --workspace --all-features;
-      else
-      echo "[netsuke:test] cargo-nextest not found; falling back to cargo test";
-      RUSTFLAGS="$$RUSTFLAGS" "$${CARGO:-cargo}" test {{ cargo_flags }} $${BUILD_JOBS:-};
-      fi'
+      RUSTFLAGS="$$RUSTFLAGS" "$${CARGO:-cargo}" test --doc --workspace --all-features'
 
-  - name: lint
+  - name: test
+    when: not command_available("cargo-nextest")
+    command: >-
+      sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
+      echo "[netsuke:test] cargo-nextest not found; falling back to cargo test";
+      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}" "$${CARGO:-cargo}" test {{ cargo_flags }} $${BUILD_JOBS:-}'
+
+  - name: clippy-lint
     command: >-
       sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
       RUSTDOCFLAGS="{{ rustdoc_flags }} $${RUSTDOC_FLAGS:-}" "$${CARGO:-cargo}" doc --no-deps;
-      "$${CARGO:-cargo}" clippy {{ cargo_flags }} -- {{ rust_flags }} $${RUST_FLAGS:-};
-      if command -v whitaker >/dev/null 2>&1; then
+      "$${CARGO:-cargo}" clippy {{ cargo_flags }} -- {{ rust_flags }} $${RUST_FLAGS:-}'
+
+  # Both variants depend on clippy-lint so lint work stays sequential and
+  # benefits from the shared build cache.
+  - name: whitaker-lint
+    when: command_available("whitaker")
+    deps: clippy-lint
+    command: >-
+      sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
       echo "[netsuke:lint] whitaker found; running whitaker lint";
-      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}" whitaker --all -- {{ cargo_flags }};
-      else
-      echo "[netsuke:lint] whitaker not found on PATH; skipping whitaker lint. Install whitaker to run this check.";
-      fi'
+      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}" whitaker --all -- {{ cargo_flags }}'
+
+  - name: whitaker-lint
+    when: not command_available("whitaker")
+    deps: clippy-lint
+    command: >-
+      sh -e -c 'echo "[netsuke:lint] whitaker not found on PATH;
+      skipping whitaker lint. Install whitaker to run this check."'
+
+  - name: lint
+    deps: whitaker-lint
+    command: "true"
 
   - name: typecheck
     command: >-
