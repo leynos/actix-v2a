@@ -54,22 +54,14 @@ actions:
       RUSTDOCFLAGS="{{ rustdoc_flags }} $${RUSTDOC_FLAGS:-}" "$${CARGO:-cargo}" doc --no-deps;
       "$${CARGO:-cargo}" clippy {{ cargo_flags }} -- {{ rust_flags }} $${RUST_FLAGS:-}'
 
-  # Both variants depend on clippy-lint so lint work stays sequential and
-  # benefits from the shared build cache.
+  # Depends on clippy-lint so lint work stays sequential and benefits
+  # from the shared build cache. Whitaker is mandatory: the suite is a
+  # required gate, and $WHITAKER allows overriding the binary.
   - name: whitaker-lint
-    when: command_available("whitaker")
     deps: clippy-lint
     command: >-
       sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
-      echo "[netsuke:lint] whitaker found; running whitaker lint";
-      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}" whitaker --all -- {{ cargo_flags }}'
-
-  - name: whitaker-lint
-    when: not command_available("whitaker")
-    deps: clippy-lint
-    command: >-
-      sh -e -c 'echo "[netsuke:lint] whitaker not found on PATH;
-      skipping whitaker lint. Install whitaker to run this check."'
+      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}" "$${WHITAKER:-whitaker}" --all -- {{ cargo_flags }}'
 
   - name: lint
     deps: whitaker-lint
