@@ -19,7 +19,7 @@ clean: ## Remove build artefacts
 test: ## Run tests with warnings treated as errors
 	PATH="$(PREPEND_PATH):$(PATH)" $(NETSUKE) build test
 
-lint: ## Run Clippy with warnings denied
+lint: ## Run Clippy and the Whitaker Dylint suite with warnings denied
 	PATH="$(PREPEND_PATH):$(PATH)" $(NETSUKE) build lint
 
 typecheck: ## Type-check without building
