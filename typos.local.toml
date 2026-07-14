@@ -1,0 +1,25 @@
+# Repository-specific exceptions to the shared en-GB-oxendict policy.
+
+schema = 1
+
+[oxford]
+stems = []
+
+[words]
+accepted = []
+
+[words.corrections]
+
+[patterns]
+ignore = [
+  # Cargo requires this exact environment variable.
+  '\bCARGO_TERM_COLOR\b',
+  # GitHub requires this exact pull-request event list.
+  'types: \[opened, reopened, synchronize, labeled, ready_for_review\]',
+  # Preserve formal upstream documentation names across line wrapping.
+  'Azure Architecture\s+Center\s+\|\s+Microsoft Learn',
+  'GitHub\s+Flavored\s+Markdown',
+]
+
+[files]
+exclude = []

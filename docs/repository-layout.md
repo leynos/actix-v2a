@@ -43,7 +43,7 @@ Table: Top-level repository files and their responsibilities.
 
 ## Source code
 
-The `src/` tree holds the library implementation. The code is organised by
+The `src/` tree holds the library implementation. The code is organized by
 feature rather than by technical layer:
 
 - `src/lib.rs` is the crate root and re-export surface.

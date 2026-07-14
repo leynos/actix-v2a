@@ -367,7 +367,7 @@ Implementation must not begin until the following gates are satisfied:
   `Last-Event-ID`, making an ADR necessary if `actix-v2a` is to host shared SSE
   helpers.
 - [x] 2026-04-02 08:29 BST: passed `make markdownlint` and `make nixie` for the
-  planning artifacts. Rust gates are intentionally deferred for this doc-only
+  planning artefacts. Rust gates are intentionally deferred for this doc-only
   turn until there is imported Rust code to validate.
 - [x] 2026-04-02 08:35 BST: updated the plan to treat shared `utoipa` schema
   fragments as explicitly in scope for the first implementation pass.

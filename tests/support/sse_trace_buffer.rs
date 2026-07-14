@@ -88,7 +88,7 @@ where
 ///
 /// The `log_buffer` slot provides the scenario's trace buffer. This performs a
 /// substring match against each captured event line, returns `false` when the
-/// slot has not yet been initialised, and recovers poisoned locks so a prior
+/// slot has not yet been initialized, and recovers poisoned locks so a prior
 /// panic does not silently hide the captured output.
 pub(crate) fn logs_contain(log_buffer: &Slot<LogBuffer>, value: &str) -> bool {
     let Some(buffer) = log_buffer.get() else {

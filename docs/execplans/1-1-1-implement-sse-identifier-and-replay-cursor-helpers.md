@@ -592,7 +592,7 @@ If a step fails partway through, fix the issue and re-run the stage's
 validation commands. No rollback is needed because the changes are additive and
 do not modify existing code.
 
-## Artifacts and notes
+## Artefacts and notes
 
 The implementation produces these new files:
 

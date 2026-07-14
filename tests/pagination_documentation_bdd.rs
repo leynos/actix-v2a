@@ -151,7 +151,7 @@ fn assert_normalized_limit(world: &World, expected: usize) -> StepResult<(), Str
         Ok(())
     } else {
         Err(format!(
-            "expected normalised limit {expected}, got {}",
+            "expected normalized limit {expected}, got {}",
             params.limit()
         ))
     }

@@ -22,20 +22,18 @@ jobs:
         uses: astral-sh/setup-uv@4cda7d73322c50eac316ad623a716f09a2db2ac7
         # v3.1.2
         with:
-          python-version: '3.11'
+          python-version: '3.14'
+      - name: Spelling
+        run: make spelling
       - name: Install bun
         uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
         # v2
         with:
           bun-version: '1.2.21'
-      - name: Install Mermaid CLI
-        run: |
-          set -euxo pipefail
-          bun install --no-progress --global @mermaid-js/mermaid-cli@11.9.0
-          bun x @puppeteer/browsers browsers install chrome-headless-shell
-          mmdc --version
       - name: Install Nixie
-        run: uv tool install nixie-cli==1.0.0
+        run: uv tool install nixie-cli==1.1.0
+      - name: Install Merman CLI
+        run: cargo install merman-cli --version '=0.7.0' --locked
       - name: Install markdownlint-cli2
         run: bun install -g markdownlint-cli2@0.22.1
       - name: Install Ninja

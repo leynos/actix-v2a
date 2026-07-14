@@ -60,7 +60,7 @@ BDD and handler-level test coverage, and observability instrumentation.
 - [x] 2.1. Port Wildside pagination documentation hardening.
   See
   [`docs/execplans/portwildsidepagination.md`](execplans/portwildsidepagination.md).
-  - Documented cursor key ordering invariants and limit normalisation semantics
+  - Documented cursor key ordering invariants and limit normalization semantics
     in `src/pagination/mod.rs`.
   - Added BDD coverage (`tests/pagination_documentation_bdd.rs`) and
     handler-level coverage (`tests/pagination_http_bdd.rs`).

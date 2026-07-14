@@ -6,3 +6,12 @@ target/
 *.swn
 *~
 *.un~
+
+# Local spelling-policy caches and helper tool state
+__pycache__/
+.coverage
+.pytest_cache/
+.uv-cache/
+.uv-tools/
+.typos-oxendict-base.json
+.typos-oxendict-base.toml
