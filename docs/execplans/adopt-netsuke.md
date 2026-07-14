@@ -388,7 +388,7 @@ The current build-tooling surface is small:
 
 First, create `Netsukefile` in the repository root. Use
 `netsuke_version: "1.0.0"` and define shared variables for the tool paths and
-flags currently centralised in the Makefile:
+flags currently centralized in the Makefile:
 
 ```yaml
 vars:

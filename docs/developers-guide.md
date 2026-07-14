@@ -1,5 +1,22 @@
 # Developer's Guide
 
+## Spelling policy
+
+The tracked `typos.toml` is generated from the shared estate dictionary and
+the repository-specific `typos.local.toml` overlay. Never edit generated
+entries by hand. Add only narrow repository terminology to the overlay, then
+verify the configuration with:
+
+```bash
+make spelling-config
+```
+
+The shared `typos-config-builder` CLI refreshes the estate dictionary into an
+untracked local cache only when the authoritative copy is newer. A valid cache
+remains usable when the network is unavailable. Quoted APIs and identifiers
+retain their upstream spelling; put them in backticks or fenced code blocks
+where practical rather than adding broad word-level exceptions.
+
 This guide documents internal conventions, module structure, and quality gates
 for contributors working on the `actix-v2a` crate. For repository-wide
 orientation, start with [documentation contents](contents.md) and
@@ -491,7 +508,7 @@ without binding the crate to a database, repository, or route shape.
   documented pagination error-mapping table.
 - `src/pagination/cursor.rs` — `Cursor<Key>` encoding and decoding, direction
   handling, token validation, and tracing spans.
-- `src/pagination/params.rs` — `PageParams` parsing, limit normalisation, and
+- `src/pagination/params.rs` — `PageParams` parsing, limit normalization, and
   shared query parameter constants.
 - `src/pagination/envelope.rs` — `Paginated<T>` response envelopes and
   `PaginationLinks` link construction.
@@ -504,9 +521,9 @@ module encodes and decodes opaque cursor tokens, but it does not prove that a
 database query, index, or repository predicate applies the same ordering on
 every page. Downstream persistence logic owns that invariant.
 
-### Limit normalisation
+### Limit normalization
 
-`PageParams` normalises page limits consistently:
+`PageParams` normalizes page limits consistently:
 
 - missing `limit` values use `DEFAULT_LIMIT`;
 - limits greater than `MAX_LIMIT` are clamped to `MAX_LIMIT`;
@@ -518,7 +535,7 @@ every page. Downstream persistence logic owns that invariant.
 `Cursor::encode` and `Cursor::decode` are instrumented with `#[instrument]`
 spans. `CursorError::Serialize` additionally emits a `tracing::error!` event at
 the public `Cursor::encode` boundary because it indicates that the server could
-not serialise its own cursor key. The caller-controlled variants
+not serialize its own cursor key. The caller-controlled variants
 `CursorError::InvalidBase64`, `CursorError::Deserialize`,
 `CursorError::TokenTooLong`, and `PageParamsError::InvalidLimit` do not emit
 library error events.

@@ -557,7 +557,7 @@ The Wildside scratch clone in `/tmp/wildside-9d6b7655-read` is read-only
 reference material and can be deleted at any time. The canonical source remains
 GitHub commit `9d6b7655e3ad1a666a0e96beebd0a27b0d139388`.
 
-## Artifacts and notes
+## Artefacts and notes
 
 Wildside commit summary:
 
