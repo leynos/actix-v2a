@@ -1,5 +1,8 @@
 # Actix v2a components
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](
+https://deepwiki.com/leynos/actix-v2a)
+
 This is a generated project using [Copier](https://copier.readthedocs.io/).
 
 ## Breaking changes
