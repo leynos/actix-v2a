@@ -1,16 +1,16 @@
 # Implement validated SSE event identifier and replay cursor helpers
 
 This ExecPlan (execution plan) is a living document. The sections `Constraints`,
- `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
+`Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
 and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
 Status: COMPLETE
 
 ## Purpose / big picture
 
-`actix-v2a` is the shared Actix component library for the v2a web stack. [ADR
-001][adr-001] defines a wire-only Server-Sent Events (SSE) contract that both
-Wildside and Corbusier can adopt without surrendering control of their own
+`actix-v2a` is the shared Actix component library for the v2a web stack.
+[ADR 001][adr-001] defines a wire-only Server-Sent Events (SSE) contract that
+both Wildside and Corbusier can adopt without surrendering control of their own
 event stores or stream routing. This plan delivers the first concrete piece of
 that contract: validated event identifiers for SSE `id:` lines and a replay
 cursor type that parses the `Last-Event-ID` request header.
@@ -45,9 +45,9 @@ These are hard invariants. Violation requires escalation, not workarounds.
   these concerns from the shared library.
 - The identifier validation must reject exactly three byte values: carriage
   return (U+000D), line feed (U+000A), and NULL (U+0000). These are the
-  characters that would break the SSE wire format per the [WHATWG HTML
-  specification][whatwg-sse] § 9.2.6. No other characters are forbidden by the
-  wire format.
+  characters that would break the SSE wire format per the
+  [WHATWG HTML specification][whatwg-sse] § 9.2.6. No other characters are
+  forbidden by the wire format.
 - The `Last-Event-ID` header parsing must follow the same single-header
   extraction pattern used by the existing `extract_idempotency_key` function in
   `src/idempotency/http.rs`: missing headers are `Ok(None)`, duplicate headers
@@ -252,7 +252,7 @@ SSE specification assigns special meaning to an empty identifier.
   1.1 "Build the shared wire-helper surface".
 - The
   [import-components-from-wildside execplan](import-components-from-wildside.md)
-   is the parent execution plan. Milestone 5 deferred SSE implementation
+  is the parent execution plan. Milestone 5 deferred SSE implementation
   because no authoritative source existed in Wildside; ADR 001 now provides the
   normative contract.
 

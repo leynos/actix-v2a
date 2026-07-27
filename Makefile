@@ -3,6 +3,7 @@
 
 PREPEND_PATH := $(HOME)/.cargo/bin:$(HOME)/.bun/bin:$(HOME)/.local/bin
 NETSUKE ?= $(shell PATH=$(PREPEND_PATH):$(PATH) command -v netsuke 2>/dev/null || printf '%s/.cargo/bin/netsuke' "$$HOME")
+CARGO ?= cargo
 UV ?= uv
 UV_ENV = UV_CACHE_DIR=.uv-cache UV_TOOL_DIR=.uv-tools
 RUFF_VERSION ?= 0.15.12
@@ -42,7 +43,8 @@ typecheck: ## Type-check without building
 	PATH="$(PREPEND_PATH):$(PATH)" $(NETSUKE) build typecheck
 
 fmt: ## Format Rust and Markdown sources
-	PATH="$(PREPEND_PATH):$(PATH)" $(NETSUKE) build fmt
+	$(CARGO) fmt --all
+	mdformat-all
 
 check-fmt: ## Verify formatting
 	PATH="$(PREPEND_PATH):$(PATH)" $(NETSUKE) build check-fmt

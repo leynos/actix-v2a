@@ -1,7 +1,7 @@
 # Adopt Netsuke as the Repository Build Driver
 
 This ExecPlan (execution plan) is a living document. The sections `Constraints`,
- `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
+`Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
 and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
 Status: COMPLETE
@@ -13,7 +13,7 @@ GitHub Actions workflow at `.github/workflows/ci.yml`. The goal is to pilot
 Netsuke as the primary build driver for this simple Rust repository while
 dogfooding Netsuke before package-manager distribution is available. After this
 change, a developer can run `netsuke build check-fmt`, `netsuke build lint`, and
- `netsuke build test` from the repository root and receive the same quality
+`netsuke build test` from the repository root and receive the same quality
 gate behaviour currently exposed by `make check-fmt`, `make lint`, and
 `make test`.
 
@@ -256,7 +256,7 @@ Actions.
 
 The stop hook at
 `https://github.com/example-org/agent-helper-scripts/blob/main/hooks/post-turn-quality-stop-hook.py`
- must become build-driver aware before repositories can retire Makefile shims.
+must become build-driver aware before repositories can retire Makefile shims.
 The current script assumes Make at the data-model, discovery, execution, and
 reporting layers:
 

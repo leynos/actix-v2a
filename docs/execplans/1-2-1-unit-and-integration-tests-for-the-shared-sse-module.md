@@ -1,7 +1,7 @@
 # Add unit and integration tests for the shared SSE module
 
 This ExecPlan (execution plan) is a living document. The sections `Constraints`,
- `Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
+`Tolerances`, `Risks`, `Progress`, `Surprises & Discoveries`, `Decision Log`,
 and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
 Status: COMPLETE
@@ -26,7 +26,7 @@ two forms of evidence:
 Success is observable when all roadmap-mandated behaviours are proven:
 identifier validation, `Last-Event-ID` parsing, frame formatting, cache
 headers, heartbeat output, and `stream_reset` output. It is also observable when
- `make check-fmt`, `make lint`, and `make test` pass with the new coverage, and
+`make check-fmt`, `make lint`, and `make test` pass with the new coverage, and
 when `docs/roadmap.md` marks task 1.2.1 done only after the implementation is
 complete.
 
@@ -81,9 +81,9 @@ This plan was approved before implementation began.
 
 Property-based testing (for example, `proptest`) for `EventId` byte-validation
 exhaustiveness and `apply_event_stream_cache_control` idempotence over arbitrary
- `Vec<SseHeader>` state is **out of scope for this plan**. The discrete
+`Vec<SseHeader>` state is **out of scope for this plan**. The discrete
 `rstest` parameterized cases cover the specified forbidden-byte set (`\n`, `\r`,
- `\0`) and the empty-string guard; idempotence is verified over hand-crafted
+`\0`) and the empty-string guard; idempotence is verified over hand-crafted
 initial states (empty, single pre-existing entry, multiple entries). Exhaustive
 property coverage is tracked in
 [issue `#18`](https://github.com/example-org/actix-v2a/issues/18) and deferred

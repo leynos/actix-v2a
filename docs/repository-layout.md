@@ -29,17 +29,17 @@ day-to-day contributors and omits generated or implementation-specific detail.
 
 Table: Top-level repository files and their responsibilities.
 
-| Path | Responsibility |
-| --- | --- |
-| `AGENTS.md` | Repository instructions for agents and maintainers. |
-| `Cargo.toml` | Workspace manifest and crate metadata. |
-| `Cargo.lock` | Locked dependency versions for reproducible builds. |
-| `Makefile` | Stable task entry points for build, lint, and formatting workflows. |
-| `Netsukefile` | Build-driver configuration consumed by `netsuke`. |
-| `README.md` | Public overview and first-stop entry point for new readers. |
-| `clippy.toml` | Clippy configuration and lint policy. |
-| `codecov.yml` | Coverage configuration. |
-| `rust-toolchain.toml` | Pinned Rust toolchain selection. |
+| Path                  | Responsibility                                                      |
+| --------------------- | ------------------------------------------------------------------- |
+| `AGENTS.md`           | Repository instructions for agents and maintainers.                 |
+| `Cargo.toml`          | Workspace manifest and crate metadata.                              |
+| `Cargo.lock`          | Locked dependency versions for reproducible builds.                 |
+| `Makefile`            | Stable task entry points for build, lint, and formatting workflows. |
+| `Netsukefile`         | Build-driver configuration consumed by `netsuke`.                   |
+| `README.md`           | Public overview and first-stop entry point for new readers.         |
+| `clippy.toml`         | Clippy configuration and lint policy.                               |
+| `codecov.yml`         | Coverage configuration.                                             |
+| `rust-toolchain.toml` | Pinned Rust toolchain selection.                                    |
 
 ## Source code
 
@@ -67,8 +67,8 @@ The `tests/` tree holds integration, BDD-style, and snapshot coverage:
 - `tests/snapshots/` contains checked-in snapshot expectations.
 - `tests/*_bdd.rs` and `tests/*_tests.rs` cover externally observable behaviour.
 
-Prefer adding tests beside the feature they exercise. Shared fixtures belong
-in `tests/support/` rather than in ad hoc helpers spread across suites.
+Prefer adding tests beside the feature they exercise. Shared fixtures belong in
+`tests/support/` rather than in ad hoc helpers spread across suites.
 
 ## Documentation
 
@@ -86,8 +86,8 @@ The `docs/` tree holds the long-lived project knowledge base:
 - `docs/execplans/` contains living execution plans and retrospectives.
 
 Keep design intent, decision records, and procedural guidance in the most
-specific document that can own it. Avoid duplicating repository layout
-guidance outside `docs/repository-layout.md`.
+specific document that can own it. Avoid duplicating repository layout guidance
+outside `docs/repository-layout.md`.
 
 ## Tooling and automation
 
