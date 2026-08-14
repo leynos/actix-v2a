@@ -31,11 +31,16 @@ extend-exclude = [
 locale = "en-gb"
 extend-ignore-re = [
     "(?s)```.*?```",
+    "-fuse-ld=mold",
     "Azure Architecture\\s+Center\\s+\\|\\s+Microsoft Learn",
+    "Cranelift \\+ mold",
+    "Cranelift and mold",
     "GitHub\\s+Flavored\\s+Markdown",
     "\\bCARGO_TERM_COLOR\\b",
     "\\brust-analyzer\\b",
     "`[^`\\n]+`",
+    "`mold`",
+    "mold linker",
     "types: \\[opened, reopened, synchronize, labeled, ready_for_review\\]",
 ]
 
