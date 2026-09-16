@@ -34,8 +34,6 @@ jobs:
         run: uv tool install nixie-cli==1.1.0
       - name: Install Merman CLI
         run: cargo install merman-cli --version '=0.7.0' --locked
-      - name: Install markdownlint-cli2
-        run: bun install -g markdownlint-cli2@0.22.1
       - name: Install Ninja
         run: sudo apt-get update && sudo apt-get install -y ninja-build
       - name: Install Netsuke
@@ -47,14 +45,22 @@ jobs:
         run: netsuke --version
       - name: Validate Netsuke manifest
         run: netsuke manifest -
+      - name: Install mdtablefix
+        # `make check-fmt` runs `mdtablefix --check --git`; 0.6.0 is the
+        # first release with `--check` and `--git`.
+        uses: leynos/shared-actions/.github/actions/install-mdtablefix@c5a54701c8603a0fa756a6b34c49bc2af75a6c11
+        with:
+          version: "0.6.0"
       - name: Format
+        # `make check-fmt` delegates the Rust check to Netsuke and adds the
+        # estate `mdtablefix --check` gate.
         run: >-
           set -o pipefail;
-          netsuke --verbose build check-fmt 2>&1 | tee /tmp/netsuke-check-fmt-actix-v2a-adopt-netsuke-ci.out
-      - name: Markdown lint
-        run: >-
-          set -o pipefail;
-          netsuke --verbose build markdownlint 2>&1 | tee /tmp/netsuke-markdownlint-actix-v2a-adopt-netsuke-ci.out
+          make check-fmt 2>&1 | tee /tmp/netsuke-check-fmt-actix-v2a-adopt-netsuke-ci.out
+      - name: Lint Markdown
+        uses: DavidAnson/markdownlint-cli2-action@4580e1612f6407034edd6c0e4e316d725920867b  # v24.2.0
+        with:
+          globs: '**/*.md'
       - name: Validate Mermaid diagrams
         run: >-
           set -o pipefail;
