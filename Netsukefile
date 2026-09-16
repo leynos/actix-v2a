@@ -76,7 +76,9 @@ actions:
     command: >-
       sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
       "$${CARGO:-cargo}" +nightly fmt --all;
-      mdformat-all'
+      "$${MDTABLEFIX:-mdtablefix}" --in-place --git --include-untracked
+      --wrap --renumber --breaks --ellipsis --fences;
+      "$${MDLINT:-markdownlint-cli2}" --fix '"'"'**/*.md'"'"''
 
   - name: check-fmt
     command: >-
