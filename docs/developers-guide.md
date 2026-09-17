@@ -25,6 +25,13 @@ for contributors working on the `actix-v2a` crate. For repository-wide
 orientation, start with [documentation contents](contents.md) and
 [repository layout](repository-layout.md).
 
+## Coverage publication
+
+Pull-request CI measures lcov coverage against the ratchet baseline written by
+`coverage-main.yml`; it has no CodeScene credential or upload step. The
+main-only workflow measures the same source with the same ratchet and publishes
+the resulting lcov report to CodeScene in explicit upload mode.
+
 ## SSE module internals
 
 The `src/sse/` module implements validated Server-Sent Events (SSE) wire-level
