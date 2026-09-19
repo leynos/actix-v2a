@@ -585,3 +585,13 @@ Pagination tests are split by contract:
   constraints, surprises, and acceptance criteria for the pagination
   documentation hardening workstream
 - [AGENTS.md](../AGENTS.md) — code style, testing, and commit conventions
+
+## Planned mutation and HTTP extensions
+
+The [shared mutation design](shared-mutation-contract-design.md) owns the
+future internal contract, permitted call sites, and composition rules for
+roadmap phases 3 and 4. These interfaces are not implemented yet. Extend the
+existing feature modules, keep transaction and authorization policy in
+consumers, and publish a downstream-consumable conformance harness. Resolve
+proposed ADR decisions before completing their dependent tasks. Existing
+completed execution plans remain historical records.
