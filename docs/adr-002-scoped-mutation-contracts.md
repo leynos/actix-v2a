@@ -71,9 +71,11 @@ and backend implementations are non-goals.
 ## Migration plan
 
 Roadmap 3.1 establishes the types and transitions; 3.2 publishes the harness,
-HTTP integration, and adoption examples. Existing APIs remain available until a
-compatibility migration is documented. Consumer adoption follows implemented
-capabilities, not acceptance of this ADR.
+key extraction, mutation outcome mappings, telemetry, and adoption examples.
+Generic shared HTTP helpers, including validation, error conversion, pagination
+conversion, and correlation, remain in phase 4. Existing APIs remain available
+until a compatibility migration is documented. Consumer adoption follows
+implemented capabilities, not acceptance of this ADR.
 
 ## Known risks and limitations
 

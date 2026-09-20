@@ -12,9 +12,11 @@ compatibility fixtures establish the chosen mappings.
 ## Context and problem statement
 
 Wildside carries field/index validation and pagination error helpers. Corbusier
-duplicates shared error conversion and maintains request correlation. Both need
-mutation outcomes that callers can interpret consistently. Extraction must
-preserve consumer envelopes and avoid importing authorization policy.
+already consumes the shared error envelope and `Idempotency-Key` parsing, while
+request correlation and application-owned domain mapping stay local. Both need
+mutation outcomes that callers can interpret consistently, and pagination
+conversion is not yet shared. Extraction must preserve consumer envelopes and
+avoid importing authorization policy.
 
 ## Decision drivers
 
@@ -29,6 +31,12 @@ preserve consumer envelopes and avoid importing authorization policy.
 Provide distinct required and optional key extraction. Define HTTP responses
 for pending, completed, conflicting, and uncertain operations. Provide field
 paths, optional indices, safe reason details, and consistent correlation.
+
+Preserve the field names that consumers already pin in fixtures.
+`metadata.version` stays `"v1"`; `request_id` and `timestamp` stay present in
+success envelopes; `code`, `message`, and `traceId` stay present in error
+envelopes. Replacement mappings must satisfy the same assertions, and any
+removal or change requires an explicitly versioned envelope first.
 
 ### Technical requirements
 
@@ -81,7 +89,8 @@ records acceptance evidence and publishes consumer migrations. Telemetry in
   and indeterminate outcomes without implying a safe retry? Test both consumer
   clients and document whether retry means lookup or attempted execution.
 - How should common reason, field, and index details fit existing envelopes?
-  Compare serialized compatibility fixtures before choosing field names.
+  Compare serialized compatibility fixtures before choosing new detail-field
+  names; the envelope and error field names above are fixed.
 - Which correlation header, limits, and syntax apply? Decide whether invalid
   or untrusted input is rejected or replaced, and define propagation rules
   across successful responses, errors, and inbound tracing context.

@@ -78,10 +78,13 @@ specify future implementation; the design PR completes none of them.
 ### 3.1. Establish scoped reservation and replay contracts
 
 Deliver a contract usable by HTTP mutations and non-HTTP hooks. Resolve API
-choices against both consumers before committing to a storage interface.
+choices against Wildside, Corbusier, and Mornington before committing to a
+storage interface.
 
 - [ ] 3.1.1. Implement scoped identities and versioned request fingerprints.
   - Resolve ADR 003 identity representation and legacy-record migration.
+  - Resolve and validate the storage and threat model for sensitive request
+    fingerprints, as required by design section "Scoped operation identity".
   - Prove principal, tenant, operation, and target isolation, deterministic
     normalized hashing, profile upgrade handling, and payload conflicts.
   - Preserve existing UUID parsing and hashing APIs through explicit adapters.
@@ -127,8 +130,9 @@ separately reserved effects before downstream adoption.
   - Emit outcome and latency instrumentation without high-cardinality labels
     or global recorder installation. See design "HTTP integration and other
     extractions".
-  - Publish Wildside mutation and Corbusier task/hook integration examples,
-    compatibility guidance, and a release or reviewed revision for adoption.
+  - Publish Wildside mutation, Corbusier task/hook, and Mornington replay and
+    RouchDB integration examples, compatibility guidance, and a release or
+    reviewed revision for adoption.
   - Link downstream issues and report which adapter guarantees their tests
     prove; do not claim downstream adoption from examples alone.
 
@@ -150,8 +154,10 @@ Use consumer compatibility fixtures to settle mapping decisions.
 - [ ] 4.1.2. Expose shared error and pagination HTTP conversion helpers.
   Requires 4.1.1.
   - Preserve explicit status, reason, safe details, and trace context.
-  - Replace duplicated mapping in representative Corbusier fixtures and cover
-    Wildside invalid-cursor and unsupported-direction cases.
+  - Extend the conversion to pagination errors, which are not yet shared, and
+    cover Wildside invalid-cursor and unsupported-direction cases.
+  - Keep representative Corbusier fixtures passing unchanged as compatibility
+    coverage for the existing shared error envelope.
   - Preserve existing pagination encoding and error APIs.
 
 ### 4.2. Standardize correlation and complete consumer migration guidance
