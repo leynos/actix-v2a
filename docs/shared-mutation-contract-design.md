@@ -93,6 +93,32 @@ Names below describe required outcomes, not a finalized Rust API.
 - `Indeterminate` denotes an outcome that cannot safely be inferred after
   failure, cancellation, or restart.
 
+The following diagram shows the permitted transitions between these outcomes.
+No transition returns an indeterminate operation to a claimable state, so
+recovery is always a form of reading durable state or reconciliation.
+
+For screen readers: The following state diagram traces the mutation outcome
+state machine from the initial `Acquired` reservation through `InProgress`,
+`Completed`, `Conflict`, and `Indeterminate`, including duplicate completion
+with the same result and rejection of a changed result.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Acquired
+    Acquired --> InProgress: concurrent claim
+    Acquired --> Completed: conditional completion
+    Acquired --> Indeterminate: effect or completion uncertain
+    InProgress --> Completed: owner completes
+    InProgress --> Conflict: fingerprint mismatch
+    Indeterminate --> Completed: durable lookup or reconciliation
+    Indeterminate --> Indeterminate: no safe retry
+    Completed --> Completed: duplicate completion with same result
+    Completed --> Conflict: changed result rejected
+```
+
+_Figure 1: Mutation outcome transitions from reservation through completion,
+conflict, or indeterminate reconciliation._
+
 Claim must atomically establish uniqueness and compare an existing record's
 fingerprint. Scope mismatch cannot return another principal's result.
 Completion must conditionally match both operation identity and current
@@ -115,6 +141,45 @@ Support two integration patterns, with explicit evidence for each adapter:
 2. Reserve separately before a non-transactional effect. Persist completion
    separately, expose unresolved execution, and reconcile using a durable
    effect identifier or a downstream idempotency facility.
+
+The sequence below shows the second pattern: a request claims a scoped
+reservation before the consumer executes the effect, and completion is
+conditional on the ownership token returned by the claim. Failure between the
+effect and the completion write is what leaves an operation indeterminate
+rather than safely retryable.
+
+For screen readers: The following sequence diagram shows a client submitting a
+mutation with a client key, the HTTP adapter claiming a scoped reservation
+through the shared contract, the consumer service executing the business effect
+and completing conditionally on its ownership token, and the adapter mapping
+the resulting outcome to an HTTP response. The consumer's persistence records
+the reservation and the completion; the shared contract does not own storage.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Adapter as HTTP adapter
+    participant Contract as Mutation contract
+    participant Consumer as Consumer service
+    participant Store as Consumer persistence
+    participant Effect as Business effect
+
+    Client->>Adapter: submit mutation with client key
+    Adapter->>Contract: claim
+    Contract->>Store: establish scoped reservation
+    Store-->>Contract: Acquired with ownership token
+    Contract-->>Adapter: Acquired
+    Adapter->>Consumer: dispatch parsed key and mutation
+    Consumer->>Effect: execute business effect
+    Consumer->>Contract: complete with ownership token and result
+    Contract->>Store: conditional completion
+    Store-->>Contract: Completed or Indeterminate
+    Contract-->>Adapter: mutation outcome
+    Adapter-->>Client: mapped HTTP response
+```
+
+_Figure 2: Claim, effect, and conditional completion across the shared contract
+and consumer-owned persistence._
 
 An outbox can durably schedule an external effect alongside a domain write; its
 delivery still needs duplicate handling. No helper promises exactly-once
