@@ -32,6 +32,14 @@
   Corbusier](adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md):
   proposed shared Server-Sent Events (SSE) contract for cross-application
   streaming helpers in `actix-v2a`.
+- [Shared mutation and HTTP integration design](shared-mutation-contract-design.md):
+  future scoped mutation contracts, recovery semantics, and consumer adoption.
+- [ADR 002: scoped mutation contracts](adr-002-scoped-mutation-contracts.md):
+  accepted ownership boundary for shared behaviour and consumer persistence.
+- [ADR 003: mutation recovery and replay](adr-003-mutation-recovery-and-replay.md):
+  proposed API, ownership, recovery, and persisted-format choices.
+- [ADR 004: shared HTTP integration](adr-004-shared-http-integration.md):
+  proposed extraction scope and open wire-compatibility decisions.
 - `execplans/`: living execution plans for non-trivial change work.
   - [Port Wildside pagination documentation
     hardening](execplans/portwildsidepagination.md): completed execution plan

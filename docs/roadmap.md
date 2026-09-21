@@ -67,3 +67,112 @@ BDD and handler-level test coverage, and observability instrumentation.
   - Added snapshot tests for error `Display` outputs and OpenAPI schemas.
   - Instrumented `Cursor::encode` and `Cursor::decode` with tracing spans and
     error events.
+
+## 3. Shared mutation contracts
+
+Deliver the behavioural boundary in
+[ADR 002](adr-002-scoped-mutation-contracts.md) and the
+[mutation design](shared-mutation-contract-design.md). These unchecked tasks
+specify future implementation; the design PR completes none of them.
+
+### 3.1. Establish scoped reservation and replay contracts
+
+Deliver a contract usable by HTTP mutations and non-HTTP hooks. Resolve API
+choices against Wildside, Corbusier, and Mornington before committing to a
+storage interface.
+
+- [ ] 3.1.1. Implement scoped identities and versioned request fingerprints.
+  - Resolve ADR 003 identity representation and legacy-record migration.
+  - Resolve and validate the storage and threat model for sensitive request
+    fingerprints, as required by design section "Scoped operation identity".
+  - Prove principal, tenant, operation, and target isolation, deterministic
+    normalized hashing, profile upgrade handling, and payload conflicts.
+  - Preserve existing UUID parsing and hashing APIs through explicit adapters.
+  - See design sections "Scoped operation identity" and "Delivery and
+    compatibility".
+- [ ] 3.1.2. Implement reservation and conditional completion contracts.
+  Requires 3.1.1.
+  - Resolve ADR 003 state representation and completion ownership decisions.
+  - Cover acquired, in-progress, completed, conflict, and indeterminate
+    outcomes, duplicate completion, and rejection of stale owners.
+  - Demonstrate both atomic commit and separate-reservation integration
+    without exporting database transaction handles.
+  - See design sections "Reservation and completion semantics" and
+    "Atomicity and recovery".
+- [ ] 3.1.3. Implement replay results and bounded recovery policy seams.
+  Requires 3.1.2.
+  - Resolve remaining ADR 003 questions and record its acceptance rationale.
+  - Support resource references and typed results as well as opt-in snapshots.
+  - Test injected time, cancellation, retention, and uncertain completion;
+    prohibit automatic effect retries based solely on lease expiry.
+  - See design sections "Replay and authorization" and "Atomicity and
+    recovery".
+
+### 3.2. Prove adapters and publish the mutation integration surface
+
+Deliver a reusable harness that exposes differences between atomic adapters and
+separately reserved effects before downstream adoption.
+
+- [ ] 3.2.1. Publish a downstream-consumable mutation conformance harness.
+  Requires 3.1.3.
+  - Choose a test-support feature or companion package with rationale.
+  - Cover every scenario in design section "Conformance and acceptance".
+  - Include durable restart and ambiguous-acknowledgement fixtures; an
+    in-memory reference implementation alone is insufficient evidence.
+- [ ] 3.2.2. Implement required and optional key extraction and HTTP outcomes.
+  Requires 3.1.3.
+  - Resolve ADR 004 mutation status, reason, and retry-header mappings.
+  - Test absent, malformed, and duplicate headers and key propagation into
+    application dispatch; retain existing optional extraction compatibility.
+  - Publish handler tests for replay, conflict, pending, and unknown outcomes.
+- [ ] 3.2.3. Add bounded mutation telemetry and publish adoption examples.
+  Requires 3.2.1, 3.2.2.
+  - Emit outcome and latency instrumentation without high-cardinality labels
+    or global recorder installation. See design "HTTP integration and other
+    extractions".
+  - Publish Wildside mutation, Corbusier task/hook, and Mornington replay and
+    RouchDB integration examples, compatibility guidance, and a release or
+    reviewed revision for adoption.
+  - Link downstream issues and report which adapter guarantees their tests
+    prove; do not claim downstream adoption from examples alone.
+
+## 4. Shared HTTP integration helpers
+
+Extract the bounded helpers in [ADR 004](adr-004-shared-http-integration.md)
+without importing authentication, tenant policy, or persistence machinery.
+
+### 4.1. Standardize validation and error conversion
+
+Deliver consistent error details without breaking consumer response envelopes.
+Use consumer compatibility fixtures to settle mapping decisions.
+
+- [ ] 4.1.1. Implement structured field and index validation details.
+  - Resolve ADR 004 validation vocabulary and envelope compatibility.
+  - Cover nested fields, array indices, missing values, and safe omission of
+    submitted secrets. Reuse Wildside validation cases.
+  - See design "HTTP integration and other extractions".
+- [ ] 4.1.2. Expose shared error and pagination HTTP conversion helpers.
+  Requires 4.1.1.
+  - Preserve explicit status, reason, safe details, and trace context.
+  - Extend the conversion to pagination errors, which are not yet shared, and
+    cover Wildside invalid-cursor and unsupported-direction cases.
+  - Keep representative Corbusier fixtures passing unchanged as compatibility
+    coverage for the existing shared error envelope.
+  - Preserve existing pagination encoding and error APIs.
+
+### 4.2. Standardize correlation and complete consumer migration guidance
+
+Deliver request correlation independently of authentication and tracing policy,
+then publish the complete adoption checklist.
+
+- [ ] 4.2.1. Implement validated request-correlation propagation.
+  - Resolve ADR 004 header trust, size, syntax, and invalid-input decisions.
+  - Test read-or-create behaviour, consistent response/error propagation,
+    concurrent request isolation, and distinction from distributed trace IDs.
+- [ ] 4.2.2. Publish compatibility fixtures and downstream migration guidance.
+  Requires 3.2.3, 4.1.2, 4.2.1.
+  - Resolve ADR 004 outstanding decisions and record acceptance evidence.
+  - Document public API migration, safe telemetry, and consumer-owned policy.
+  - Update the users' and developers' guides and both downstream adoption
+    issues with implemented task IDs and the adoption revision.
+  - Pass formatting, lint, test, Markdown, and diagram gates.
