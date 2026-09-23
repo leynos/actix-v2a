@@ -1,24 +1,50 @@
 name: Coverage (main)
 
-# Pull-request coverage compares locally with the ratchet. Only main publishes
-# the source-equivalent lcov report to CodeScene.
+# Main owns both persistent coverage outputs: the CodeScene upload and the
+# ratchet baseline. Pull requests generate coverage only for their own local
+# ratchet check, in `ci.yml`; they neither publish a report nor contact
+# CodeScene.
+#
+# CodeScene accepts `cs-coverage upload` only for a branch it analyses, which a
+# pull request head is not, and a pull request from a fork cannot read
+# `secrets.CS_ACCESS_TOKEN` at all. Caches and baselines written on `main` are
+# readable by every pull-request run, so the baseline written here is the one
+# those ratchet checks compare against.
 
 'on':
   push:
     branches: [main]
+  # A dispatch reads the baseline without advancing it: the shared action
+  # publishes a new baseline only on a push to `refs/heads/main`, so a manual
+  # run can measure this lane without moving the figure it is measuring.
   workflow_dispatch:
+
+# A run in progress is never cancelled. A cancelled publisher abandons both its
+# upload and its ratchet baseline write. With cancellation off, a newer push
+# waits for the running one and replaces any run still pending, so the newest
+# baseline wins. `tests/coverage_workflows.rs` refuses cancellation here.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   coverage-upload:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      CARGO_TERM_COLOR: always
+      BUILD_PROFILE: debug
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Rust
-        uses: leynos/shared-actions/.github/actions/setup-rust@152d9c4784d0ae5877938a984fe6d1f04d718fd8
-      - name: Generate coverage
-        uses: leynos/shared-actions/.github/actions/generate-coverage@152d9c4784d0ae5877938a984fe6d1f04d718fd8
+        uses: leynos/shared-actions/.github/actions/setup-rust@a5765019912a8ab6882b12db049c7cde635f3a85
+      - name: Test and Measure Coverage
+        # The same action, format, output path and default baseline files as
+        # the pull-request lane, so the figure written here is the figure a
+        # pull request is measured against. The action decides by the event
+        # whether it writes the baseline or compares with it.
+        uses: leynos/shared-actions/.github/actions/generate-coverage@a5765019912a8ab6882b12db049c7cde635f3a85
         with:
           output-path: lcov.info
           format: lcov
@@ -26,11 +52,14 @@ jobs:
       - name: Upload coverage data to CodeScene
         env:
           CS_ACCESS_TOKEN: ${{ secrets.CS_ACCESS_TOKEN }}
-        if: ${{ env.CS_ACCESS_TOKEN }}
-        uses: leynos/shared-actions/.github/actions/upload-codescene-coverage@152d9c4784d0ae5877938a984fe6d1f04d718fd8
+        # An unset secret leaves the upload out rather than failing the lane.
+        # The ref conjunct is what keeps the dispatch trigger above from
+        # uploading a branch CodeScene does not analyse: the push trigger is
+        # restricted to `main`, but a dispatch may name any branch.
+        if: ${{ env.CS_ACCESS_TOKEN != '' && github.ref == 'refs/heads/main' }}
+        uses: leynos/shared-actions/.github/actions/upload-codescene-coverage@a5765019912a8ab6882b12db049c7cde635f3a85
         with:
-          format: lcov
           path: lcov.info
+          format: lcov
           mode: upload
           access-token: ${{ env.CS_ACCESS_TOKEN }}
-          installer-checksum: ${{ vars.CODESCENE_CLI_SHA256 }}

@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Rust
-        uses: leynos/shared-actions/.github/actions/setup-rust@dc935ad8202c30495deaaaca7be4f876659e37ad
+        uses: leynos/shared-actions/.github/actions/setup-rust@a5765019912a8ab6882b12db049c7cde635f3a85
       - name: Install uv
         uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
         # v10.0.0
@@ -48,7 +48,7 @@ jobs:
       - name: Install mdtablefix
         # `make check-fmt` runs `mdtablefix --check --git`; 0.6.0 is the
         # first release with `--check` and `--git`.
-        uses: leynos/shared-actions/.github/actions/install-mdtablefix@dc935ad8202c30495deaaaca7be4f876659e37ad
+        uses: leynos/shared-actions/.github/actions/install-mdtablefix@a5765019912a8ab6882b12db049c7cde635f3a85
         with:
           version: "0.6.0"
       - name: Format
@@ -88,8 +88,18 @@ jobs:
           set -o pipefail;
           netsuke --verbose build lint 2>&1 | tee /tmp/netsuke-lint-actix-v2a-adopt-netsuke-ci.out
       - name: Test and Measure Coverage
-        uses: leynos/shared-actions/.github/actions/generate-coverage@152d9c4784d0ae5877938a984fe6d1f04d718fd8
+        # Coverage here is for the local ratchet and nothing else. The report
+        # is neither archived (`publish-artefact: 'false'`) nor sent to
+        # CodeScene: a pull request from a fork cannot read
+        # `secrets.CS_ACCESS_TOKEN`, so an upload here is silently inert for
+        # exactly the changes that most need reviewing, and CodeScene accepts
+        # an upload only for a branch it analyses, which a pull request head
+        # is not. `coverage-main.yml` owns both persistent outputs, and the
+        # baseline paths are the action's defaults on both sides, so this
+        # ratchet reads the baseline that workflow writes.
+        uses: leynos/shared-actions/.github/actions/generate-coverage@a5765019912a8ab6882b12db049c7cde635f3a85
         with:
           output-path: lcov.info
           format: lcov
           with-ratchet: 'true'
+          publish-artefact: 'false'
