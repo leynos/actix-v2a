@@ -74,24 +74,31 @@ pub(super) fn runs_the_cli(step: &Mapping) -> bool {
 /// Returns the reasons a workflow a pull request can reach breaches CV-005.
 pub fn pull_request_findings(workflow: &Value) -> Vec<String> {
     let mut findings = document_findings(workflow);
-    for (id, job) in reader::jobs(workflow) {
-        if get(job, "secrets").and_then(Value::as_str) == Some("inherit") {
-            findings.push(format!(
-                "job {id} forwards every secret with `secrets: inherit`"
-            ));
-        }
-    }
-    for (id, reference) in reader::job_calls(workflow) {
-        if reader::classify_call(reference) == reader::Call::Refused {
-            findings.push(format!(
-                "job {id} calls `{reference}`, which resolves to no workflow here"
-            ));
-        }
-    }
-    for step in reader::steps(workflow) {
-        findings.extend(pull_request_step_findings(step));
-    }
+    findings.extend(job_findings(workflow));
+    findings.extend(
+        reader::steps(workflow)
+            .into_iter()
+            .flat_map(pull_request_step_findings),
+    );
     findings
+}
+
+/// Returns the findings for the jobs of a pull-request lane.
+///
+/// `secrets: inherit` hands a called workflow every secret without naming
+/// one, and a refused local call names a file the closure cannot follow.
+fn job_findings(workflow: &Value) -> Vec<String> {
+    let inherits = reader::jobs(workflow)
+        .into_iter()
+        .filter(|(_, job)| get(job, "secrets").and_then(Value::as_str) == Some("inherit"))
+        .map(|(id, _)| format!("job {id} forwards every secret with `secrets: inherit`"));
+    let refused = reader::job_calls(workflow)
+        .into_iter()
+        .filter(|(_, reference)| reader::classify_call(reference) == reader::Call::Refused)
+        .map(|(id, reference)| {
+            format!("job {id} calls `{reference}`, which resolves to no workflow here")
+        });
+    inherits.chain(refused).collect()
 }
 
 /// Returns the findings that search the whole parsed document.

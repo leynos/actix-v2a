@@ -37,6 +37,8 @@ use serde_yaml::Value;
 
 #[path = "coverage_workflows/closure_properties.rs"]
 mod closure_properties;
+#[path = "coverage_workflows/condition_cases.rs"]
+mod condition_cases;
 #[path = "coverage_workflows/publisher_cases.rs"]
 mod publisher_cases;
 #[path = "coverage_workflows/publisher_rules.rs"]

@@ -4,6 +4,8 @@
 //! function returns the reasons a workflow fails, so a fixture case can assert
 //! which clause fired.
 
+use std::iter;
+
 use serde_yaml::{Mapping, Value};
 
 use super::{
@@ -56,19 +58,17 @@ pub fn publishes_from_main(workflow: &Value) -> bool {
 
 /// Blanks every character inside a single-quoted literal, keeping the quotes.
 ///
-/// Blanked character for character, so the result has as many characters as
-/// the input and a position found in one is the same position in the other.
+/// Blanked byte for byte, so an offset found in the result is an offset in
+/// the input even when a literal holds a multi-byte character.
 fn unquoted(body: &str) -> String {
     let mut in_quote = false;
     body.chars()
         .map(|character| {
-            if character == '\'' {
-                in_quote = !in_quote;
-                character
-            } else if in_quote {
-                ' '
+            in_quote ^= character == '\'';
+            if in_quote && character != '\'' {
+                " ".repeat(character.len_utf8())
             } else {
-                character
+                character.to_string()
             }
         })
         .collect()
@@ -91,24 +91,15 @@ pub fn conjuncts(condition: &str) -> Option<Vec<String>> {
     if blanked.contains("||") {
         return None;
     }
-    let mut parts = vec![String::new()];
-    let mut pending_ampersand = false;
-    for (original, seen) in body.chars().zip(blanked.chars()) {
-        if seen == '&' && !pending_ampersand {
-            pending_ampersand = true;
-            continue;
-        }
-        if seen == '&' {
-            parts.push(String::new());
-        } else if let Some(part) = parts.last_mut() {
-            if pending_ampersand {
-                part.push('&');
-            }
-            part.push(original);
-        }
-        pending_ampersand = false;
-    }
-    Some(parts.iter().map(|part| normalized(part)).collect())
+    let operators: Vec<usize> = blanked.match_indices("&&").map(|(at, _)| at).collect();
+    let starts = iter::once(0).chain(operators.iter().map(|at| at + 2));
+    let ends = operators.iter().copied().chain(iter::once(body.len()));
+    Some(
+        starts
+            .zip(ends)
+            .map(|(start, end)| normalized(body.get(start..end).unwrap_or_default()))
+            .collect(),
+    )
 }
 
 /// Returns whether an upload step's condition confines it to `main`.

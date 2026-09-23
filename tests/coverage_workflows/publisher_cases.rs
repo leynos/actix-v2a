@@ -296,22 +296,6 @@ fn check_mode_is_not_an_upload() -> Result<()> {
     Ok(())
 }
 
-/// Scenario: conditions whose operators sit inside quoted literals.
-///
-/// Invariant: a `||` inside a string is not a disjunction, and an `&&`
-/// inside one does not split a conjunct.
-#[rstest]
-#[case::quoted_or("${{ github.ref == 'refs/heads/main' && env.X != 'a||b' }}", Some(2))]
-#[case::quoted_and("${{ github.ref == 'refs/heads/main' && env.X != 'a&&b' }}", Some(2))]
-#[case::bare_or("github.ref == 'refs/heads/main' || true", None)]
-fn quoted_operators_are_not_operators(#[case] condition: &str, #[case] expected: Option<usize>) {
-    assert_eq!(
-        rules::conjuncts(condition).map(|parts| parts.len()),
-        expected,
-        "for {condition}"
-    );
-}
-
 /// A publisher wired as this repository wires it: the upload reads what the
 /// coverage step writes and passes the token its step was given.
 const WIRED: &str = r"
