@@ -38,8 +38,8 @@ the report in explicit upload mode, passing the secret as the action's
 `access-token` input and guarded on exactly
 `steps.codescene-token.outputs.available == 'true' && github.ref == 'refs/heads/main'`,
 where a check step reports whether the secret is set and no step holds it in
-its `env`, in a concurrency group keyed on the evaluated ref and event that
-never cancels a run in progress.
+its `env`, in a concurrency group keyed on the ref alone that never cancels a
+run in progress, so uploads land in commit order.
 
 `tests/coverage_workflows.rs` enforces the split: it reads every workflow a
 pull request can reach as a closure through local reusable-workflow calls,
@@ -63,7 +63,7 @@ fixtures.
 
 - A pull request's coverage is judged only by the ratchet; CodeScene sees
   `main`.
-- A dispatch measures without advancing the baseline, and cannot displace a
-  pending push.
+- A dispatch measures without advancing the baseline; one that replaces a
+  pending push leaves the baseline a commit behind until the next push.
 - Adding a workflow that touches CodeScene, runs ratcheted coverage on a push,
   or changes the coverage selection fails the contract, which names the clause.
