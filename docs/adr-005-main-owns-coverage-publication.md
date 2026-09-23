@@ -39,7 +39,9 @@ the report in explicit upload mode, passing the secret as the action's
 `steps.codescene-token.outputs.available == 'true' && github.ref == 'refs/heads/main'`,
 where a check step reports whether the secret is set and no step holds it in
 its `env`, in a concurrency group keyed on the ref alone that never cancels a
-run in progress, so uploads land in commit order.
+run in progress, so triggered runs upload in commit order; a manual re-run of
+an older run republishes that commit's coverage and baseline until the next
+push.
 
 `tests/coverage_workflows.rs` enforces the split: it reads every workflow a
 pull request can reach as a closure through local reusable-workflow calls,
