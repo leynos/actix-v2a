@@ -34,10 +34,12 @@ Two workflows split the work. The pull-request lane runs the shared
 `publish-artefact: 'false'`, and nothing else touches CodeScene. The publisher,
 `coverage-main.yml`, runs on a push to `main` and on dispatch: it measures the
 same pinned selection, which writes the ratchet baseline on a push, and uploads
-the report in explicit upload mode from the one step that binds the token,
-behind exactly `env.CS_ACCESS_TOKEN != '' && github.ref == 'refs/heads/main'`,
-in a concurrency group keyed on the evaluated ref and event that never cancels
-a run in progress.
+the report in explicit upload mode, passing the secret as the action's
+`access-token` input and guarded on exactly
+`steps.codescene-token.outputs.available == 'true' && github.ref == 'refs/heads/main'`,
+where a check step reports whether the secret is set and no step holds it in
+its `env`, in a concurrency group keyed on the evaluated ref and event that
+never cancels a run in progress.
 
 `tests/coverage_workflows.rs` enforces the split: it reads every workflow a
 pull request can reach as a closure through local reusable-workflow calls,
