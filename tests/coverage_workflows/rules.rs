@@ -24,6 +24,8 @@ const ACCESS_TOKEN_FOLDED: &str = "cs_access_token";
 pub(super) const COVERAGE_CLI: &str = "cs-coverage";
 /// The service host, however it is reached.
 const CODESCENE_HOST: &str = "codescene.io";
+/// The variable the retired installer-digest refresher wrote, case-folded.
+const CLI_DIGEST_VARIABLE: &str = "codescene_cli_sha256";
 
 /// Collapses every run of whitespace to one space.
 pub(super) fn normalized(text: &str) -> String {
@@ -140,4 +142,41 @@ fn pull_request_step_findings(step: &Mapping) -> Vec<String> {
         findings.push("a pull-request coverage step publishes its report".to_owned());
     }
     findings
+}
+
+/// Returns the reasons a workflow other than the publisher reaches `CodeScene`.
+///
+/// The pull-request clauses read only what a pull request can reach, and the
+/// publisher clauses only the publisher, so a dispatch-only or tag-triggered
+/// workflow would escape both. Only the publisher may hold the token, name the
+/// host, run the CLI or the uploader, or touch the retired installer digest.
+pub fn stray_findings(workflow: &Value) -> Vec<String> {
+    let text = folded(workflow);
+    let steps = reader::steps(workflow);
+    [
+        (
+            text.contains(ACCESS_TOKEN_FOLDED),
+            format!("receives {ACCESS_TOKEN}"),
+        ),
+        (
+            text.contains(CODESCENE_HOST),
+            format!("contacts {CODESCENE_HOST}"),
+        ),
+        (
+            text.contains(CLI_DIGEST_VARIABLE),
+            "reads or writes CODESCENE_CLI_SHA256".to_owned(),
+        ),
+        (
+            steps.iter().any(|step| is_upload_action(step)),
+            format!("invokes {UPLOAD_ACTION}"),
+        ),
+        (
+            steps.iter().any(|step| runs_the_cli(step)),
+            format!("runs {COVERAGE_CLI}"),
+        ),
+    ]
+    .into_iter()
+    .filter(|(is_hit, _)| *is_hit)
+    .map(|(_, reason)| format!("a workflow other than the publisher {reason}"))
+    .collect()
 }

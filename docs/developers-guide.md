@@ -51,9 +51,12 @@ only for a branch it analyses, which a pull request head is not.
 
 `tests/coverage_workflows.rs` enforces the split over every workflow a pull
 request can reach, following local reusable-workflow calls transitively, and
-drives each rule against breaching fixtures under `tests/coverage_workflows/`.
-When adding a workflow, keep CodeScene, `cs-coverage` and the token out of it
-unless it is the publisher; the contract names the clause a change breaks.
+over every other workflow too: only the publisher may hold the token, name the
+CodeScene host, run the CLI or the uploader, or touch the retired
+`CODESCENE_CLI_SHA256` variable. It drives each rule against breaching fixtures
+under `tests/coverage_workflows/`. When adding a workflow, keep CodeScene,
+`cs-coverage` and the token out of it unless it is the publisher; the contract
+names the clause a change breaks.
 
 ## SSE module internals
 

@@ -342,3 +342,45 @@ fn the_whole_document_is_searched(#[case] source: &str, #[case] expected: &str) 
     );
     Ok(())
 }
+
+/// Scenario: a workflow outside both lanes, triggered by a tag, reaches
+/// `CodeScene` by each route.
+///
+/// Invariant: each route is reported, since neither the pull-request nor the
+/// publisher clauses read a tag- or dispatch-triggered workflow.
+#[rstest]
+#[case::token("      - run: echo ${{ secrets.CS_ACCESS_TOKEN }}\n", "receives")]
+#[case::host(
+    "      - run: curl -fsSL https://downloads.codescene.io/x.sh\n",
+    "contacts"
+)]
+#[case::digest(
+    "      - run: gh variable set CODESCENE_CLI_SHA256 --body x\n",
+    "CODESCENE_CLI_SHA256"
+)]
+#[case::cli("      - run: cs-coverage upload --format lcov\n", "runs cs-coverage")]
+#[case::uploader(
+    "      - uses: leynos/shared-actions/.github/actions/upload-codescene-coverage@abc\n",
+    "invokes"
+)]
+fn a_workflow_outside_both_lanes_is_read(#[case] step: &str, #[case] expected: &str) -> Result<()> {
+    let source = format!("on:\n  push:\n    tags: ['v*']\njobs:\n  job:\n    steps:\n{step}");
+    let findings = rules::stray_findings(&parse(&source)?);
+    ensure!(
+        findings.iter().any(|finding| finding.contains(expected)),
+        "the route was not reported: {findings:?}"
+    );
+    Ok(())
+}
+
+/// Scenario: a release workflow names no `CodeScene` surface.
+///
+/// Invariant: it has no findings, so the clause refuses reaching `CodeScene`
+/// rather than existing.
+#[test]
+fn a_workflow_without_codescene_is_not_a_stray() -> Result<()> {
+    let source = "on: workflow_dispatch\njobs:\n  job:\n    steps:\n      - run: make build\n";
+    let findings = rules::stray_findings(&parse(source)?);
+    ensure!(findings.is_empty(), "unexpected findings: {findings:?}");
+    Ok(())
+}

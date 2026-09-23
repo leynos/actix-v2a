@@ -115,6 +115,38 @@ fn exactly_one_main_publisher_uploads_ratcheted_coverage() -> Result<()> {
     Ok(())
 }
 
+/// Scenario: every workflow other than the publisher is examined.
+///
+/// Invariant: none holds the token, names the host, runs the CLI or the
+/// uploader, or touches the retired installer digest. The pull-request and
+/// publisher clauses between them leave a dispatch-only or tag-triggered
+/// workflow unread; this one reads every file.
+#[test]
+fn only_the_publisher_reaches_codescene() -> Result<()> {
+    let all = reader::workflows()?;
+    let others: Vec<(&String, &Value)> = all
+        .iter()
+        .filter(|(_, workflow)| !publisher_rules::publishes_from_main(workflow))
+        .collect();
+    ensure!(
+        !others.is_empty(),
+        "no workflow besides the publisher was read"
+    );
+    let breaches: Vec<String> = others
+        .into_iter()
+        .flat_map(|(name, workflow)| {
+            rules::stray_findings(workflow)
+                .into_iter()
+                .map(move |finding| format!("{name}: {finding}"))
+        })
+        .collect();
+    ensure!(
+        breaches.is_empty(),
+        "CodeScene outside the publisher: {breaches:?}"
+    );
+    Ok(())
+}
+
 /// A coverage step's baseline files, as `(workflow, Rust file, Python file)`.
 type Baseline = (String, String, String);
 
