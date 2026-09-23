@@ -42,7 +42,8 @@ Coverage has two workflows, and the split is a contract (concordat's CV-005,
   mode. The upload step alone binds `CS_ACCESS_TOKEN`, its `if:` carries
   `github.ref == 'refs/heads/main'` as its own conjunct (a dispatch can name
   any branch), and the workflow's concurrency group never cancels a run in
-  progress, so a burst of merges cannot abandon a baseline write.
+  progress, so a burst of merges cannot abandon a baseline write; dispatches
+  queue in a group of their own, so one cannot replace a pending push.
 
 The reasons are both quiet failures: a pull request from a fork cannot read the
 secret, so an upload there is silently skipped, and CodeScene accepts an upload

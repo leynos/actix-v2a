@@ -61,7 +61,8 @@ fn publisher(concurrency: &str, upload_if: &str, extra_step: &str) -> String {
 }
 
 /// The publisher's concurrency block as this repository writes it.
-const NEVER_CANCEL: &str = "concurrency:\n  group: pub\n  cancel-in-progress: false";
+const NEVER_CANCEL: &str =
+    "concurrency:\n  group: pub-${{ github.event_name }}\n  cancel-in-progress: false";
 /// The upload condition as this repository writes it.
 const GUARD: &str = "${{ env.CS_ACCESS_TOKEN != '' && github.ref == 'refs/heads/main' }}";
 
@@ -116,18 +117,24 @@ const GUARD: &str = "${{ env.CS_ACCESS_TOKEN != '' && github.ref == 'refs/heads/
     Some("not guarded")
 )]
 #[case::cancels(
-    "concurrency:\n  group: pub\n  cancel-in-progress: true",
+    "concurrency:\n  group: pub-${{ github.event_name }}\n  cancel-in-progress: true",
     GUARD,
     "",
     Some("cancel")
 )]
 #[case::cancels_by_expression(
-    "concurrency:\n  group: pub\n  cancel-in-progress: ${{ true }}",
+    "concurrency:\n  group: pub-${{ github.event_name }}\n  cancel-in-progress: ${{ true }}",
     GUARD,
     "",
     Some("cancel")
 )]
 #[case::no_group("", GUARD, "", Some("no concurrency group"))]
+#[case::dispatches_share_the_group(
+    "concurrency:\n  group: pub\n  cancel-in-progress: false",
+    GUARD,
+    "",
+    Some("a dispatch can replace a pending push")
+)]
 #[case::token_elsewhere(
     NEVER_CANCEL,
     GUARD,
@@ -207,6 +214,10 @@ const REUSABLE: &str = "  forward:\n    uses: ./.github/workflows/elsewhere.yml\
         "      - env:\n          CS_TOKEN: ${{ secrets.CS_ACCESS_TOKEN }}\n",
     ),
     &["does not bind"][..],
+)]
+#[case::held_elsewhere_in_another_case(
+    |source: String| source.replace("        with:\n          with-ratchet", "        env:\n          T: ${{ secrets.Cs_Access_Token }}\n        with:\n          with-ratchet"),
+    &["other than the upload"][..],
 )]
 #[case::computed_elsewhere(
     |source: String| source.replace("        with:\n          with-ratchet", "        env:\n          T: ${{ secrets['CS_ACCESS_TOKEN'] }}\n        with:\n          with-ratchet"),

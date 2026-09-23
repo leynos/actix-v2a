@@ -53,6 +53,19 @@ fn push_line(text: &mut String, line: &str) {
     text.push('\n');
 }
 
+/// Returns [`rendered`] case-folded, for the clauses that search for a name.
+///
+/// Secret names, context names and a DNS host are all case-insensitive, so
+/// `secrets.cs_access_token` and `SECRETS[...]` reach the same token as the
+/// spelling the clauses name. Folding the text, rather than the needle, is
+/// what lets every clause read each spelling.
+pub(super) fn folded(value: &Value) -> String { rendered(value).to_ascii_lowercase() }
+
+/// Returns [`rendered_mapping`] case-folded, as [`folded`] does a value.
+pub(super) fn folded_mapping(mapping: &Mapping) -> String {
+    rendered_mapping(mapping).to_ascii_lowercase()
+}
+
 /// Walks one step or job mapping, as [`rendered`] does a whole value.
 pub(super) fn rendered_mapping(mapping: &Mapping) -> String {
     let mut text = String::new();

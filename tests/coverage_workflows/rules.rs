@@ -8,7 +8,7 @@ use serde_yaml::{Mapping, Value};
 
 use super::{
     reader::{self, get, uses},
-    text::{computes_a_secret, rendered},
+    text::{computes_a_secret, folded},
 };
 
 /// The action the estate uses to publish coverage to `CodeScene`.
@@ -17,6 +17,9 @@ pub const UPLOAD_ACTION: &str = "leynos/shared-actions/.github/actions/upload-co
 pub const COVERAGE_ACTION: &str = "leynos/shared-actions/.github/actions/generate-coverage";
 /// The secret a pull-request lane must not receive.
 pub(super) const ACCESS_TOKEN: &str = "CS_ACCESS_TOKEN";
+/// [`ACCESS_TOKEN`] case-folded, as the searched text is: secret names are
+/// case-insensitive.
+const ACCESS_TOKEN_FOLDED: &str = "cs_access_token";
 /// The CLI a lane must not reach for directly either.
 pub(super) const COVERAGE_CLI: &str = "cs-coverage";
 /// The service host, however it is reached.
@@ -48,12 +51,12 @@ pub(super) fn input_is(step: &Mapping, key: &str, expected: bool) -> bool {
 
 /// Returns whether a step runs the shared coverage action.
 pub(super) fn is_coverage(step: &Mapping) -> bool {
-    uses(step).is_some_and(|r| r.starts_with(COVERAGE_ACTION))
+    uses(step).is_some_and(|r| r.to_ascii_lowercase().starts_with(COVERAGE_ACTION))
 }
 
 /// Returns whether a step runs the upload action.
 pub(super) fn is_upload_action(step: &Mapping) -> bool {
-    uses(step).is_some_and(|r| r.starts_with(UPLOAD_ACTION))
+    uses(step).is_some_and(|r| r.to_ascii_lowercase().starts_with(UPLOAD_ACTION))
 }
 
 /// Returns whether a step uploads to `CodeScene` through the shared action.
@@ -107,15 +110,15 @@ fn job_findings(workflow: &Value) -> Vec<String> {
 /// `defaults.run.shell`, a `workflow_call` secret declaration or any other
 /// place a value can sit is searched without a clause naming it.
 fn document_findings(workflow: &Value) -> Vec<String> {
-    let text = rendered(workflow);
+    let text = folded(workflow);
     let mut findings = Vec::new();
-    if text.contains(ACCESS_TOKEN) {
+    if text.contains(ACCESS_TOKEN_FOLDED) {
         findings.push(format!("a pull-request lane receives {ACCESS_TOKEN}"));
     }
     if computes_a_secret(&text) {
         findings.push("a pull-request lane reaches a secret by a computed name".to_owned());
     }
-    if text.to_ascii_lowercase().contains(CODESCENE_HOST) {
+    if text.contains(CODESCENE_HOST) {
         findings.push(format!("a pull-request lane contacts {CODESCENE_HOST}"));
     }
     findings

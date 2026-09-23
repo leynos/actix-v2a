@@ -22,9 +22,12 @@ name: Coverage (main)
 # A run in progress is never cancelled. A cancelled publisher abandons both its
 # upload and its ratchet baseline write. With cancellation off, a newer push
 # waits for the running one and replaces any run still pending, so the newest
-# baseline wins. `tests/coverage_workflows.rs` refuses cancellation here.
+# baseline wins. Dispatches queue in a group of their own: GitHub keeps one
+# pending run per group, so a dispatch sharing the pushes' group could replace
+# a pending push, and a dispatch never advances the baseline.
+# `tests/coverage_workflows.rs` refuses both cancellation and a shared group.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: false
 
 jobs:

@@ -82,6 +82,8 @@ fn the_pull_request_rule_reports_what_it_should(
      }}\n"
 )]
 #[case::inherit("uses: ./.github/workflows/c.yml\nsecrets: inherit\n")]
+#[case::name_in_another_case("steps:\n  - run: echo ${{ secrets.Cs_Access_Token }}\n")]
+#[case::context_in_another_case("steps:\n  - run: echo ${{ SECRETS['CS_' + 'ACCESS_TOKEN'] }}\n")]
 #[case::computed_name("steps:\n  - run: echo ${{ secrets[format('CS_{0}', 'ACCESS_TOKEN')] }}\n")]
 #[case::whole_context("steps:\n  - run: echo '${{ toJSON(secrets) }}'\n")]
 fn every_route_to_the_token_is_reported(#[case] job: &str) -> Result<()> {
@@ -92,6 +94,34 @@ fn every_route_to_the_token_is_reported(#[case] job: &str) -> Result<()> {
     let source = format!("on: pull_request\njobs:\n  lane:\n{indented}");
     let findings = rules::pull_request_findings(&parse(&source)?);
     ensure!(!findings.is_empty(), "the route was not reported: {source}");
+    Ok(())
+}
+
+/// Scenario: a pull-request lane names the shared actions with the owner and
+/// repository in another case.
+///
+/// Invariant: each is still recognized. GitHub resolves the owner and the
+/// repository case-insensitively, so `Leynos/Shared-Actions` runs the same
+/// uploader, and a prefix match on the canonical spelling alone would pass it.
+#[rstest]
+#[case::uploader(
+    "Leynos/Shared-Actions/.github/actions/upload-codescene-coverage@abc",
+    "invokes"
+)]
+#[case::generator(
+    "LEYNOS/shared-actions/.github/actions/generate-coverage@abc",
+    "does not set with-ratchet"
+)]
+fn an_action_is_matched_whatever_the_case(
+    #[case] action: &str,
+    #[case] expected: &str,
+) -> Result<()> {
+    let source = format!("on: pull_request\njobs:\n  lane:\n    steps:\n      - uses: {action}\n");
+    let findings = rules::pull_request_findings(&parse(&source)?);
+    ensure!(
+        findings.iter().any(|finding| finding.contains(expected)),
+        "{action} was not recognized: {findings:?}"
+    );
     Ok(())
 }
 

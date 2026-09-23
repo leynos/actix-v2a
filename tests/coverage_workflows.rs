@@ -122,7 +122,7 @@ type Baseline = (String, String, String);
 fn baselines(name: &str, workflow: &Value) -> Vec<Baseline> {
     reader::steps(workflow)
         .into_iter()
-        .filter(|step| reader::uses(step).is_some_and(|r| r.starts_with(rules::COVERAGE_ACTION)))
+        .filter(|step| rules::is_coverage(step))
         .map(|step| {
             let with = reader::get(step, "with").and_then(Value::as_mapping);
             let path = |key: &str| {

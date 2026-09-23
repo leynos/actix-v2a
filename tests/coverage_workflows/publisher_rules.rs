@@ -21,7 +21,7 @@ use super::{
         normalized,
         runs_the_cli,
     },
-    text::{computes_a_secret, rendered, rendered_mapping},
+    text::{computes_a_secret, folded, folded_mapping},
 };
 
 /// The expression that hands a step the secret itself.
@@ -30,7 +30,10 @@ use super::{
 /// because the upload's own guard names `env.CS_ACCESS_TOKEN` without holding
 /// anything: a step whose `env` lost the secret would otherwise still read as
 /// receiving it through its `if:`.
-const SECRET_REFERENCE: &str = "secrets.CS_ACCESS_TOKEN";
+///
+/// Case-folded, as the searched text is: context and secret names are
+/// case-insensitive, so `secrets.Cs_Access_Token` is the same reference.
+const SECRET_REFERENCE: &str = "secrets.cs_access_token";
 /// The upload step's `env` binding of the token, whitespace normalized.
 const TOKEN_BINDING: &str = "${{ secrets.CS_ACCESS_TOKEN }}";
 /// The upload action's `access-token` input, whitespace normalized.
@@ -129,14 +132,14 @@ fn wide_token_findings(workflow: &Value) -> Vec<String> {
     if workflow
         .as_mapping()
         .and_then(|root| get(root, "env"))
-        .is_some_and(|env| rendered(env).contains(SECRET_REFERENCE))
+        .is_some_and(|env| folded(env).contains(SECRET_REFERENCE))
     {
         findings.push(format!(
             "the publisher declares {ACCESS_TOKEN} for every job"
         ));
     }
     for (id, job) in reader::jobs(workflow) {
-        if get(job, "env").is_some_and(|env| rendered(env).contains(SECRET_REFERENCE)) {
+        if get(job, "env").is_some_and(|env| folded(env).contains(SECRET_REFERENCE)) {
             findings.push(format!("job {id} declares {ACCESS_TOKEN} for every step"));
         }
         if forwards_the_token(job) {
@@ -156,11 +159,11 @@ fn wide_token_findings(workflow: &Value) -> Vec<String> {
 /// hold it, and no wider scope may declare it.
 fn token_findings(workflow: &Value) -> Vec<String> {
     let mut findings = wide_token_findings(workflow);
-    if computes_a_secret(&rendered(workflow)) {
+    if computes_a_secret(&folded(workflow)) {
         findings.push("the publisher reaches a secret by a computed name".to_owned());
     }
     for step in reader::steps(workflow) {
-        let holds = rendered_mapping(step).contains(SECRET_REFERENCE);
+        let holds = folded_mapping(step).contains(SECRET_REFERENCE);
         if is_upload(step) && !binds_the_token(step) {
             findings.push(format!(
                 "the upload step does not bind {ACCESS_TOKEN} in its env"
@@ -189,7 +192,7 @@ fn forwards_the_token(job: &Mapping) -> bool {
     let names_it = ["with", "secrets"]
         .iter()
         .filter_map(|key| get(job, key))
-        .any(|value| rendered(value).contains(SECRET_REFERENCE));
+        .any(|value| folded(value).contains(SECRET_REFERENCE));
     inherits || names_it
 }
 
@@ -203,25 +206,59 @@ fn forwards_the_token(job: &Mapping) -> bool {
 /// whether a push to `main` can ever be cancelled, and only the literal
 /// answers it without evaluation.
 fn concurrency_findings(workflow: &Value) -> Vec<String> {
-    let mut findings = Vec::new();
     let group = workflow
         .as_mapping()
         .and_then(|root| get(root, "concurrency"));
-    if group.is_none() {
-        findings.push("the publisher declares no concurrency group".to_owned());
-    }
     let job_groups = reader::jobs(workflow)
         .into_iter()
         .filter_map(|(_, job)| get(job, "concurrency"));
-    for concurrency in group.into_iter().chain(job_groups) {
-        let cancel = concurrency
-            .as_mapping()
-            .and_then(|mapping| get(mapping, "cancel-in-progress"));
-        if cancel.is_some_and(|value| value.as_bool() != Some(false)) {
-            findings.push("the publisher may cancel a run in progress".to_owned());
-        }
-    }
-    findings
+    let blocks: Vec<&Value> = group.into_iter().chain(job_groups).collect();
+    let missing = group
+        .is_none()
+        .then(|| "the publisher declares no concurrency group".to_owned());
+    let cancels = blocks
+        .iter()
+        .filter(|block| may_cancel(block))
+        .map(|_| "the publisher may cancel a run in progress".to_owned());
+    let shared = blocks
+        .iter()
+        .filter(|block| is_dispatchable(workflow) && !separates_events(block))
+        .map(|_| "a dispatch can replace a pending push in the publisher's group".to_owned());
+    missing.into_iter().chain(cancels).chain(shared).collect()
+}
+
+/// Returns whether a concurrency block may cancel the run in progress.
+fn may_cancel(concurrency: &Value) -> bool {
+    concurrency
+        .as_mapping()
+        .and_then(|mapping| get(mapping, "cancel-in-progress"))
+        .is_some_and(|value| value.as_bool() != Some(false))
+}
+
+/// Returns whether anything other than a push can start the workflow.
+fn is_dispatchable(workflow: &Value) -> bool {
+    reader::trigger_names(workflow)
+        .iter()
+        .any(|name| name != "push")
+}
+
+/// Returns whether a concurrency block's group names the triggering event.
+///
+/// GitHub keeps one pending run per group and a newer arrival replaces it.
+/// A dispatch sharing the pushes' group can therefore replace a pending push,
+/// and a dispatch never advances the baseline, so that push's baseline is
+/// never written. Naming the event in the group gives dispatches a queue of
+/// their own.
+fn separates_events(concurrency: &Value) -> bool {
+    concurrency
+        .as_str()
+        .or_else(|| {
+            concurrency
+                .as_mapping()
+                .and_then(|mapping| get(mapping, "group"))
+                .and_then(Value::as_str)
+        })
+        .is_some_and(|group| group.contains("github.event_name"))
 }
 
 /// Returns the reasons the publisher's required work might never run.
