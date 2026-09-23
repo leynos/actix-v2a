@@ -229,7 +229,7 @@ fn the_token_sits_on_the_upload_alone(
 }
 
 /// Scenario: a publisher reaches the CLI from a `run` body, plainly, split
-/// across a shell continuation, or neutralised behind `false &&`.
+/// across a shell continuation, or neutralized behind `false &&`.
 ///
 /// Invariant: each is refused. An upload is read only from the action,
 /// because a `run` body containing the command proves nothing about whether
@@ -237,7 +237,7 @@ fn the_token_sits_on_the_upload_alone(
 #[rstest]
 #[case::plain("      - run: cs-coverage upload --format lcov\n")]
 #[case::continued("      - run: |\n          cs-coverage \\\n            upload --format lcov\n")]
-#[case::neutralised("      - run: false && cs-coverage upload --format lcov\n")]
+#[case::neutralized("      - run: false && cs-coverage upload --format lcov\n")]
 fn the_cli_is_refused_in_the_publisher(#[case] extra: &str) -> Result<()> {
     let findings = rules::publisher_findings(&parse(&publisher(NEVER_CANCEL, GUARD, extra))?);
     ensure!(
