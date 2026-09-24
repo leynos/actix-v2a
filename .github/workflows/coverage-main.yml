@@ -43,13 +43,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Rust
-        uses: leynos/shared-actions/.github/actions/setup-rust@a5765019912a8ab6882b12db049c7cde635f3a85
+        uses: leynos/shared-actions/.github/actions/setup-rust@dc935ad8202c30495deaaaca7be4f876659e37ad
       - name: Test and Measure Coverage
         # The same action, format, output path and default baseline files as
         # the pull-request lane, so the figure written here is the figure a
         # pull request is measured against. The action decides by the event
         # whether it writes the baseline or compares with it.
-        uses: leynos/shared-actions/.github/actions/generate-coverage@a5765019912a8ab6882b12db049c7cde635f3a85
+        uses: leynos/shared-actions/.github/actions/generate-coverage@dc935ad8202c30495deaaaca7be4f876659e37ad
         with:
           output-path: lcov.info
           format: lcov
@@ -68,7 +68,7 @@ jobs:
         # uploading a branch CodeScene does not analyse: the push trigger is
         # restricted to `main`, but a dispatch may name any branch.
         if: ${{ steps.codescene-token.outputs.available == 'true' && github.ref == 'refs/heads/main' }}
-        uses: leynos/shared-actions/.github/actions/upload-codescene-coverage@a5765019912a8ab6882b12db049c7cde635f3a85
+        uses: leynos/shared-actions/.github/actions/upload-codescene-coverage@dc935ad8202c30495deaaaca7be4f876659e37ad
         with:
           path: lcov.info
           format: lcov

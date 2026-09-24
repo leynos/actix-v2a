@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Rust
-        uses: leynos/shared-actions/.github/actions/setup-rust@a5765019912a8ab6882b12db049c7cde635f3a85
+        uses: leynos/shared-actions/.github/actions/setup-rust@dc935ad8202c30495deaaaca7be4f876659e37ad
       - name: Install uv
         uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
         # v10.0.0
@@ -48,7 +48,7 @@ jobs:
       - name: Install mdtablefix
         # `make check-fmt` runs `mdtablefix --check --git`; 0.6.0 is the
         # first release with `--check` and `--git`.
-        uses: leynos/shared-actions/.github/actions/install-mdtablefix@a5765019912a8ab6882b12db049c7cde635f3a85
+        uses: leynos/shared-actions/.github/actions/install-mdtablefix@dc935ad8202c30495deaaaca7be4f876659e37ad
         with:
           version: "0.6.0"
       - name: Format
@@ -97,7 +97,7 @@ jobs:
         # is not. `coverage-main.yml` owns both persistent outputs, and the
         # baseline paths are the action's defaults on both sides, so this
         # ratchet reads the baseline that workflow writes.
-        uses: leynos/shared-actions/.github/actions/generate-coverage@a5765019912a8ab6882b12db049c7cde635f3a85
+        uses: leynos/shared-actions/.github/actions/generate-coverage@dc935ad8202c30495deaaaca7be4f876659e37ad
         with:
           output-path: lcov.info
           format: lcov
