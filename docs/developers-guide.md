@@ -50,13 +50,14 @@ Coverage has two workflows, and the split is a contract (concordat's CV-005,
   (a dispatch can name any branch, and any further conjunct could only narrow,
   defeat, or invert the upload), and the workflow's concurrency group, exactly
   `${{ github.workflow }}-${{ github.ref }}` at every level, never cancels a
-  run in progress and never overlaps two runs, so triggered runs (push and
-  dispatch) upload in commit order and a burst of merges cannot abandon a
-  baseline write. A manual re-run of an older `main` run is an operator action
-  that republishes that commit's coverage and baseline until the next push
-  supersedes it. The workflow answers exactly a push to `main` and
-  `workflow_dispatch`, and the coverage selection both lanes run is pinned in
-  the contract.
+  run in progress, so a burst of merges cannot abandon a baseline write. Runs
+  for `main` never overlap, and a newer trigger replaces an older pending run
+  rather than queueing behind it. GitHub does not promise to start runs in
+  trigger order, so this does not guarantee commit order. A manual re-run of an
+  older run keeps its SHA and its run id: it republishes that commit's coverage
+  to CodeScene, but replaces no ratchet baseline unless the original run saved
+  none. The workflow answers exactly a push to `main` and `workflow_dispatch`,
+  and the coverage selection both lanes run is pinned in the contract.
 
 One known exception: a Dependabot pull request merged by the automerge workflow
 with `GITHUB_TOKEN` fires no push event, so that merge is neither measured nor

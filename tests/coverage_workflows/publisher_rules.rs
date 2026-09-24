@@ -262,15 +262,14 @@ const PUBLISHER_GROUP: &str = "${{github.workflow}}-${{github.ref}}";
 /// Returns whether a concurrency block's group is exactly the workflow and the
 /// evaluated ref.
 ///
-/// One group per ref, never per event: runs in it never overlap, and the
-/// survivor of any replacement is the newest trigger, whose commit is the
-/// newest `main` at trigger time, so triggered runs (push and dispatch)
-/// upload in commit order. A manual re-run of an older run is an operator
-/// action that republishes that commit until the next push. A group
-/// keyed on the event as well lets an earlier dispatch finish after a newer
-/// push and upload older coverage last. The key must be the evaluated
-/// expression; a literal `github.ref` keys nothing. Every level is read,
-/// since a job-level group of another shape overrides the workflow's.
+/// One group per ref, never per event: runs in it never overlap, and a newer
+/// trigger replaces an older pending run rather than queueing behind it. That
+/// is not a promise of commit order, since GitHub does not promise to start
+/// runs in trigger order. A group keyed on the event as well lets a dispatch
+/// and a push for `main` run at once and upload in either order. The key must
+/// be the evaluated expression; a literal `github.ref` keys nothing. Every
+/// level is read, since a job-level group of another shape overrides the
+/// workflow's.
 fn is_keyed_on_the_ref(concurrency: &Value) -> bool {
     concurrency
         .as_str()

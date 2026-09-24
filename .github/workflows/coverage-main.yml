@@ -21,12 +21,13 @@ name: Coverage (main)
 
 # A run in progress is never cancelled. A cancelled publisher abandons both its
 # upload and its ratchet baseline write. The group is keyed on the ref alone:
-# runs never overlap, and a newer trigger replaces any run still pending, so
-# for triggered runs (push and dispatch) the survivor is the newest main and
-# uploads land in commit order. A manual re-run of an older main run is an
-# operator action: it republishes that commit's coverage and baseline until
-# the next push. Keying on the event too would let an earlier dispatch finish
-# after a newer push and upload older coverage last. `tests/coverage_workflows.rs` pins this group.
+# runs for main never overlap, and GitHub keeps at most one pending run per
+# group, so a newer trigger replaces an older pending run rather than queueing
+# behind it. GitHub does not promise to start runs in trigger order, so this is
+# not a guarantee of commit order. A manual re-run of an older run keeps its
+# SHA and its run id: it republishes that commit's coverage to CodeScene, but
+# its baseline cache key already exists, so it replaces no baseline unless the
+# original run saved none. `tests/coverage_workflows.rs` pins this group.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
