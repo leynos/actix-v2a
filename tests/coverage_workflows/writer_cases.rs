@@ -105,6 +105,9 @@ fn every_pull_request_event_seeds_the_closure(#[case] source: &str) -> Result<()
 #[rstest]
 #[case::push_main("on:\n  push:\n    branches: [main]\njobs: {}\n")]
 #[case::push_tags("on:\n  push:\n    tags: ['v*']\njobs: {}\n")]
+#[case::push_tags_ignoring_every_branch(
+    "on:\n  push:\n    tags: ['v*']\n    branches-ignore: ['**']\njobs: {}\n"
+)]
 #[case::schedule("on:\n  schedule:\n    - cron: '0 0 * * *'\njobs: {}\n")]
 fn trunk_tag_and_scheduled_runs_stay_off_the_surface(#[case] source: &str) -> Result<()> {
     ensure!(

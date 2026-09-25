@@ -196,8 +196,9 @@ const TOKEN_CHECK: &str = "      - id: codescene-token\n        run: echo \"avai
 /// A shell that runs nothing, so a step under it never writes its output.
 const SILENT_SHELL: &str = "shell: bash -c 'exit 0; {0}'";
 
-/// Scenario: the token check is moved after the upload or into another job,
-/// or put under a default shell, on the workflow, its job, or another job.
+/// Scenario: the token check is moved after the upload, between two uploads,
+/// or into another job, or put under a default shell, on the workflow, its
+/// job, or another job; or a second upload follows the check.
 ///
 /// Invariant: each placement the upload cannot read is named, and nothing
 /// else. A `steps.<id>` output resolves only later in the same job, and a
@@ -207,6 +208,14 @@ const SILENT_SHELL: &str = "shell: bash -c 'exit 0; {0}'";
 #[case::after_the_upload(
     |source: String| format!("{}{TOKEN_CHECK}", source.replacen(TOKEN_CHECK, "", 1)),
     Some("before every upload")
+)]
+#[case::between_two_uploads(
+    |source: String| source.split_once(TOKEN_CHECK).map_or_else(String::new, |(before, upload)| format!("{before}{upload}{TOKEN_CHECK}{upload}")),
+    Some("before every upload")
+)]
+#[case::before_two_uploads(
+    |source: String| format!("{source}{}", source.split_once(TOKEN_CHECK).map_or("", |(_, upload)| upload)),
+    None
 )]
 #[case::in_another_job(
     |source: String| format!("{}  token:\n    steps:\n{TOKEN_CHECK}", source.replacen(TOKEN_CHECK, "", 1)),
