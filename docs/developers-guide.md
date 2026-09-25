@@ -45,10 +45,13 @@ Coverage has two workflows, and the split is a contract (concordat's CV-005,
   `${{ secrets.CS_ACCESS_TOKEN != '' }}` into its output, and no step holds the
   token in its `env`, because the composite upload action would hand a step
   `env` to its nested `upload-artifact` and cache steps; the upload step passes
-  the secret as its `access-token` input. The upload's `if:` is exactly
-  `steps.codescene-token.outputs.available == 'true' && github.ref == 'refs/heads/main'`
-  (a dispatch can name any branch, and any further conjunct could only narrow,
-  defeat, or invert the upload), and the workflow's concurrency group, exactly
+  the secret as its `access-token` input. The check runs earlier in the
+  upload's own job, under no default shell, since a step's output is readable
+  only there. The upload's `if:` is exactly
+  `steps.codescene-token.outputs.available == 'true'` joined by `&&` to
+  `github.ref == 'refs/heads/main'` (a dispatch can name any branch, and any
+  further conjunct could only narrow, defeat, or invert the upload), and the
+  workflow's concurrency group, exactly
   `${{ github.workflow }}-${{ github.ref }}` at every level, never cancels a
   run in progress, so a burst of merges cannot abandon a baseline write. Runs
   for `main` never overlap, and a newer trigger replaces an older pending run
@@ -73,16 +76,17 @@ only for a branch it analyses, which a pull request head is not.
 
 `tests/coverage_workflows.rs` enforces the split over every workflow a pull
 request can reach, following local reusable-workflow calls transitively, and
-over every other workflow too: only the publisher may hold the token, name the
-CodeScene host, run the CLI or the uploader, or touch the retired
-`CODESCENE_CLI_SHA256` variable. It drives each rule against breaching fixtures
-under `tests/coverage_workflows/`. The pull-request surface is seeded by every
-event that runs a workflow for a pull request (`pull_request`,
-`pull_request_target`, `merge_group`, the two review events, `issue_comment`,
-`workflow_run`, and any push not limited to exactly `branches: [main]` or to
-tags), and the push side is followed the same way: a workflow a push starts, or
-one it calls, may run a ratcheted coverage step only behind
-`if: github.event_name == 'pull_request'`, so the publisher stays the
+over every other workflow too: only the publisher may hold the token, reach a
+secret by a computed name, name the CodeScene host, run the CLI or the
+uploader, or touch the retired `CODESCENE_CLI_SHA256` variable. It drives each
+rule against breaching fixtures under `tests/coverage_workflows/`. The
+pull-request surface is seeded by every event that runs a workflow for a pull
+request (`pull_request`, `pull_request_target`, `merge_group`, the two review
+events, `issue_comment`, `workflow_run`, and any push not limited to exactly
+`branches: [main]` or to tags, where a `branches-ignore` beside `tags` still
+counts unless it lists `'**'`), and the push side is followed the same way: a
+workflow a push starts, or one it calls, may run a ratcheted coverage step only
+behind `if: github.event_name == 'pull_request'`, so the publisher stays the
 baseline's only writer. When adding a workflow, keep CodeScene, `cs-coverage`,
 and the token out of it unless it is the publisher; the contract names the
 clause a change breaks.
