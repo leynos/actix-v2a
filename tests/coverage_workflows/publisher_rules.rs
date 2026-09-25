@@ -217,8 +217,9 @@ fn forwards_the_token(job: &Mapping) -> bool {
 ///
 /// A cancelled publisher abandons both its upload and its baseline write, so
 /// runs share a group that never cancels the run in progress: a newer push
-/// replaces a pending run rather than queueing behind it, and the newest
-/// baseline wins. Any `cancel-in-progress` other than an absent key or a
+/// replaces a pending run rather than queueing behind it. Runs need not start
+/// in trigger order, so the latest saved baseline entry can come from an older
+/// commit. Any `cancel-in-progress` other than an absent key or a
 /// literal `false` is refused, an expression included: the question is
 /// whether a push to `main` can ever be cancelled, and only the literal
 /// answers it without evaluation.
