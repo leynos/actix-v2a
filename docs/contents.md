@@ -40,6 +40,9 @@
   proposed API, ownership, recovery, and persisted-format choices.
 - [ADR 004: shared HTTP integration](adr-004-shared-http-integration.md):
   proposed extraction scope and open wire-compatibility decisions.
+- [ADR 005: `main` owns coverage publication](adr-005-main-owns-coverage-publication.md):
+  accepted split between the pull-request coverage ratchet and the CodeScene
+  publisher on `main`.
 - `execplans/`: living execution plans for non-trivial change work.
   - [Port Wildside pagination documentation
     hardening](execplans/portwildsidepagination.md): completed execution plan
