@@ -43,6 +43,10 @@ mod closure_properties;
 mod condition_cases;
 #[path = "coverage_workflows/guard_cases.rs"]
 mod guard_cases;
+#[path = "coverage_workflows/placement.rs"]
+mod placement;
+#[path = "coverage_workflows/placement_cases.rs"]
+mod placement_cases;
 #[path = "coverage_workflows/publisher_cases.rs"]
 mod publisher_cases;
 #[path = "coverage_workflows/publisher_rules.rs"]
