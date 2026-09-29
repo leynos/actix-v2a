@@ -45,11 +45,12 @@ commit order is not guaranteed; a manual re-run of an older run republishes
 that commit's coverage but, its baseline cache key being run-keyed, replaces no
 baseline unless the original run saved none.
 
-`tests/coverage_workflows.rs` enforces the split: it reads every workflow a
-pull request can reach as a closure through local reusable-workflow calls,
-every workflow a push can start for second baseline writers, and every other
-workflow for stray CodeScene access, and drives each rule against breaching
-fixtures.
+`make test-workflow-contracts` enforces the split by running the shared
+`cv005-contracts` library from shared-actions. It reads every workflow a pull
+request can reach as a closure through local reusable-workflow calls, every
+workflow a push can start for second baseline writers, and every other workflow
+for stray CodeScene access. The library's own suite drives each rule against
+breaching fixtures.
 
 ## Options considered
 
