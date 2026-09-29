@@ -45,12 +45,11 @@ commit order is not guaranteed; a manual re-run of an older run republishes
 that commit's coverage but, its baseline cache key being run-keyed, replaces no
 baseline unless the original run saved none.
 
-`make test-workflow-contracts` enforces the split by running the shared
-`cv005-contracts` library from shared-actions. It reads every workflow a pull
-request can reach as a closure through local reusable-workflow calls, every
-workflow a push can start for second baseline writers, and every other workflow
-for stray CodeScene access. The library's own suite drives each rule against
-breaching fixtures.
+`tests/coverage_workflows.rs` enforces the split: it reads every workflow a
+pull request can reach as a closure through local reusable-workflow calls,
+every workflow a push can start for second baseline writers, and every other
+workflow for stray CodeScene access, and drives each rule against breaching
+fixtures.
 
 ## Options considered
 
@@ -97,3 +96,13 @@ the estate's fork arm, which never applies on a push or a dispatch.
   second hosted writer would pay double on every main push.
 
 The developers' guide section "Runner placement" records the operating rules.
+
+## Addendum, 2026-09-29: the contract moved to a shared library
+
+The contract that enforces this decision no longer lives in this repository.
+`make test-workflow-contracts` runs `cv005-contracts check`, the shared
+contract library in `leynos/shared-actions` (`packages/cv005-contracts`), from
+a full commit pinned in the Makefile, and `.github/cv005.toml` holds this
+repository's parameters. The clauses are unchanged, and the library's own suite
+proves each one. The paragraphs above name the repository-local copy this
+replaces.

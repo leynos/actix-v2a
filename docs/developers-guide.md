@@ -82,7 +82,8 @@ only for a branch it analyses, which a pull request head is not.
 `cv005-contracts check`, the shared contract library in `leynos/shared-actions`
 (`packages/cv005-contracts`), from a full commit named by `CV005_CONTRACTS_REF`
 in the Makefile; CI runs it in a "Check the CV-005 contracts" step. A fix to
-the rules is therefore a pin bump. The repository's parameters are in
+the rules is therefore a pin bump. The target needs `uv`, which fetches the
+Python 3.13 the library runs under. The repository's parameters are in
 `.github/cv005.toml`: its `repository` name and the `[selection]` the baseline
 measures (`format`, `output-path` and `with-ratchet`), which the publisher's
 generator must carry and every pull-request lane must match. The library's own
