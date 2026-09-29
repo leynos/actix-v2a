@@ -78,21 +78,30 @@ The reasons are both quiet failures: a pull request from a fork cannot read the
 secret, so an upload there is silently skipped, and CodeScene accepts an upload
 only for a branch it analyses, which a pull request head is not.
 
-`tests/coverage_workflows.rs` enforces the split over every workflow a pull
-request can reach, following local reusable-workflow calls transitively, and
-over every other workflow too: only the publisher may hold the token, reach a
-secret by a computed name, name the CodeScene host, run the CLI or the
-uploader, or touch the retired `CODESCENE_CLI_SHA256` variable. It drives each
-rule against breaching fixtures under `tests/coverage_workflows/`. The
-pull-request surface is seeded by every event that runs a workflow for a pull
-request (`pull_request`, `pull_request_target`, `merge_group`, the two review
-events, `issue_comment`, `workflow_run`, and any push not limited to exactly
-`branches: [main]` or to tags, where a `branches-ignore` beside `tags` still
-counts unless it lists `'**'`), and the push side is followed the same way: a
+`make test-workflow-contracts` enforces the split by running
+`cv005-contracts check`, the shared contract library in `leynos/shared-actions`
+(`packages/cv005-contracts`), from a full commit named by `CV005_CONTRACTS_REF`
+in the Makefile; CI runs it in a "Check the CV-005 contracts" step. A fix to
+the rules is therefore a pin bump. The target needs `uv`, which fetches the
+Python 3.13 the library runs under. The repository's parameters are in
+`.github/cv005.toml`: its `repository` name and the `[selection]` the baseline
+measures (`format`, `output-path` and `with-ratchet`), which the publisher's
+generator must carry and every pull-request lane must match. The library's own
+suite proves each rule refuses the shape it exists to refuse, so this
+repository keeps no copy of the readers or the refusal cases.
+
+The rule covers every workflow a pull request can reach, following local
+reusable-workflow calls transitively, and every other workflow too: only the
+publisher may hold the token, reach a secret by a computed name, name the
+CodeScene host, run the CLI or the uploader, or touch the retired
+`CODESCENE_CLI_SHA256` variable. Workflows are read strictly: a duplicate key,
+or a workflow declaring both `on` and `true`, is refused rather than silently
+resolved, and a reading failure exits 2 rather than passing. The pull-request
+surface is seeded by every event that runs a workflow for a pull request, and a
 workflow a push starts, or one it calls, may run a ratcheted coverage step only
 behind `if: github.event_name == 'pull_request'`, so the publisher stays the
 baseline's only writer. When adding a workflow, keep CodeScene, `cs-coverage`,
-and the token out of it unless it is the publisher; the contract names the
+and the token out of it unless it is the publisher; the library names the
 clause a change breaks.
 
 ## Runner placement
@@ -127,7 +136,7 @@ installs and lint alone took 30 minutes and the job reached its ceiling (run
 refreshes; fork pull requests are rare here, and a second hosted writer would
 pay double on every main push.
 
-`tests/coverage_workflows/placement_cases.rs` holds this to the files. It
+`tests/runner_placement/placement_cases.rs` holds this to the files. It
 evaluates the expression for a push or dispatch, a same-repository pull request
 and a fork, rejects a literal label, inverted arms, another label and another
 condition, and asserts an exact inventory of the jobs that can land on Ubicloud
