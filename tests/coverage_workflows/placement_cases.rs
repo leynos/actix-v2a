@@ -30,7 +30,7 @@ const PLACEMENTS: [(&str, &str, &str, u64); 2] = [
         "coverage-main.yml",
         "coverage-upload",
         "ubicloud-standard-2",
-        30,
+        5,
     ),
 ];
 
