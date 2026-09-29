@@ -4,6 +4,15 @@ vars:
   prepend_path: "$$HOME/.cargo/bin:$$HOME/.bun/bin:$$HOME/.local/bin"
   cargo_flags: "--all-targets --all-features"
   rust_flags: "-D warnings"
+  # The development build standard (concordat rule `rust-build-defaults`):
+  # the parallel rustc frontend and, on Linux, the mold linker. An assigned
+  # RUSTFLAGS replaces every `rustflags` table in .cargo/config.toml, so each
+  # action that sets it composes these onto any inherited value (CI's
+  # setup-rust exports one). The shell evaluates the Linux test when the
+  # action runs.
+  standard_rustflags: >-
+    -Zthreads=8
+    $$(if [ "$$(uname -s)" = Linux ]; then echo -Clink-arg=-fuse-ld=mold; fi)
   rustdoc_flags: "-D warnings"
 
 actions:
@@ -17,12 +26,15 @@ actions:
   - name: build
     command: >-
       sh -e -c 'PATH="{{ prepend_path }}:$$PATH"
-      "$${CARGO:-cargo}" build $${BUILD_JOBS:-}'
+      RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }{{ standard_rustflags }}" "$${CARGO:-cargo}" build $${BUILD_JOBS:-}'
 
+  # A shipped artefact keeps the platform linker and the single-threaded
+  # frontend: assigning RUSTFLAGS, even to an inherited empty value,
+  # displaces the configuration's rustflags tables.
   - name: release
     command: >-
       sh -e -c 'PATH="{{ prepend_path }}:$$PATH"
-      "$${CARGO:-cargo}" build --release $${BUILD_JOBS:-}'
+      RUSTFLAGS="$${RUSTFLAGS-}" "$${CARGO:-cargo}" build --release $${BUILD_JOBS:-}'
 
   - name: clean
     command: >-
@@ -37,7 +49,7 @@ actions:
     command: >-
       sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
       echo "[netsuke:test] cargo-nextest found; using nextest runner";
-      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}";
+      RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }{{ rust_flags }} {{ standard_rustflags }} $${RUST_FLAGS:-}";
       RUSTFLAGS="$$RUSTFLAGS" "$${CARGO:-cargo}" nextest run {{ cargo_flags }} $${BUILD_JOBS:-};
       RUSTFLAGS="$$RUSTFLAGS" "$${CARGO:-cargo}" test --doc --workspace --all-features'
 
@@ -46,13 +58,13 @@ actions:
     command: >-
       sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
       echo "[netsuke:test] cargo-nextest not found; falling back to cargo test";
-      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}" "$${CARGO:-cargo}" test {{ cargo_flags }} $${BUILD_JOBS:-}'
+      RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }{{ rust_flags }} {{ standard_rustflags }} $${RUST_FLAGS:-}" "$${CARGO:-cargo}" test {{ cargo_flags }} $${BUILD_JOBS:-}'
 
   - name: clippy-lint
     command: >-
       sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
-      RUSTDOCFLAGS="{{ rustdoc_flags }} $${RUSTDOC_FLAGS:-}" "$${CARGO:-cargo}" doc --no-deps;
-      "$${CARGO:-cargo}" clippy {{ cargo_flags }} -- {{ rust_flags }} $${RUST_FLAGS:-}'
+      RUSTDOCFLAGS="{{ rustdoc_flags }} $${RUSTDOC_FLAGS:-}" RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }{{ standard_rustflags }}" "$${CARGO:-cargo}" doc --no-deps;
+      RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }{{ standard_rustflags }}" "$${CARGO:-cargo}" clippy {{ cargo_flags }} -- {{ rust_flags }} $${RUST_FLAGS:-}'
 
   # Depends on clippy-lint so lint work stays sequential and benefits
   # from the shared build cache. Whitaker is mandatory: the suite is a
@@ -61,7 +73,7 @@ actions:
     deps: clippy-lint
     command: >-
       sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
-      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}" "$${WHITAKER:-whitaker}" --all -- {{ cargo_flags }}'
+      RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }{{ rust_flags }} {{ standard_rustflags }} $${RUST_FLAGS:-}" "$${WHITAKER:-whitaker}" --all -- {{ cargo_flags }}'
 
   - name: lint
     deps: whitaker-lint
@@ -70,7 +82,7 @@ actions:
   - name: typecheck
     command: >-
       sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
-      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}" "$${CARGO:-cargo}" check {{ cargo_flags }}'
+      RUSTFLAGS="$${RUSTFLAGS:+$$RUSTFLAGS }{{ rust_flags }} {{ standard_rustflags }} $${RUST_FLAGS:-}" "$${CARGO:-cargo}" check {{ cargo_flags }}'
 
   - name: fmt
     command: >-

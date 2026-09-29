@@ -17,7 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Rust
-        uses: leynos/shared-actions/.github/actions/setup-rust@dc935ad8202c30495deaaaca7be4f876659e37ad
+        uses: leynos/shared-actions/.github/actions/setup-rust@8a83824b29dfe8f861714b544dc85fb925ed010c
+        with:
+          install-mold: 'true'
       - name: Install uv
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7
         # v10.0.0
@@ -82,7 +84,9 @@ jobs:
               cargo install --locked whitaker-installer --version "${WHITAKER_INSTALLER_VERSION}"
             fi
           fi
-          whitaker-installer
+          # --cranelift provisions rustc-codegen-cranelift on Whitaker's pinned
+          # toolchain; the dev profile builds with the Cranelift backend.
+          whitaker-installer --cranelift
       - name: Lint
         run: >-
           set -o pipefail;
@@ -97,6 +101,12 @@ jobs:
         # is not. `coverage-main.yml` owns both persistent outputs, and the
         # baseline paths are the action's defaults on both sides, so this
         # ratchet reads the baseline that workflow writes.
+        env:
+          # One of the two exclusions from the build standard: a coverage build is
+          # a measurement, so it takes neither the parallel frontend nor the mold
+          # linker. Assigning RUSTFLAGS displaces every `rustflags` table in
+          # .cargo/config.toml.
+          RUSTFLAGS: -D warnings
         uses: leynos/shared-actions/.github/actions/generate-coverage@dc935ad8202c30495deaaaca7be4f876659e37ad
         with:
           output-path: lcov.info
