@@ -99,7 +99,7 @@ clause a change breaks.
 
 `ci.yml`'s `build-test` runs on `ubicloud-standard-4` and `coverage-main.yml`'s
 `coverage-upload`, main's only cache writer, on `ubicloud-standard-2`.
-`runs-on` selects the class with the estate expression, shown here for
+`runs-on` selects the class with the runner-selection expression, shown here for
 `standard-2`:
 
 ```yaml
