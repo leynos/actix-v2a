@@ -97,9 +97,10 @@ clause a change breaks.
 
 ## Runner placement
 
-`ci.yml`'s `build-test` and `coverage-main.yml`'s `coverage-upload`, main's
-only cache writer, run on `ubicloud-standard-2`. `runs-on` selects it with the
-estate expression:
+`ci.yml`'s `build-test` runs on `ubicloud-standard-4` and `coverage-main.yml`'s
+`coverage-upload`, main's only cache writer, on `ubicloud-standard-2`.
+`runs-on` selects the class with the estate expression, shown here for
+`standard-2`:
 
 ```yaml
 runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'ubicloud-standard-2' }}
@@ -117,11 +118,13 @@ has.
 An Ubicloud runner is a self-hosted just-in-time runner, so GitHub's six-hour
 cap for hosted jobs does not bound it and a hung job would hold a billable
 runner. Every job whose `runs-on` can select Ubicloud therefore states its own
-`timeout-minutes`: twice a measured warm Ubicloud run. `build-test` and
-`coverage-upload` are at a provisional 30 minutes until a warm run exists to
-size them from. A fork's pull request restores a hosted cache that main no
-longer refreshes; fork pull requests are rare here, and a second hosted writer
-would pay double on every main push.
+`timeout-minutes`: twice a measured warm Ubicloud run. `coverage-upload` is at
+a provisional 30 minutes and `build-test` at a provisional 45 minutes until a
+warm run exists to size them from. `build-test` is `standard-4` on a measured
+shortfall: on `standard-2` the tool installs and lint alone took 30 minutes and
+the job reached its ceiling (run 36565211532). A fork's pull request restores a
+hosted cache that main no longer refreshes; fork pull requests are rare here,
+and a second hosted writer would pay double on every main push.
 
 `tests/coverage_workflows/placement_cases.rs` holds this to the files. It
 evaluates the expression for a push or dispatch, a same-repository pull request

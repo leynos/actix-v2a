@@ -9,12 +9,14 @@ jobs:
   build-test:
     # Ubicloud, to avoid the hosted queue. A pull request from a fork cannot
     # obtain an Ubicloud runner, so it falls back to the hosted pool. Main's
-    # Ubicloud coverage-upload writes the cache scope this reads.
-    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'ubicloud-standard-2' }}
+    # Ubicloud coverage-upload writes the cache scope this reads. standard-4,
+    # not standard-2: on two vCPUs the uncached tool installs and lint alone
+    # took 30 minutes and the job reached its ceiling (run 36565211532).
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'ubicloud-standard-4' }}
     # An Ubicloud runner is a self-hosted just-in-time runner with no
     # six-hour hosted cap, so the job states its own ceiling. Provisional:
     # replaced by twice a measured warm Ubicloud run.
-    timeout-minutes: 30
+    timeout-minutes: 45
     permissions:
       contents: read
     env:

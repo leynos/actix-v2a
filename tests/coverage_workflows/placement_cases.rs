@@ -19,13 +19,19 @@ use super::{
 const ESTATE: &str =
     "${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'ubicloud-standard-2' }}";
 
-/// Every job that can land on Ubicloud, with the ceiling it states in minutes.
+/// Every job that can land on Ubicloud, with the runner class it names and the
+/// ceiling it states in minutes.
 ///
-/// The inventory is exact, so a new Ubicloud lane without a ceiling, or a
-/// ceiling removed or changed, fails here until the change is reviewed.
-const CEILINGS: [(&str, &str, u64); 2] = [
-    ("ci.yml", "build-test", 30),
-    ("coverage-main.yml", "coverage-upload", 30),
+/// The inventory is exact, so a new Ubicloud lane without a ceiling, or a class
+/// or ceiling changed, fails here until the change is reviewed.
+const PLACEMENTS: [(&str, &str, &str, u64); 2] = [
+    ("ci.yml", "build-test", "ubicloud-standard-4", 45),
+    (
+        "coverage-main.yml",
+        "coverage-upload",
+        "ubicloud-standard-2",
+        30,
+    ),
 ];
 
 /// Scenario: the estate expression is evaluated for each kind of run.
@@ -71,7 +77,7 @@ fn the_estate_expression_places_each_run(#[case] origin: Origin, #[case] wanted:
     1
 )]
 fn a_misplaced_lane_is_reported(#[case] runs_on: &str, #[case] expected: usize) -> Result<()> {
-    let faults = placement::placement_faults(runs_on);
+    let faults = placement::placement_faults(runs_on, "ubicloud-standard-2");
     ensure!(
         faults.len() == expected,
         "expected {expected}, saw {faults:?}"
@@ -118,13 +124,20 @@ fn every_ubicloud_lane_is_placed_by_the_estate_expression_and_states_a_ceiling()
         .into_iter()
         .map(|placed| (placed.workflow, placed.job, placed.ceiling))
         .collect();
-    let expected: Vec<(String, String, Option<u64>)> = CEILINGS
+    let expected: Vec<(String, String, Option<u64>)> = PLACEMENTS
         .iter()
-        .map(|(workflow, job, ceiling)| ((*workflow).to_owned(), (*job).to_owned(), Some(*ceiling)))
+        .map(|(workflow, job, _, ceiling)| {
+            ((*workflow).to_owned(), (*job).to_owned(), Some(*ceiling))
+        })
         .collect();
     ensure!(found == expected, "found {found:?}, expected {expected:?}");
-    for (lane, runs_on) in placement::placement_expressions(&all) {
-        let faults = placement::placement_faults(&runs_on);
+    let expressions = placement::placement_expressions(&all);
+    ensure!(
+        expressions.len() == PLACEMENTS.len(),
+        "read {expressions:?}"
+    );
+    for ((lane, runs_on), (_, _, label, _)) in expressions.iter().zip(PLACEMENTS) {
+        let faults = placement::placement_faults(runs_on, label);
         ensure!(faults.is_empty(), "{lane} is misplaced: {faults:?}");
     }
     Ok(())
@@ -146,9 +159,22 @@ fn a_non_scalar_ubicloud_runner_is_inventoried_and_rejected(#[case] runs_on: &st
     ensure!(
         expressions
             .iter()
-            .all(|(_, text)| !placement::placement_faults(text).is_empty())
+            .all(|(_, text)| !placement::placement_faults(text, "ubicloud-standard-2").is_empty())
             && expressions.len() == 1,
         "not rejected: {expressions:?}"
     );
     Ok(())
+}
+
+/// Scenario: a lane names a different Ubicloud runner class from the one the
+/// inventory records.
+///
+/// Invariant: it is reported in both directions, so a lane moved between
+/// `standard-2` and `standard-4` fails until the inventory says so.
+#[rstest]
+#[case::inventory_says_four("ubicloud-standard-4", 0)]
+#[case::inventory_says_two("ubicloud-standard-2", 2)]
+fn a_lane_on_another_runner_class_is_reported(#[case] label: &str, #[case] expected: usize) {
+    let four = ESTATE.replace("standard-2", "standard-4");
+    assert_eq!(placement::placement_faults(&four, label).len(), expected);
 }
