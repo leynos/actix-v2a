@@ -71,3 +71,24 @@ fixtures.
   pending push leaves the baseline a commit behind until the next push.
 - Adding a workflow that touches CodeScene, runs ratcheted coverage on a push,
   or changes the coverage selection fails the contract, which names the clause.
+
+## Addendum, 2026-09-29: the publisher runs on Ubicloud
+
+`coverage-upload` moved from `ubuntu-latest` to `ubicloud-standard-2`, keeping
+the estate's fork arm, which never applies on a push or a dispatch.
+
+- **Why the publisher moves first.** Ubicloud's cache proxy is scoped by ref.
+  A pull request's Ubicloud lane reads a warm main scope only when a main job
+  on Ubicloud writes it, and the publisher is main's only writer. Moving it
+  back to a hosted runner would silently return every Ubicloud pull request to
+  a cold cache, so the placement contract holds the runner and ceiling to the
+  file.
+- **Ceiling.** `timeout-minutes: 30` is provisional, sized for the first cold
+  Ubicloud run, because an Ubicloud runner has no six-hour hosted cap. It is
+  recalibrated to twice a measured warm run once one exists.
+- **Consequence for the hosted lane.** Until `build-test` moves too, a hosted
+  pull request restores a scope main no longer refreshes; a pull request from a
+  fork stays hosted by design. The `build-test` move follows one main run after
+  the publisher's.
+
+The developers' guide section "Runner placement" records the operating rules.
