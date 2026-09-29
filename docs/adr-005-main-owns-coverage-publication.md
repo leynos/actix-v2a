@@ -83,12 +83,16 @@ the estate's fork arm, which never applies on a push or a dispatch.
   back to a hosted runner would silently return every Ubicloud pull request to
   a cold cache, so the placement contract holds the runner and ceiling to the
   file.
-- **Ceiling.** `timeout-minutes: 30` is provisional, sized for the first cold
-  Ubicloud run, because an Ubicloud runner has no six-hour hosted cap. It is
-  recalibrated to twice a measured warm run once one exists.
-- **Consequence for the hosted lane.** Until `build-test` moves too, a hosted
-  pull request restores a scope main no longer refreshes; a pull request from a
-  fork stays hosted by design. The `build-test` move follows one main run after
-  the publisher's.
+- **Ceilings.** An Ubicloud runner has no six-hour hosted cap, so each lane
+  states its own, twice a measured warm Ubicloud run. `coverage-upload` is at 5
+  minutes: its first Ubicloud main run took 2.4 minutes (run 36556920321),
+  after a provisional 30 minutes. `build-test` is at 20 minutes: a warm
+  standard-4 run took 9.6 minutes (run 36568765141).
+- **`build-test` has moved.** It runs on `ubicloud-standard-4`, one main run
+  after the publisher's move; on `ubicloud-standard-2` its uncached tool
+  installs and lint alone reached a 30-minute ceiling (run 36565211532). Pull
+  requests from forks stay on `ubuntu-latest` for both lanes and restore a
+  hosted scope main no longer refreshes; fork pull requests are rare here and a
+  second hosted writer would pay double on every main push.
 
 The developers' guide section "Runner placement" records the operating rules.
