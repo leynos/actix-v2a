@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Rust
-        uses: leynos/shared-actions/.github/actions/setup-rust@dc935ad8202c30495deaaaca7be4f876659e37ad
+        uses: leynos/shared-actions/.github/actions/setup-rust@ce8d747242ab3c9d58674d5838cf04c801eeb2f9
       - name: Install uv
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7
         # v10.0.0
