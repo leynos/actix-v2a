@@ -39,7 +39,7 @@ build: ## Build debug artefacts
 release: ## Build release artefacts
 	PATH="$(PREPEND_PATH):$(PATH)" $(NETSUKE) build release
 
-all: spelling ## Perform a comprehensive check of code
+all: spelling test-workflow-contracts ## Perform a comprehensive check of code
 	PATH="$(PREPEND_PATH):$(PATH)" $(NETSUKE) build all
 
 clean: ## Remove build artefacts
