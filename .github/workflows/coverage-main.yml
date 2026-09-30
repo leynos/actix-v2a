@@ -58,7 +58,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup Rust
-        uses: leynos/shared-actions/.github/actions/setup-rust@ce8d747242ab3c9d58674d5838cf04c801eeb2f9
+        uses: leynos/shared-actions/.github/actions/setup-rust@6cec89bac47a21cf756d68d638a9a510998e57f8
       - name: Test and Measure Coverage
         # The same action, format, output path and default baseline files as
         # the pull-request lane, so the figure written here is the figure a
