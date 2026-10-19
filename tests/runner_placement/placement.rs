@@ -19,8 +19,9 @@ pub const HOSTED_LABEL: &str = "ubuntu-latest";
 /// The context value that is true only for a pull request from a fork.
 const FORK_CONDITION: &str = "github.event.pull_request.head.repo.fork";
 
-/// The pull request's author, not `github.actor`: the actor changes when
-/// someone re-runs a job or pushes to the branch, which would flip the runner.
+/// The pull request's author, not `github.actor`: the actor is whoever
+/// triggered the run, so a person pushing to a Dependabot branch would flip
+/// the runner.
 const DEPENDABOT_CONDITION: &str = "github.event.pull_request.user.login == 'dependabot[bot]'";
 
 /// The condition under which a pull request falls back to the hosted pool.
