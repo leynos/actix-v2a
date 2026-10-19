@@ -112,12 +112,20 @@ clause a change breaks.
 `standard-2`:
 
 ```yaml
-runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'ubicloud-standard-2' }}
+runs-on: >-
+  ${{ (github.event.pull_request.head.repo.fork
+  || github.event.pull_request.user.login == 'dependabot[bot]')
+  && 'ubuntu-latest' || 'ubicloud-standard-2' }}
 ```
 
 A pull request from a fork cannot obtain an Ubicloud runner, so it falls back to
-`ubuntu-latest`; a push and a dispatch have no pull request, so the fork value
-is null and they select Ubicloud.
+`ubuntu-latest`. So does a pull request Dependabot opened: hosted minutes cost
+nothing on a public repository, and Dependabot opens many pull requests. The
+expression tests the pull request's author, not `github.actor`, because the
+actor changes when someone re-runs a job or pushes to the branch, which would
+flip the runner. A push and a dispatch have no pull request, so both values are
+null and they select Ubicloud; a Dependabot pull request therefore builds cold
+on the hosted pool, and only main's Ubicloud jobs write the cache.
 
 The writer sits on Ubicloud because Ubicloud's cache proxy is scoped by ref. A
 pull request's Ubicloud lane reads a warm main scope only when a main job on
@@ -137,11 +145,12 @@ refreshes; fork pull requests are rare here, and a second hosted writer would
 pay double on every main push.
 
 `tests/runner_placement/placement_cases.rs` holds this to the files. It
-evaluates the expression for a push or dispatch, a same-repository pull request
-and a fork, rejects a literal label, inverted arms, another label and another
-condition, and asserts an exact inventory of the jobs that can land on Ubicloud
-with their ceilings. A change that adds, removes or re-times such a job fails
-it until the inventory is updated in the same commit.
+evaluates the expression for a push or dispatch, a same-repository pull
+request, a fork and a Dependabot pull request, rejects a literal label,
+inverted arms, another label, another condition, a missing Dependabot arm and
+an actor test, and asserts an exact inventory of the jobs that can land on
+Ubicloud with their ceilings. A change that adds, removes or re-times such a
+job fails it until the inventory is updated in the same commit.
 
 ## SSE module internals
 
