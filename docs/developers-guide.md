@@ -124,8 +124,9 @@ nothing on a public repository, and Dependabot opens many pull requests. The
 expression tests the pull request's author, not `github.actor`, because the
 actor is whoever triggered the run, so a person pushing to a Dependabot branch
 would flip the runner. A push and a dispatch have no pull request, so both
-values are null and they select Ubicloud; a Dependabot pull request therefore
-builds cold on the hosted pool, and only main's Ubicloud jobs write the cache.
+values are null and the expression selects Ubicloud; a Dependabot pull request
+therefore builds cold on the hosted pool, and only main's Ubicloud jobs write
+the cache.
 
 The writer sits on Ubicloud because Ubicloud's cache proxy is scoped by ref. A
 pull request's Ubicloud lane reads a warm main scope only when a main job on
