@@ -19,8 +19,11 @@ use super::{
 fn parse(source: &str) -> Result<Value> { reader::parse("fixture", source) }
 
 /// The estate's runner expression, as a lane writes it.
-const ESTATE: &str =
-    "${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'ubicloud-standard-2' }}";
+const ESTATE: &str = concat!(
+    "${{ (github.event.pull_request.head.repo.fork ",
+    "|| github.event.pull_request.user.login == 'dependabot[bot]') ",
+    "&& 'ubuntu-latest' || 'ubicloud-standard-2' }}"
+);
 
 /// Every job that can land on Ubicloud, with the runner class it names and the
 /// ceiling it states in minutes.
@@ -40,11 +43,13 @@ const PLACEMENTS: [(&str, &str, &str, u64); 2] = [
 /// Scenario: the runner-selection expression is evaluated for each kind of run.
 ///
 /// Invariant: a push, a dispatch and a same-repository pull request select
-/// Ubicloud, and only a fork's pull request selects the hosted pool.
+/// Ubicloud, and only a fork's or Dependabot's pull request selects the hosted
+/// pool.
 #[rstest]
 #[case::push_or_dispatch(Origin::NoPullRequest, "ubicloud-standard-2")]
 #[case::same_repository(Origin::SameRepository, "ubicloud-standard-2")]
 #[case::fork(Origin::Fork, "ubuntu-latest")]
+#[case::dependabot(Origin::Dependabot, "ubuntu-latest")]
 fn the_estate_expression_places_each_run(#[case] origin: Origin, #[case] wanted: &str) {
     assert_eq!(
         placement::selected_runner(ESTATE, origin).as_deref(),
@@ -58,26 +63,47 @@ fn the_estate_expression_places_each_run(#[case] origin: Origin, #[case] wanted:
 /// Invariant: each is reported, and the runner-selection expression is not.
 #[rstest]
 #[case::estate(ESTATE, 0)]
-#[case::always_hosted("ubuntu-latest", 3)]
-#[case::always_ubicloud("ubicloud-standard-2", 3)]
+#[case::always_hosted("ubuntu-latest", 4)]
+#[case::always_ubicloud("ubicloud-standard-2", 4)]
 #[case::inverted_arms(
-    "${{ github.event.pull_request.head.repo.fork && 'ubicloud-standard-2' || 'ubuntu-latest' }}",
-    3
+    concat!(
+        "${{ (github.event.pull_request.head.repo.fork ",
+        "|| github.event.pull_request.user.login == 'dependabot[bot]') ",
+        "&& 'ubicloud-standard-2' || 'ubuntu-latest' }}"
+    ),
+    4
 )]
 #[case::another_label(
-    "${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'ubicloud-standard-4' }}",
+    concat!(
+        "${{ (github.event.pull_request.head.repo.fork ",
+        "|| github.event.pull_request.user.login == 'dependabot[bot]') ",
+        "&& 'ubuntu-latest' || 'ubicloud-standard-4' }}"
+    ),
     2
 )]
 #[case::another_condition(
-    "${{ github.event_name == 'pull_request' && 'ubuntu-latest' || 'ubicloud-standard-2' }}",
-    3
+    "${{ (github.event_name == 'pull_request') && 'ubuntu-latest' || 'ubicloud-standard-2' }}",
+    4
 )]
-#[case::fork_kept_on_ubicloud(
+#[case::hosted_origins_kept_on_ubicloud(
     concat!(
-        "${{ github.event.pull_request.head.repo.fork && 'ubicloud-standard-2' ",
-        "|| 'ubicloud-standard-2' }}"
+        "${{ (github.event.pull_request.head.repo.fork ",
+        "|| github.event.pull_request.user.login == 'dependabot[bot]') ",
+        "&& 'ubicloud-standard-2' || 'ubicloud-standard-2' }}"
     ),
-    1
+    2
+)]
+#[case::dependabot_arm_missing(
+    "${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'ubicloud-standard-2' }}",
+    4
+)]
+#[case::actor_instead_of_author(
+    concat!(
+        "${{ (github.event.pull_request.head.repo.fork ",
+        "|| github.actor == 'dependabot[bot]') ",
+        "&& 'ubuntu-latest' || 'ubicloud-standard-2' }}"
+    ),
+    4
 )]
 fn a_misplaced_lane_is_reported(#[case] runs_on: &str, #[case] expected: usize) -> Result<()> {
     let faults = placement::placement_faults(runs_on, "ubicloud-standard-2");
