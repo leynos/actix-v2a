@@ -4,23 +4,23 @@ This roadmap records the next implementation workstreams for `actix-v2a`. Tasks
 are ordered by dependency and written as measurable delivery units rather than
 time-based commitments.
 
-## 1. Shared SSE helpers from ADR 001
+## 1. Shared SSE helpers from ADR 0001
 
 Implement the shared Server-Sent Events (SSE) wire-helper module defined by
-[ADR 001](adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md)
+[ADR 0001](adrs/adr-0001-shared-sse-wire-contract-for-wildside-and-corbusier.md)
 without pulling event-store, routing, or authorization logic into this crate.
 
 ### 1.1. Build the shared wire-helper surface
 
 - [x] 1.1.1. Implement validated SSE event identifier and replay cursor
-  helpers. See ADR 001 "Decision outcome / proposed direction".
+  helpers. See ADR 0001 "Decision outcome / proposed direction".
   - Reject carriage return, line feed, and NULL in identifier values.
   - Parse and validate the `Last-Event-ID` request header into the shared
     replay cursor type.
   - Keep the identifier helpers transport-focused and independent of any
     application-specific persistence model.
 - [x] 1.1.2. Implement SSE frame and cache-header helpers. Requires 1.1.1. See
-  ADR 001 "Functional requirements" and "Technical requirements".
+  ADR 0001 "Functional requirements" and "Technical requirements".
   - Format `id:`, `event:`, `data:`, and comment heartbeat frames for
     event-stream responses.
   - Provide cache-control helpers that disable intermediary reuse of live event
@@ -28,7 +28,7 @@ without pulling event-store, routing, or authorization logic into this crate.
   - Exclude any convenience responder until both downstream applications prove
     the same lifecycle needs.
 - [x] 1.1.3. Implement the shared heartbeat and `stream_reset` helpers.
-  Requires 1.1.2. See ADR 001 "Decision outcome / proposed direction".
+  Requires 1.1.2. See ADR 0001 "Decision outcome / proposed direction".
   - Provide the ADR default 20-second heartbeat policy with an explicit
     override path.
   - Emit the standard `stream_reset` event with payload
@@ -38,7 +38,7 @@ without pulling event-store, routing, or authorization logic into this crate.
 ### 1.2. Prove the contract and close the delivery loop
 
 - [x] 1.2.1. Add unit and integration tests for the shared SSE module.
-  Requires 1.1.3. See ADR 001 "Migration plan" Phase 2.
+  Requires 1.1.3. See ADR 0001 "Migration plan" Phase 2.
   - Cover identifier validation, `Last-Event-ID` parsing, frame formatting,
     cache headers, heartbeat output, and `stream_reset` output.
   - Pass `netsuke build check-fmt`, `netsuke build lint`, and
@@ -71,7 +71,7 @@ BDD and handler-level test coverage, and observability instrumentation.
 ## 3. Shared mutation contracts
 
 Deliver the behavioural boundary in
-[ADR 002](adr-002-scoped-mutation-contracts.md) and the
+[ADR 0002](adrs/adr-0002-scoped-mutation-contracts.md) and the
 [mutation design](shared-mutation-contract-design.md). These unchecked tasks
 specify future implementation; the design PR completes none of them.
 
@@ -82,7 +82,7 @@ choices against Wildside, Corbusier, and Mornington before committing to a
 storage interface.
 
 - [ ] 3.1.1. Implement scoped identities and versioned request fingerprints.
-  - Resolve ADR 003 identity representation and legacy-record migration.
+  - Resolve ADR 0003 identity representation and legacy-record migration.
   - Resolve and validate the storage and threat model for sensitive request
     fingerprints, as required by design section "Scoped operation identity".
   - Prove principal, tenant, operation, and target isolation, deterministic
@@ -92,7 +92,7 @@ storage interface.
     compatibility".
 - [ ] 3.1.2. Implement reservation and conditional completion contracts.
   Requires 3.1.1.
-  - Resolve ADR 003 state representation and completion ownership decisions.
+  - Resolve ADR 0003 state representation and completion ownership decisions.
   - Cover acquired, in-progress, completed, conflict, and indeterminate
     outcomes, duplicate completion, and rejection of stale owners.
   - Demonstrate both atomic commit and separate-reservation integration
@@ -101,7 +101,7 @@ storage interface.
     "Atomicity and recovery".
 - [ ] 3.1.3. Implement replay results and bounded recovery policy seams.
   Requires 3.1.2.
-  - Resolve remaining ADR 003 questions and record its acceptance rationale.
+  - Resolve remaining ADR 0003 questions and record its acceptance rationale.
   - Support resource references and typed results as well as opt-in snapshots.
   - Test injected time, cancellation, retention, and uncertain completion;
     prohibit automatic effect retries based solely on lease expiry.
@@ -121,7 +121,7 @@ separately reserved effects before downstream adoption.
     in-memory reference implementation alone is insufficient evidence.
 - [ ] 3.2.2. Implement required and optional key extraction and HTTP outcomes.
   Requires 3.1.3.
-  - Resolve ADR 004 mutation status, reason, and retry-header mappings.
+  - Resolve ADR 0004 mutation status, reason, and retry-header mappings.
   - Test absent, malformed, and duplicate headers and key propagation into
     application dispatch; retain existing optional extraction compatibility.
   - Publish handler tests for replay, conflict, pending, and unknown outcomes.
@@ -138,8 +138,9 @@ separately reserved effects before downstream adoption.
 
 ## 4. Shared HTTP integration helpers
 
-Extract the bounded helpers in [ADR 004](adr-004-shared-http-integration.md)
-without importing authentication, tenant policy, or persistence machinery.
+Extract the bounded helpers in
+[ADR 0004](adrs/adr-0004-shared-http-integration.md) without importing
+authentication, tenant policy, or persistence machinery.
 
 ### 4.1. Standardize validation and error conversion
 
@@ -147,7 +148,7 @@ Deliver consistent error details without breaking consumer response envelopes.
 Use consumer compatibility fixtures to settle mapping decisions.
 
 - [ ] 4.1.1. Implement structured field and index validation details.
-  - Resolve ADR 004 validation vocabulary and envelope compatibility.
+  - Resolve ADR 0004 validation vocabulary and envelope compatibility.
   - Cover nested fields, array indices, missing values, and safe omission of
     submitted secrets. Reuse Wildside validation cases.
   - See design "HTTP integration and other extractions".
@@ -166,12 +167,12 @@ Deliver request correlation independently of authentication and tracing policy,
 then publish the complete adoption checklist.
 
 - [ ] 4.2.1. Implement validated request-correlation propagation.
-  - Resolve ADR 004 header trust, size, syntax, and invalid-input decisions.
+  - Resolve ADR 0004 header trust, size, syntax, and invalid-input decisions.
   - Test read-or-create behaviour, consistent response/error propagation,
     concurrent request isolation, and distinction from distributed trace IDs.
 - [ ] 4.2.2. Publish compatibility fixtures and downstream migration guidance.
   Requires 3.2.3, 4.1.2, 4.2.1.
-  - Resolve ADR 004 outstanding decisions and record acceptance evidence.
+  - Resolve ADR 0004 outstanding decisions and record acceptance evidence.
   - Document public API migration, safe telemetry, and consumer-owned policy.
   - Update the users' and developers' guides and both downstream adoption
     issues with implemented task IDs and the adoption revision.

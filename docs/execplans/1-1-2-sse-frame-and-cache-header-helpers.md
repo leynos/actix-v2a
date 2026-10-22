@@ -9,11 +9,11 @@ Status: COMPLETED
 ## Purpose / big picture
 
 `actix-v2a` already exposes the first slice of the shared Server-Sent Events
-(SSE) contract from [Architecture Decision Record (ADR) 001][adr-001]: validated
-`EventId` values and `Last-Event-ID` replay cursor parsing. Roadmap task 1.1.2
-is the next delivery unit in that contract. It adds the wire helpers that
-downstream applications need to emit browser-compatible SSE frames and to mark
-live event-stream responses as non-reusable by intermediaries.
+(SSE) contract from [Architecture Decision Record (ADR) 0001][adr-0001]:
+validated `EventId` values and `Last-Event-ID` replay cursor parsing. Roadmap
+task 1.1.2 is the next delivery unit in that contract. It adds the wire helpers
+that downstream applications need to emit browser-compatible SSE frames and to
+mark live event-stream responses as non-reusable by intermediaries.
 
 After this change, downstream services should be able to do three things
 without reimplementing wire details:
@@ -39,11 +39,11 @@ Success is observable when:
   `rstest`.
 - Behavioural tests use `rstest-bdd` only if a scenario-level assertion adds
   clarity beyond straightforward unit coverage.
-- `docs/users-guide.md`, `docs/developers-guide.md`, and ADR 001 describe the
+- `docs/users-guide.md`, `docs/developers-guide.md`, and ADR 0001 describe the
   approved helper behaviour.
 - `docs/roadmap.md` marks task 1.1.2 done only after all quality gates pass.
 
-[adr-001]: ../adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md
+[adr-0001]: ../adrs/adr-0001-shared-sse-wire-contract-for-wildside-and-corbusier.md
 
 ## Constraints
 
@@ -71,7 +71,7 @@ Success is observable when:
 - Tests must use `rstest` fixtures and parameterized cases where they improve
   clarity. `rstest-bdd` should be used only where scenario structure adds real
   value.
-- Any design decision that refines ADR 001 must be recorded in the ADR, not
+- Any design decision that refines ADR 0001 must be recorded in the ADR, not
   only in code comments or tests.
 
 ## Tolerances (exception triggers)
@@ -84,9 +84,9 @@ Success is observable when:
   without introducing a responder, generic stream abstraction, or application
   callback hooks, stop and escalate.
 - Specification ambiguity: if newline handling, empty event-name semantics, or
-  the exact cache header set materially affect downstream behaviour and ADR 001
-  does not already settle the choice, stop and record the proposed decision in
-  the ADR before code lands.
+  the exact cache header set materially affect downstream behaviour and ADR
+  0001 does not already settle the choice, stop and record the proposed
+  decision in the ADR before code lands.
 - Iterations: if the same failing test or lint issue persists after three
   focused fix attempts, stop and document the blocker.
 
@@ -101,7 +101,7 @@ Success is observable when:
   cases could produce subtly invalid SSE output. Severity: high. Likelihood:
   medium. Mitigation: add explicit unit coverage for empty payloads, embedded
   blank lines, Unicode data, and trailing newline cases, and document any
-  chosen normalization rule in ADR 001.
+  chosen normalization rule in ADR 0001.
 
 - Risk: cache-control helpers may be either too weak (shared caches still
   reuse streams) or broader than the ADR intends. Severity: medium. Likelihood:
@@ -115,14 +115,14 @@ Success is observable when:
 
 ## Progress
 
-- [x] Read `docs/roadmap.md`, ADR 001, the existing SSE module, and the prior
+- [x] Read `docs/roadmap.md`, ADR 0001, the existing SSE module, and the prior
   task 1.1.1 execplan.
 - [x] Draft this execution plan.
 - [x] Receive user approval for the plan.
 - [x] Implement the SSE frame helper module.
 - [x] Implement the SSE cache-header helper module.
 - [x] Add unit tests and any justified behavioural tests.
-- [x] Update ADR 001, `docs/users-guide.md`, and `docs/developers-guide.md`.
+- [x] Update ADR 0001, `docs/users-guide.md`, and `docs/developers-guide.md`.
 - [x] Mark roadmap task 1.1.2 done after the implementation passes all gates.
 - [x] Run `make check-fmt`, `make lint`, `make test`, `make fmt`,
   `make markdownlint`, and `make nixie` with `tee` logs.
@@ -211,7 +211,7 @@ recommended direction is:
 - one helper for applying the canonical no-reuse cache policy to a header map
   or equivalent typed header surface.
 
-This stage must also settle any framing details that ADR 001 leaves implicit:
+This stage must also settle any framing details that ADR 0001 leaves implicit:
 
 - how multi-line `data:` payloads are split into repeated `data:` lines;
 - whether bare `\r`, `\n`, and `\r\n` in data are normalized as logical line
@@ -226,7 +226,7 @@ If any of these choices changes or sharpens the normative contract, update ADR
 Validation for Stage A:
 
 - the user approves this plan;
-- ADR 001 is ready to accept any needed clarifications;
+- ADR 0001 is ready to accept any needed clarifications;
 - no responder or lifecycle abstraction has leaked into the proposed API.
 
 ### Stage B: implement frame rendering helpers
@@ -245,7 +245,7 @@ Implementation expectations:
 - Provide a comment-frame helper that can represent heartbeat traffic without
   using fake event names or payloads.
 - Validate any untyped textual inputs only as far as needed to preserve wire
-  integrity, and record the exact rule in ADR 001 if it becomes part of the
+  integrity, and record the exact rule in ADR 0001 if it becomes part of the
   public contract.
 
 Unit test coverage in this stage should include at least:
@@ -304,7 +304,7 @@ Validation for Stage C:
 
 After code and tests are green, update the documentation set:
 
-1. `docs/adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md`
+1. `docs/adrs/adr-0001-shared-sse-wire-contract-for-wildside-and-corbusier.md`
    records any design decisions taken during implementation, especially newline
    handling, event-name treatment, and the chosen cache policy.
 2. `docs/users-guide.md` documents the new public helper surface with concise
@@ -348,7 +348,7 @@ Task 1.1.2 is done when all of the following are true:
   clarity; otherwise the execplan explicitly records why they were not needed.
 - `make check-fmt`, `make lint`, `make test`, `make fmt`,
   `make markdownlint`, and `make nixie` all pass.
-- ADR 001, `docs/users-guide.md`, and `docs/developers-guide.md` reflect the
+- ADR 0001, `docs/users-guide.md`, and `docs/developers-guide.md` reflect the
   approved helper behaviour.
 - `docs/roadmap.md` marks 1.1.2 complete.
 
