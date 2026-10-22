@@ -33,7 +33,8 @@ orientation, start with [documentation contents](contents.md) and
 
 Coverage has two workflows, and the split is a contract (concordat's CV-005,
 `main-owned-codescene-coverage`), not a convention.
-[ADR 005](adr-005-main-owns-coverage-publication.md) records the decision.
+[ADR 0005](adrs/adr-0005-main-owns-coverage-publication.md) records the
+decision.
 
 - `ci.yml` measures lcov coverage on every pull request with the shared
   `generate-coverage` action, `with-ratchet: 'true'` and
@@ -162,7 +163,7 @@ job fails it until the inventory is updated in the same commit.
 
 The `src/sse/` module implements validated Server-Sent Events (SSE) wire-level
 helpers per
-[ADR 001](adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md).
+[ADR 0001](adrs/adr-0001-shared-sse-wire-contract-for-wildside-and-corbusier.md).
 
 ### Module layout
 
@@ -471,7 +472,7 @@ so a bare `cargo build` gets them. `mold` ships for Linux only, so the linker
 flag lives in a Linux-only table and macOS and Windows keep their platform
 linker. Cargo selects one `rustflags` source rather than merging them, so every
 source repeats the same flags apart from the linker. The decision is recorded in
-[ADR 006](adr-006-rust-build-standard.md).
+[ADR 0006](adrs/adr-0006-rust-build-standard.md).
 
 An assigned `RUSTFLAGS` replaces the configuration's flags, so the Netsukefile
 recipes that set it compose the standard's flags onto any inherited value (CI's
@@ -782,9 +783,9 @@ Pagination tests are split by contract:
 
 ## Additional resources
 
-- [ADR 001: Shared SSE wire contract for Wildside and
-  Corbusier](adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md) —
-  normative specification for the SSE module
+- [ADR 0001: Shared SSE wire contract for Wildside and
+  Corbusier](adrs/adr-0001-shared-sse-wire-contract-for-wildside-and-corbusier.md)
+  — normative specification for the SSE module
 - [ExecPlan: Implement SSE identifier and replay cursor
   helpers](execplans/1-1-1-implement-sse-identifier-and-replay-cursor-helpers.md)
   — implementation plan for task 1.1.1

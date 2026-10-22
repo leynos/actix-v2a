@@ -9,7 +9,7 @@ Status: COMPLETE
 ## Purpose / big picture
 
 `actix-v2a` is the shared Actix component library for the v2a web stack.
-[ADR 001][adr-001] defines a wire-only Server-Sent Events (SSE) contract that
+[ADR 0001][adr-0001] defines a wire-only Server-Sent Events (SSE) contract that
 both Wildside and Corbusier can adopt without surrendering control of their own
 event stores or stream routing. This plan delivers the first concrete piece of
 that contract: validated event identifiers for SSE `id:` lines and a replay
@@ -34,14 +34,14 @@ Success is observable by running `make test` and seeing the new unit and
 behavioural tests pass. The helpers are exported from the crate root, so a
 downstream consumer can write `use actix_v2a::sse::{EventId, ReplayCursor}`.
 
-[adr-001]: ../adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md
+[adr-0001]: ../adrs/adr-0001-shared-sse-wire-contract-for-wildside-and-corbusier.md
 
 ## Constraints
 
 These are hard invariants. Violation requires escalation, not workarounds.
 
 - The SSE module must not depend on any application-specific event-store
-  schema, persistence model, or endpoint routing. ADR 001 explicitly excludes
+  schema, persistence model, or endpoint routing. ADR 0001 explicitly excludes
   these concerns from the shared library.
 - The identifier validation must reject exactly three byte values: carriage
   return (U+000D), line feed (U+000A), and NULL (U+0000). These are the
@@ -244,7 +244,7 @@ SSE specification assigns special meaning to an empty identifier.
 
 ### Governing documents
 
-- [ADR 001][adr-001] defines the shared SSE wire contract. This plan
+- [ADR 0001][adr-0001] defines the shared SSE wire contract. This plan
   implements the "validated event identifier type for `id:` lines and replay
   cursors" and "parsing helpers for the `Last-Event-ID` request header" items
   from the decision outcome.
@@ -253,8 +253,8 @@ SSE specification assigns special meaning to an empty identifier.
 - The
   [import-components-from-wildside execplan](import-components-from-wildside.md)
   is the parent execution plan. Milestone 5 deferred SSE implementation
-  because no authoritative source existed in Wildside; ADR 001 now provides the
-  normative contract.
+  because no authoritative source existed in Wildside; ADR 0001 now provides
+  the normative contract.
 
 ### Build and validation commands
 
@@ -473,7 +473,7 @@ Update the following documents:
 
 4. `docs/contents.md`: add entries for any new documentation files.
 
-5. ADR 001 design decisions addendum: if any design decisions were made during
+5. ADR 0001 design decisions addendum: if any design decisions were made during
    implementation that refine or extend the ADR, record them in the
    `Decision Log` section of this execplan and reference the ADR.
 

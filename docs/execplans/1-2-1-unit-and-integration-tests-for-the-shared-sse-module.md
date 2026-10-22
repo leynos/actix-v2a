@@ -9,7 +9,7 @@ Status: COMPLETE
 ## Purpose / big picture
 
 Roadmap task 1.2.1 is the proof stage for the shared Server-Sent Events (SSE)
-wire helpers defined by [Architecture Decision Record (ADR) 001][adr-001].
+wire helpers defined by [Architecture Decision Record (ADR) 0001][adr-0001].
 Tasks 1.1.1, 1.1.2, and 1.1.3 already landed the transport-focused helper
 surface in `src/sse/`. This task does not broaden that surface. It proves that
 the existing public API behaves exactly as the contract says it should.
@@ -32,7 +32,7 @@ complete.
 
 This plan was approved before implementation began.
 
-[adr-001]: ../adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md
+[adr-0001]: ../adrs/adr-0001-shared-sse-wire-contract-for-wildside-and-corbusier.md
 
 ## Constraints
 
@@ -66,7 +66,7 @@ This plan was approved before implementation began.
   as valid `HeaderValue`s, so those bytes must be tested at the identifier
   validation layer rather than by manufacturing impossible headers.
 - Any decision that sharpens or changes the normative wire contract must be
-  recorded in ADR 001 before or alongside the test change.
+  recorded in ADR 0001 before or alongside the test change.
 - `docs/users-guide.md` must be updated only if the test audit reveals a user-
   visible behaviour clarification or example gap. `docs/developers-guide.md`
   must be updated with any internal testing practice or layout change that the
@@ -100,9 +100,9 @@ to a subsequent PR.
 - Public API: if proving the contract requires changing the exported SSE API,
   stop and escalate before implementation. This task is to prove the contract,
   not redesign it.
-- Specification ambiguity: if ADR 001, the existing docs, and the current code
+- Specification ambiguity: if ADR 0001, the existing docs, and the current code
   disagree on an observable SSE behaviour, stop, record the conflict, and
-  resolve it in ADR 001 before changing the tests.
+  resolve it in ADR 0001 before changing the tests.
 - Iterations: if the same failing gate or test issue survives three focused fix
   attempts, stop and document the blocker instead of improvising around it.
 - Dependencies: no new crates are expected. If a new dependency appears
@@ -118,8 +118,8 @@ to a subsequent PR.
 
 - Risk: a test may accidentally codify implementation detail rather than the
   normative wire contract. Severity: medium. Likelihood: medium. Mitigation:
-  use ADR 001 and the existing user/developer guides as the source of truth,
-  and update ADR 001 whenever a test introduces a newly explicit contract
+  use ADR 0001 and the existing user/developer guides as the source of truth,
+  and update ADR 0001 whenever a test introduces a newly explicit contract
   decision.
 
 - Risk: behavioural tests could add ceremony without increasing clarity.
@@ -139,7 +139,7 @@ to a subsequent PR.
 
 ## Progress
 
-- [x] 2026-04-21: Read `docs/roadmap.md`, ADR 001, the prior SSE execplans,
+- [x] 2026-04-21: Read `docs/roadmap.md`, ADR 0001, the prior SSE execplans,
   and the current `src/sse/` implementation.
 - [x] 2026-04-21: Review the referenced testing guidance:
   `docs/rust-testing-with-rstest-fixtures.md`,
@@ -149,12 +149,12 @@ to a subsequent PR.
 - [x] 2026-04-21: Draft this execution plan.
 - [x] 2026-04-29: User approved proceeding with implementation.
 - [x] 2026-04-29: Audit existing unit coverage against roadmap task 1.2.1
-  and ADR 001.
+  and ADR 0001.
 - [x] 2026-04-29: Add or tighten module-level `rstest` coverage for any
   missing SSE edge cases.
 - [x] 2026-04-29: Add a downstream-facing integration contract suite for the
   shared SSE module.
-- [x] 2026-04-29: Update ADR 001, `docs/users-guide.md`, and
+- [x] 2026-04-29: Update ADR 0001, `docs/users-guide.md`, and
   `docs/developers-guide.md` as required by the final implementation findings.
 - [x] 2026-04-29: Run `make check-fmt`, `make lint`, `make test`,
   `make fmt`, `make markdownlint`, and `make nixie` with `tee` logs.
@@ -212,7 +212,7 @@ to a subsequent PR.
 
 - 2026-04-21: This plan treats documentation updates as conditional rather than
   automatic. Rationale: task 1.2.1 should not manufacture user-facing behaviour
-  changes; it should only update ADR 001 and the guides when the testing work
+  changes; it should only update ADR 0001 and the guides when the testing work
   makes an existing contract statement clearer or more precise.
 
 - 2026-04-29: Stage A keeps the existing module-local tests and adds only
@@ -226,7 +226,7 @@ to a subsequent PR.
   contract easier to read than one long assertion test, and the repository
   already has this behavioural-test pattern.
 
-- 2026-04-29: ADR 001 and the user guide do not need contract updates for this
+- 2026-04-29: ADR 0001 and the user guide do not need contract updates for this
   change. Rationale: the tests prove behaviours already documented there. The
   developer guide does need a narrow testing-layout update because the SSE
   module now has a public BDD contract suite in addition to module-local unit
@@ -249,7 +249,7 @@ The coverage now proves every roadmap bullet:
 - canonical `stream_reset` output.
 
 The developer guide now records the SSE testing split between module-local unit
-tests and crate-root behavioural contract tests. ADR 001 and the user guide
+tests and crate-root behavioural contract tests. ADR 0001 and the user guide
 already described the proven contract, so they required no behavioural wording
 change.
 
@@ -351,7 +351,7 @@ approved SSE wire contract.
 ### Governing documents
 
 - [Roadmap](../roadmap.md) records this work as task 1.2.1.
-- [ADR 001][adr-001] is the normative SSE contract.
+- [ADR 0001][adr-0001] is the normative SSE contract.
 - [Users guide](../users-guide.md) records the public SSE API expectations.
 - [Developers guide](../developers-guide.md) records module boundaries, test
   posture, and SSE maintenance guidance.
@@ -420,7 +420,7 @@ user approved this plan.
 ### Stage A: audit the existing SSE coverage against the roadmap
 
 Start by comparing the current tests in `src/sse/*.rs` against the exact
-behaviours named in roadmap task 1.2.1 and ADR 001. Produce a short coverage
+behaviours named in roadmap task 1.2.1 and ADR 0001. Produce a short coverage
 matrix in the working notes or update this plan's `Decision Log` if anything
 surprising appears.
 
@@ -429,7 +429,7 @@ Questions the audit must answer:
 1. Which roadmap-required behaviours are already covered well?
 2. Which behaviours are covered only indirectly and need a clearer direct test?
 3. Which gaps belong in unit tests versus the integration contract suite?
-4. Does any existing test codify behaviour that ADR 001 does not yet state
+4. Does any existing test codify behaviour that ADR 0001 does not yet state
    clearly?
 
 The audit should explicitly check:
@@ -521,7 +521,7 @@ Once the tests are green, perform the documentation review and close the task.
 
 Required closure work:
 
-1. Update ADR 001 if the final tests make any contract detail newly explicit.
+1. Update ADR 0001 if the final tests make any contract detail newly explicit.
 2. Update `docs/users-guide.md` only if the audit or final tests expose a
    public-behaviour clarification, missing example, or wording mismatch.
 3. Update `docs/developers-guide.md` with any new internal testing convention,
@@ -548,7 +548,7 @@ The task is complete only when all of the following are true:
    proves every roadmap bullet in task 1.2.1.
 2. The implementation keeps the crate wire-only and does not expand the SSE
    feature set beyond testing or small supporting clarifications.
-3. Any contract decision sharpened by the tests is written into ADR 001.
+3. Any contract decision sharpened by the tests is written into ADR 0001.
 4. Any required guide updates are landed in `docs/users-guide.md` and
    `docs/developers-guide.md`.
 5. `make check-fmt`, `make lint`, `make test`, `make fmt`,

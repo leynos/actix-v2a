@@ -11,7 +11,7 @@ pub const STREAM_RESET_REPLAY_UNAVAILABLE_PAYLOAD: &str = r#"{"reason":"replay_u
 /// Render the standard replay-unavailable `stream_reset` frame.
 ///
 /// This helper is intentionally fixed to the shared control event defined by
-/// ADR 001. It does not broaden the crate surface into a generic
+/// ADR 0001. It does not broaden the crate surface into a generic
 /// application-event builder.
 ///
 /// # Errors
