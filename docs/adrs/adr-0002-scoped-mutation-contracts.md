@@ -1,4 +1,4 @@
-# Architectural decision record (ADR) 002: scoped mutation contracts
+# Architectural decision record (ADR) 0002: scoped mutation contracts
 
 ## Status
 
@@ -14,7 +14,7 @@ Wildside, Corbusier, and Mornington need scoped deduplication and explicit
 mutation outcomes. Existing actix-v2a helpers parse keys and compare hashes but
 cannot express reservation ownership or unresolved effects. Consumer evidence
 and ownership rules are recorded in the
-[shared mutation design](shared-mutation-contract-design.md).
+[shared mutation design](../shared-mutation-contract-design.md).
 
 ## Decision drivers
 
@@ -92,4 +92,4 @@ approach of sharing reusable semantics without owning the application service.
 ## Outstanding decisions
 
 The boundary is settled. Concrete API representation, recovery, and migration
-choices remain proposed in [ADR 003](adr-003-mutation-recovery-and-replay.md).
+choices remain proposed in [ADR 0003](adr-0003-mutation-recovery-and-replay.md).
