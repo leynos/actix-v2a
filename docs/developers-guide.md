@@ -380,7 +380,8 @@ Netsuke is the repository build driver. It compiles the root `Netsukefile` into
 a Ninja build graph, then Ninja runs the selected action. There is no
 `Makefile`; run every gate through `netsuke build <action>`. Install Ninja and
 the published `netsuke-build` v0.1.0-beta4 release before running repository
-gates. The release builds with the dated nightly its own toolchain file pins:
+gates. The release builds with the dated nightly pinned by its own toolchain
+file:
 
 ```bash
 sudo dnf install ninja-build
