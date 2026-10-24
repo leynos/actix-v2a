@@ -1,7 +1,10 @@
 //! Judges whether workflow jobs drive the gates through the pinned Netsuke.
 //!
 //! The judgement works on parsed workflows so it can be exercised against
-//! constructed jobs before it is applied to the repository's own files.
+//! constructed jobs before it is applied to the repository's own files. A job
+//! is read as one ordered stream of shell command segments: every `run` line,
+//! split at `;`, `|` and `&`, so an install and a use in the same script are
+//! judged in the order the shell runs them.
 
 use std::collections::BTreeSet;
 
@@ -15,6 +18,12 @@ pub const NETSUKE_VERSION: &str = "0.1.0-beta4";
 /// The shared action that runs the test suite under coverage. The suite
 /// includes the `Netsukefile` action tests, which execute `netsuke`.
 const COVERAGE_ACTION: &str = "leynos/shared-actions/.github/actions/generate-coverage@";
+
+/// The install command for the pinned release, as the workflows write it.
+const PINNED_INSTALL: &str = "netsuke-build --version \"=${NETSUKE_VERSION}\"";
+
+/// Cargo subcommands that run the test suite, and so execute `netsuke`.
+const TEST_SUBCOMMANDS: [&str; 3] = ["test", "nextest", "llvm-cov"];
 
 /// One workflow step, reduced to what the rules read.
 #[derive(Debug, Default)]
@@ -38,6 +47,7 @@ pub fn steps(job: &Mapping) -> Vec<Step> {
         .unwrap_or_default()
 }
 
+/// Reduces one step mapping to its `run`, `uses`, and `NETSUKE_VERSION`.
 fn step(mapping: &Mapping) -> Step {
     let text = |key| {
         reader::get(mapping, key)
@@ -57,50 +67,112 @@ fn step(mapping: &Mapping) -> Step {
     }
 }
 
-/// Whether a step needs `netsuke` and Ninja to be installed already. The
-/// install step's own `netsuke --version` probe does not count.
-fn needs_netsuke(step: &Step) -> bool {
-    !installs_pinned_netsuke(step)
-        && (step.uses.starts_with(COVERAGE_ACTION)
-            || netsuke_invocations(&step.run).next().is_some())
+/// One simple shell command: the words between `;`, `|` and `&`.
+struct Segment<'a>(Vec<&'a str>);
+
+impl Segment<'_> {
+    /// Whether this command runs `netsuke`, other than a `--version` probe.
+    fn runs_netsuke(&self) -> bool {
+        let names_netsuke = self
+            .0
+            .iter()
+            .any(|word| *word == "netsuke" || word.ends_with("/netsuke"));
+        names_netsuke && !self.0.contains(&"--version")
+    }
+
+    /// Whether this command runs the test suite through Cargo.
+    fn runs_test_suite(&self) -> bool {
+        self.0
+            .windows(2)
+            .any(|pair| matches!(pair, ["cargo", sub] if TEST_SUBCOMMANDS.contains(sub)))
+    }
+
+    /// The action a `netsuke ... build <action>` command builds, if any.
+    fn built_action(&self) -> Option<String> {
+        let mut after_build = self.0.iter().skip_while(|word| **word != "build");
+        after_build.next()?;
+        after_build.next().map(|action| (*action).to_owned())
+    }
 }
 
-fn installs_pinned_netsuke(step: &Step) -> bool {
-    step.run
-        .contains("netsuke-build --version \"=${NETSUKE_VERSION}\"")
-        && step.version.as_deref() == Some(NETSUKE_VERSION)
+/// Splits a shell line into the simple commands the shell runs in order.
+fn segments(line: &str) -> impl Iterator<Item = Segment<'_>> {
+    line.split([';', '|', '&'])
+        .map(|segment| Segment(segment.split_whitespace().collect()))
+        .filter(|segment| !segment.0.is_empty())
 }
 
-fn installs_ninja(step: &Step) -> bool { step.run.contains("ninja-build") }
+/// One thing a job does, in order: a step's `uses` action or a `run` line.
+struct Command<'a> {
+    text: &'a str,
+    version: Option<&'a str>,
+    is_coverage: bool,
+}
 
-/// Lines of a `run` script that invoke `netsuke`. Installing the
-/// `netsuke-build` crate names the package, not the command, so it is not an
-/// invocation.
-fn netsuke_invocations(run: &str) -> impl Iterator<Item = &str> {
-    run.lines().map(str::trim).filter(|line| {
-        line.split_whitespace()
-            .any(|word| word == "netsuke" || word.ends_with("/netsuke"))
+impl Command<'_> {
+    /// Whether this command needs Netsuke and Ninja installed already.
+    fn needs_netsuke(&self) -> bool {
+        self.is_coverage
+            || segments(self.text)
+                .any(|segment| segment.runs_netsuke() || segment.runs_test_suite())
+    }
+
+    /// Describes this command running before the installs.
+    fn premature(&self) -> String {
+        format!(
+            "`{}` runs before netsuke-build {NETSUKE_VERSION} and Ninja are installed",
+            self.text.trim()
+        )
+    }
+}
+
+/// Every command in the steps, in the order the job runs them.
+fn commands(steps: &[Step]) -> impl Iterator<Item = Command<'_>> {
+    steps.iter().flat_map(|step| {
+        let uses = (!step.uses.is_empty()).then(|| Command {
+            text: &step.uses,
+            version: None,
+            is_coverage: step.uses.starts_with(COVERAGE_ACTION),
+        });
+        let lines = step.run.lines().map(|line| Command {
+            text: line,
+            version: step.version.as_deref(),
+            is_coverage: false,
+        });
+        uses.into_iter().chain(lines)
     })
 }
 
-/// Describes each step that needs Netsuke before both installs have run.
-pub fn missing_installs(steps: &[Step]) -> Vec<String> {
-    let mut has_netsuke = false;
-    let mut has_ninja = false;
-    let mut problems = Vec::new();
-    for step in steps {
-        has_netsuke |= installs_pinned_netsuke(step);
-        has_ninja |= installs_ninja(step);
-        let is_installed = has_netsuke && has_ninja;
-        if needs_netsuke(step) && !is_installed {
-            problems.push(format!(
-                "step `{}{}` runs before netsuke-build {NETSUKE_VERSION} and Ninja are installed",
-                step.uses,
-                step.run.lines().next().unwrap_or_default()
-            ));
-        }
+/// Install progress through a job, in shell order.
+#[derive(Default)]
+struct Installed {
+    netsuke: bool,
+    ninja: bool,
+}
+
+impl Installed {
+    /// Whether both the pinned Netsuke and Ninja are available.
+    const fn is_ready(&self) -> bool { self.netsuke && self.ninja }
+
+    /// Records any install that `command` performs.
+    fn observe(&mut self, command: &Command<'_>) {
+        let pins_netsuke = command.version == Some(NETSUKE_VERSION);
+        self.netsuke |= pins_netsuke && command.text.contains(PINNED_INSTALL);
+        self.ninja |= command.text.contains("ninja-build");
     }
-    problems
+}
+
+/// Describes each use of Netsuke, direct or through the test suite, that comes
+/// before netsuke-build 0.1.0-beta4 and Ninja are both installed.
+pub fn missing_installs(steps: &[Step]) -> Vec<String> {
+    let mut installed = Installed::default();
+    commands(steps)
+        .filter_map(|command| {
+            installed.observe(&command);
+            let is_premature = command.needs_netsuke() && !installed.is_ready();
+            is_premature.then(|| command.premature())
+        })
+        .collect()
 }
 
 /// Describes each step that still calls `make`, which no longer exists.
@@ -108,7 +180,7 @@ pub fn make_calls(steps: &[Step]) -> Vec<String> {
     steps
         .iter()
         .flat_map(|step| step.run.lines())
-        .filter(|line| line.split_whitespace().any(|word| word == "make"))
+        .filter(|line| segments(line).any(|segment| segment.0.first() == Some(&"make")))
         .map(|line| {
             format!(
                 "`{}` calls make; the repository has no Makefile",
@@ -118,16 +190,15 @@ pub fn make_calls(steps: &[Step]) -> Vec<String> {
         .collect()
 }
 
-/// Returns each action named by `netsuke ... build <action>` in the steps.
+/// Returns each action named by `netsuke ... build <action>` in the steps,
+/// including every invocation on a line that chains several.
 pub fn built_actions(steps: &[Step]) -> BTreeSet<String> {
     steps
         .iter()
-        .flat_map(|step| netsuke_invocations(&step.run))
-        .filter_map(|line| {
-            let mut words = line.split_whitespace().skip_while(|word| *word != "build");
-            words.next()?;
-            words.next().map(str::to_owned)
-        })
+        .flat_map(|step| step.run.lines())
+        .flat_map(segments)
+        .filter(Segment::runs_netsuke)
+        .filter_map(|segment| segment.built_action())
         .collect()
 }
 

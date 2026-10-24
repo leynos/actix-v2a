@@ -163,10 +163,10 @@ project:
     RUSTFLAGS="-D warnings" cargo test --doc --workspace --all-features
     ```
 
-    running the full test suite and doctests, or
-    `cargo test --all-targets --all-features` when `cargo-nextest` is not
-    installed. Use `netsuke build fmt` to apply the Rust and Markdown
-    formatting fixes reported by the formatter check.
+    running the full test suite and doctests. When `cargo-nextest` is not
+    installed, `cargo test --all-targets --all-features` replaces the nextest
+    run; the doctest run is unchanged. Use `netsuke build fmt` to apply the
+    Rust and Markdown formatting fixes reported by the formatter check.
   - `netsuke build` with no action runs `all`: spelling, the CV-005 workflow
     contracts, `check-fmt`, `lint`, and `test`, in that order.
   - `netsuke help targets` lists every action with its description.

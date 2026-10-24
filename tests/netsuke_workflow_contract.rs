@@ -10,6 +10,8 @@
 //! check run only over correct workflows would pass whether or not it detected
 //! anything.
 
+#[path = "netsuke_workflow_contract/properties.rs"]
+mod properties;
 #[path = "runner_placement/reader.rs"]
 mod reader;
 #[path = "netsuke_workflow_contract/rules.rs"]
@@ -28,6 +30,7 @@ const CI_GATES: [&str; 5] = [
     "test-workflow-contracts",
 ];
 
+/// Parses the steps of the single job in a constructed workflow.
 fn job_steps(yaml: &str) -> Result<Vec<Step>> {
     let workflow = reader::parse("constructed.yml", yaml)?;
     let (_, job) = reader::jobs(&workflow)
@@ -37,12 +40,15 @@ fn job_steps(yaml: &str) -> Result<Vec<Step>> {
     Ok(rules::steps(job))
 }
 
+/// Installs Ninja and the pinned Netsuke, as two steps.
 const INSTALLS: &str = r#"
       - env: { NETSUKE_VERSION: 0.1.0-beta4 }
         run: cargo install --locked netsuke-build --version "=${NETSUKE_VERSION}"
       - run: sudo apt-get install -y ninja-build
 "#;
 
+/// The install rule reports each use of Netsuke, direct or through the test
+/// suite, that precedes the pinned release or Ninja.
 #[rstest]
 #[case::gate_after_installs(&format!("{INSTALLS}      - run: netsuke build lint\n"), 0)]
 #[case::gate_before_installs(&format!("      - run: netsuke build lint\n{INSTALLS}"), 1)]
@@ -62,6 +68,29 @@ const INSTALLS: &str = r#"
     ),
     1
 )]
+#[case::cargo_test_before_installs(&format!("      - run: cargo test --workspace\n{INSTALLS}"), 1)]
+#[case::nextest_before_installs(&format!("      - run: cargo nextest run\n{INSTALLS}"), 1)]
+#[case::netsuke_before_its_install_in_one_script(
+    concat!(
+        "      - run: sudo apt-get install -y ninja-build\n",
+        "      - env: { NETSUKE_VERSION: 0.1.0-beta4 }\n",
+        "        run: |\n",
+        "          netsuke build lint\n",
+        "          cargo install --locked netsuke-build --version \"=${NETSUKE_VERSION}\"\n",
+    ),
+    1
+)]
+#[case::installer_version_probe_is_exempt(
+    concat!(
+        "      - run: sudo apt-get install -y ninja-build\n",
+        "      - env: { NETSUKE_VERSION: 0.1.0-beta4 }\n",
+        "        run: |\n",
+        "          if netsuke --version | grep -q beta4; then exit 0; fi\n",
+        "          cargo install --locked netsuke-build --version \"=${NETSUKE_VERSION}\"\n",
+        "      - run: netsuke build lint\n",
+    ),
+    0
+)]
 fn install_rule_flags_gates_without_pinned_netsuke(
     #[case] steps_yaml: &str,
     #[case] expected_problems: usize,
@@ -72,6 +101,7 @@ fn install_rule_flags_gates_without_pinned_netsuke(
     Ok(())
 }
 
+/// The make rule reports a `make` command, not the word in other text.
 #[rstest]
 #[case::make_gate("      - run: make lint\n", 1)]
 #[case::netsuke_gate("      - run: netsuke build lint\n", 0)]
@@ -86,23 +116,30 @@ fn make_rule_flags_make_invocations(
     Ok(())
 }
 
+/// Action extraction reads verbose, piped, and chained invocations, including
+/// every `netsuke build` on one line.
 #[rstest]
-fn built_actions_reads_verbose_and_piped_invocations() -> Result<()> {
+fn built_actions_reads_verbose_piped_and_chained_invocations() -> Result<()> {
     let steps = job_steps(concat!(
         "jobs:\n  gate:\n    steps:\n",
         "      - run: >-\n",
         "          set -o pipefail;\n",
         "          netsuke --verbose build lint 2>&1 | tee /tmp/lint.out\n",
-        "      - run: netsuke build nixie\n",
+        "      - run: netsuke build nixie && netsuke build spelling\n",
+        "      - run: cargo build --release\n",
     ))?;
     let actions = rules::built_actions(&steps);
     ensure!(
-        actions.iter().map(String::as_str).eq(["lint", "nixie"]),
+        actions
+            .iter()
+            .map(String::as_str)
+            .eq(["lint", "nixie", "spelling"]),
         "{actions:?}"
     );
     Ok(())
 }
 
+/// No repository workflow uses Netsuke before installing it, or calls `make`.
 #[rstest]
 fn every_workflow_job_installs_netsuke_before_using_it() -> Result<()> {
     let workflows = reader::workflows()?;
@@ -125,6 +162,7 @@ fn every_workflow_job_installs_netsuke_before_using_it() -> Result<()> {
     Ok(())
 }
 
+/// CI runs every gate, and only actions the `Netsukefile` declares.
 #[rstest]
 fn ci_runs_every_gate_through_declared_netsuke_actions() -> Result<()> {
     let workflows = reader::workflows()?;

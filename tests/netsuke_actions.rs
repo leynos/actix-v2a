@@ -15,7 +15,7 @@ mod sandbox;
 use anyhow::{Result, ensure};
 use gates::{CHECK_FMT, Gate, LINT, LintFailure, Runner, UvGate};
 use rstest::rstest;
-use sandbox::{ActionSandbox, ToolHome};
+use sandbox::{ActionSandbox, ChildVar, FakeTool, ToolHome};
 
 /// Runs `gate` and reports whether Netsuke exited successfully.
 fn run(sandbox: &ActionSandbox, gate: Gate) -> Result<bool> {
@@ -33,13 +33,15 @@ fn ensure_commands(sandbox: &ActionSandbox, expected: &[&str]) -> Result<()> {
     Ok(())
 }
 
+/// `test` uses nextest when it is installed and `cargo test` otherwise, and
+/// always runs doctests, all with warnings denied.
 #[rstest]
 #[case::nextest(Runner::Nextest)]
 #[case::cargo_test_fallback(Runner::CargoTest)]
 fn test_selects_the_available_runner(#[case] runner: Runner) -> Result<()> {
     let sandbox = ActionSandbox::with_default_tools()?;
     if runner.has_nextest() {
-        sandbox.install("cargo-nextest", ToolHome::Path)?;
+        sandbox.install(FakeTool::CargoNextest, ToolHome::Path)?;
     }
     ensure!(run(&sandbox, Gate::Test)?, "test action failed");
     ensure_commands(&sandbox, runner.commands())?;
@@ -53,6 +55,7 @@ fn test_selects_the_available_runner(#[case] runner: Runner) -> Result<()> {
     Ok(())
 }
 
+/// `lint` runs rustdoc, Clippy, then Whitaker, each with warnings denied.
 #[rstest]
 fn lint_runs_rustdoc_clippy_then_whitaker_with_warnings_denied() -> Result<()> {
     let sandbox = ActionSandbox::with_default_tools()?;
@@ -74,12 +77,13 @@ fn lint_runs_rustdoc_clippy_then_whitaker_with_warnings_denied() -> Result<()> {
     Ok(())
 }
 
+/// A failing `lint` step fails the action and stops the later steps.
 #[rstest]
 #[case::rustdoc_fails(LintFailure::Rustdoc)]
 #[case::clippy_fails(LintFailure::Clippy)]
 fn lint_stops_at_the_first_failing_step(#[case] failure: LintFailure) -> Result<()> {
     let mut sandbox = ActionSandbox::with_default_tools()?;
-    sandbox.set_var("FAILING_COMMAND", failure.failing_command());
+    sandbox.set_var(ChildVar::FailingCommand, failure.failing_command());
     ensure!(
         !run(&sandbox, Gate::Lint)?,
         "lint must fail when {failure:?} fails"
@@ -87,10 +91,11 @@ fn lint_stops_at_the_first_failing_step(#[case] failure: LintFailure) -> Result<
     ensure_commands(&sandbox, failure.attempted())
 }
 
+/// Whitaker is a required gate, so `lint` fails when it is not installed.
 #[rstest]
 fn lint_fails_when_whitaker_is_missing() -> Result<()> {
     let sandbox = ActionSandbox::empty()?;
-    sandbox.install("cargo", ToolHome::Path)?;
+    sandbox.install(FakeTool::Cargo, ToolHome::Path)?;
     ensure!(
         !run(&sandbox, Gate::Lint)?,
         "lint must fail without whitaker"
@@ -98,6 +103,7 @@ fn lint_fails_when_whitaker_is_missing() -> Result<()> {
     ensure_commands(&sandbox, LintFailure::Clippy.attempted())
 }
 
+/// `check-fmt` checks Rust formatting, then Markdown tables.
 #[rstest]
 fn check_fmt_checks_rust_then_markdown_tables() -> Result<()> {
     let sandbox = ActionSandbox::with_default_tools()?;
@@ -105,6 +111,7 @@ fn check_fmt_checks_rust_then_markdown_tables() -> Result<()> {
     ensure_commands(&sandbox, &CHECK_FMT)
 }
 
+/// The `uv` gates run their pinned tool with uv's cache in the repository.
 #[rstest]
 #[case::spelling(UvGate::SPELLING)]
 #[case::workflow_contracts(UvGate::WORKFLOW_CONTRACTS)]
@@ -126,10 +133,11 @@ fn uv_gates_run_the_pinned_tool_with_a_repository_cache(#[case] uv_gate: UvGate)
     Ok(())
 }
 
+/// `all` runs spelling, contracts, `check-fmt`, `lint`, then `test`.
 #[rstest]
 fn all_runs_every_gate_serially_in_declared_order() -> Result<()> {
     let sandbox = ActionSandbox::with_default_tools()?;
-    sandbox.install("cargo-nextest", ToolHome::Path)?;
+    sandbox.install(FakeTool::CargoNextest, ToolHome::Path)?;
     ensure!(run(&sandbox, Gate::All)?, "all action failed");
     let commands = sandbox.commands()?;
     let gates: Vec<Option<Gate>> = commands.iter().map(|line| Gate::issuing(line)).collect();
@@ -149,10 +157,11 @@ fn all_runs_every_gate_serially_in_declared_order() -> Result<()> {
     Ok(())
 }
 
+/// A failing gate stops `all` before any later gate starts.
 #[rstest]
 fn all_stops_before_later_gates_when_one_fails() -> Result<()> {
     let mut sandbox = ActionSandbox::with_default_tools()?;
-    sandbox.set_var("FAILING_COMMAND", "mdtablefix");
+    sandbox.set_var(ChildVar::FailingCommand, "mdtablefix");
     ensure!(
         !run(&sandbox, Gate::All)?,
         "all must fail when check-fmt fails"
@@ -171,10 +180,11 @@ fn all_stops_before_later_gates_when_one_fails() -> Result<()> {
     Ok(())
 }
 
+/// Actions find tools in `$HOME/.local/bin` even when `PATH` omits it.
 #[rstest]
 fn actions_prepend_user_tool_directories_to_path() -> Result<()> {
     let sandbox = ActionSandbox::empty()?;
-    sandbox.install("nixie", ToolHome::LocalBin)?;
+    sandbox.install(FakeTool::Nixie, ToolHome::LocalBin)?;
     ensure!(
         run(&sandbox, Gate::Nixie)?,
         "nixie in $HOME/.local/bin must be found"
@@ -182,12 +192,13 @@ fn actions_prepend_user_tool_directories_to_path() -> Result<()> {
     ensure_commands(&sandbox, &["nixie\t--no-sandbox"])
 }
 
+/// `CARGO` replaces the Cargo binary and `RUST_FLAGS` extends `RUSTFLAGS`.
 #[rstest]
 fn cargo_and_rust_flag_overrides_reach_the_recipe() -> Result<()> {
     let mut sandbox = ActionSandbox::empty()?;
-    sandbox.install("pinned-cargo", ToolHome::Path)?;
-    sandbox.set_var("CARGO", "pinned-cargo");
-    sandbox.set_var("RUST_FLAGS", "--cfg sandbox");
+    sandbox.install(FakeTool::PinnedCargo, ToolHome::Path)?;
+    sandbox.set_var(ChildVar::Cargo, "pinned-cargo");
+    sandbox.set_var(ChildVar::RustFlags, "--cfg sandbox");
     ensure!(run(&sandbox, Gate::Typecheck)?, "typecheck action failed");
     ensure_commands(
         &sandbox,
@@ -202,6 +213,7 @@ fn cargo_and_rust_flag_overrides_reach_the_recipe() -> Result<()> {
     );
     Ok(())
 }
+/// `netsuke help targets` lists every gate action.
 #[rstest]
 fn help_targets_lists_every_gate() -> Result<()> {
     let sandbox = ActionSandbox::empty()?;

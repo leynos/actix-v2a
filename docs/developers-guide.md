@@ -428,9 +428,10 @@ cargo install cargo-nextest
 
 The `test` action chooses its runner when the recipe runs, after the `PATH`
 prepend, so it finds nextest even when Netsuke was started from a reduced
-`PATH`. If `cargo-nextest` is absent, it falls back to `cargo test`. The `lint`
-action always runs `whitaker` after rustdoc and Clippy; the Whitaker suite is a
-required gate.
+`PATH`. If `cargo-nextest` is absent, it falls back to
+`cargo test --all-targets`. Neither runner executes doctests, so the action
+then runs `cargo test --doc` in both cases. The `lint` action always runs
+`whitaker` after rustdoc and Clippy; the Whitaker suite is a required gate.
 
 Markdown linting uses `MDLINT`, resolved through the same scoped prepend. In
 the standard development environment, `markdownlint-cli2` resolves from

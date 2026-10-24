@@ -67,20 +67,26 @@ pub const LINT: [&str; 3] = [
 pub enum Runner {
     /// `cargo-nextest` is installed: nextest, then doctests separately.
     Nextest,
-    /// `cargo-nextest` is absent: `cargo test` covers everything.
+    /// `cargo-nextest` is absent: `cargo test`, then doctests separately,
+    /// because `--all-targets` excludes them.
     CargoTest,
 }
 
 impl Runner {
+    /// Whether the sandbox should install a fake `cargo-nextest`.
     pub const fn has_nextest(self) -> bool { matches!(self, Self::Nextest) }
 
+    /// The commands `test` should run with this runner, in order.
     pub const fn commands(self) -> &'static [&'static str] {
         match self {
             Self::Nextest => &[
                 "cargo\tnextest\trun\t--all-targets\t--all-features",
                 "cargo\ttest\t--doc\t--workspace\t--all-features",
             ],
-            Self::CargoTest => &["cargo\ttest\t--all-targets\t--all-features"],
+            Self::CargoTest => &[
+                "cargo\ttest\t--all-targets\t--all-features",
+                "cargo\ttest\t--doc\t--workspace\t--all-features",
+            ],
         }
     }
 }
@@ -121,12 +127,14 @@ pub struct UvGate {
 }
 
 impl UvGate {
+    /// The spelling gate, run by `typos-config-builder`.
     pub const SPELLING: Self = Self {
         gate: Gate::Spelling,
         prefix: "uv\ttool\trun\t--python\t3.14\t--from\tgit+https://github.com/leynos/typos-config-builder.git@",
         suffix: "\ttypos-config-builder\tgate\t--repository\t.",
     };
 
+    /// The CV-005 workflow contracts, run by `cv005-contracts`.
     pub const WORKFLOW_CONTRACTS: Self = Self {
         gate: Gate::WorkflowContracts,
         prefix:

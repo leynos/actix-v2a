@@ -6,7 +6,10 @@
 //! environment: `HOME` points into the sandbox, so the manifest's
 //! `$HOME/.cargo/bin` prepend cannot reach the host's real Cargo or nextest, and
 //! `PATH` holds only the fake tools and the system directories that supply
-//! `/bin/sh` and `ninja`.
+//! `/bin/sh` and the POSIX utilities the fake tools use. Netsuke finds Ninja
+//! through `NETSUKE_NINJA`, resolved from the host before `PATH` is narrowed,
+//! so a Ninja installed outside `/usr/bin` still works without widening the
+//! recipes' `PATH`.
 
 use std::{env, process::Command};
 
@@ -42,16 +45,102 @@ const FAKE_TOOL: &str = concat!(
     "esac\n",
 );
 
+/// A fake tool the sandbox can install.
+#[derive(Clone, Copy, Debug)]
+pub enum FakeTool {
+    Cargo,
+    CargoNextest,
+    MarkdownlintCli2,
+    Mdtablefix,
+    Nixie,
+    /// A Cargo stand-in with a different name, to test the `CARGO` override.
+    PinnedCargo,
+    Uv,
+    Whitaker,
+}
+
+impl FakeTool {
+    /// The executable name the manifest invokes.
+    const fn executable(self) -> &'static str {
+        match self {
+            Self::Cargo => "cargo",
+            Self::CargoNextest => "cargo-nextest",
+            Self::MarkdownlintCli2 => "markdownlint-cli2",
+            Self::Mdtablefix => "mdtablefix",
+            Self::Nixie => "nixie",
+            Self::PinnedCargo => "pinned-cargo",
+            Self::Uv => "uv",
+            Self::Whitaker => "whitaker",
+        }
+    }
+}
+
 /// Tools every gate in the manifest may call. Individual tests remove or
 /// relocate entries to exercise missing-tool and `PATH`-prepend behaviour.
-pub const DEFAULT_TOOLS: [&str; 6] = [
-    "cargo",
-    "whitaker",
-    "mdtablefix",
-    "markdownlint-cli2",
-    "uv",
-    "nixie",
+pub const DEFAULT_TOOLS: [FakeTool; 6] = [
+    FakeTool::Cargo,
+    FakeTool::Whitaker,
+    FakeTool::Mdtablefix,
+    FakeTool::MarkdownlintCli2,
+    FakeTool::Uv,
+    FakeTool::Nixie,
 ];
+
+/// An environment variable a test may set for the Netsuke child.
+#[derive(Clone, Copy, Debug)]
+pub enum ChildVar {
+    /// Read by the manifest in place of `cargo`.
+    Cargo,
+    /// Makes a matching fake-tool invocation fail; see `FAKE_TOOL`.
+    FailingCommand,
+    /// Extra flags the manifest appends to `RUSTFLAGS`.
+    RustFlags,
+}
+
+impl ChildVar {
+    /// The variable's name in the child environment.
+    const fn name(self) -> &'static str {
+        match self {
+            Self::Cargo => "CARGO",
+            Self::FailingCommand => "FAILING_COMMAND",
+            Self::RustFlags => "RUST_FLAGS",
+        }
+    }
+}
+
+/// A log the fake tools append to.
+#[derive(Clone, Copy, Debug)]
+enum Log {
+    Commands,
+    Environment,
+}
+
+impl Log {
+    /// The log's file name in the sandbox root.
+    const fn file_name(self) -> &'static str {
+        match self {
+            Self::Commands => "commands.log",
+            Self::Environment => "environment.log",
+        }
+    }
+}
+
+/// A real executable the tests take from the host.
+#[derive(Clone, Copy, Debug)]
+enum HostTool {
+    Netsuke,
+    Ninja,
+}
+
+impl HostTool {
+    /// The executable name to look for on the host `PATH`.
+    const fn executable(self) -> &'static str {
+        match self {
+            Self::Netsuke => "netsuke",
+            Self::Ninja => "ninja",
+        }
+    }
+}
 
 /// Where a fake tool is installed inside the sandbox.
 #[derive(Clone, Copy, Debug)]
@@ -67,6 +156,7 @@ pub struct ActionSandbox {
     root: TempDir,
     directory: Dir,
     netsuke: Utf8PathBuf,
+    ninja: Utf8PathBuf,
     variables: Vec<(String, String)>,
 }
 
@@ -76,9 +166,10 @@ impl ActionSandbox {
     /// # Errors
     ///
     /// Returns an error when the temporary tree cannot be created or no
-    /// `netsuke` executable is on the test process's `PATH`.
+    /// `netsuke` or `ninja` executable is on the test process's `PATH`.
     pub fn empty() -> Result<Self> {
-        let netsuke = netsuke_binary()?;
+        let netsuke = host_executable(HostTool::Netsuke)?;
+        let ninja = host_executable(HostTool::Ninja)?;
         let root = tempfile::tempdir().context("create sandbox root")?;
         let root_path = Utf8Path::from_path(root.path()).context("sandbox path is not UTF-8")?;
         let directory =
@@ -95,6 +186,7 @@ impl ActionSandbox {
             root,
             directory,
             netsuke,
+            ninja,
             variables: Vec::new(),
         })
     }
@@ -117,10 +209,11 @@ impl ActionSandbox {
     /// # Errors
     ///
     /// Returns an error when the script cannot be written or made executable.
-    pub fn install(&self, tool: &str, home: ToolHome) -> Result<()> {
+    pub fn install(&self, tool: FakeTool, home: ToolHome) -> Result<()> {
+        let executable = tool.executable();
         let path = match home {
-            ToolHome::Path => format!("tools/{tool}"),
-            ToolHome::LocalBin => format!("home/.local/bin/{tool}"),
+            ToolHome::Path => format!("tools/{executable}"),
+            ToolHome::LocalBin => format!("home/.local/bin/{executable}"),
         };
         self.directory
             .write(&path, FAKE_TOOL)
@@ -133,8 +226,9 @@ impl ActionSandbox {
     }
 
     /// Adds an environment variable to the Netsuke child process.
-    pub fn set_var(&mut self, name: &str, value: &str) {
-        self.variables.push((name.to_owned(), value.to_owned()));
+    pub fn set_var(&mut self, variable: ChildVar, value: &str) {
+        self.variables
+            .push((variable.name().to_owned(), value.to_owned()));
     }
 
     /// Runs `netsuke` with `arguments` in the sandbox working directory.
@@ -151,9 +245,10 @@ impl ActionSandbox {
             .current_dir(root.join("work"))
             .env_clear()
             .env("PATH", path)
+            .env("NETSUKE_NINJA", &self.ninja)
             .env("HOME", root.join("home"))
-            .env("ACTION_LOG", root.join("commands.log"))
-            .env("ENV_LOG", root.join("environment.log"))
+            .env("ACTION_LOG", root.join(Log::Commands.file_name()))
+            .env("ENV_LOG", root.join(Log::Environment.file_name()))
             .envs(self.variables.iter().map(|(name, value)| (name, value)))
             .output()
             .context("run netsuke")
@@ -164,16 +259,18 @@ impl ActionSandbox {
     /// # Errors
     ///
     /// Returns an error when the log exists but cannot be read.
-    pub fn commands(&self) -> Result<Vec<String>> { self.log_lines("commands.log") }
+    pub fn commands(&self) -> Result<Vec<String>> { self.log_lines(Log::Commands) }
 
     /// Returns each logged `tool first-arg<TAB>NAME=value...` environment record.
     ///
     /// # Errors
     ///
     /// Returns an error when the log exists but cannot be read.
-    pub fn environment(&self) -> Result<Vec<String>> { self.log_lines("environment.log") }
+    pub fn environment(&self) -> Result<Vec<String>> { self.log_lines(Log::Environment) }
 
-    fn log_lines(&self, name: &str) -> Result<Vec<String>> {
+    /// Reads one sandbox log as lines; a log never written reads as empty.
+    fn log_lines(&self, log: Log) -> Result<Vec<String>> {
+        let name = log.file_name();
         if !self.directory.exists(name) {
             return Ok(Vec::new());
         }
@@ -184,17 +281,25 @@ impl ActionSandbox {
         Ok(text.lines().map(str::to_owned).collect())
     }
 
+    /// The sandbox root as a UTF-8 path.
     fn root_path(&self) -> Result<&Utf8Path> {
         Utf8Path::from_path(self.root.path()).context("sandbox path is not UTF-8")
     }
 }
 
-/// Finds the installed `netsuke` before the sandbox narrows `PATH`.
-fn netsuke_binary() -> Result<Utf8PathBuf> {
+/// Finds an installed executable on the host `PATH` before the sandbox
+/// narrows it.
+///
+/// # Errors
+///
+/// Returns an error naming the executable when no `PATH` entry holds it, since
+/// these tests drive the real Netsuke and Ninja.
+fn host_executable(tool: HostTool) -> Result<Utf8PathBuf> {
+    let name = tool.executable();
     let path = env::var_os("PATH").unwrap_or_default();
     env::split_paths(&path)
-        .map(|directory| directory.join("netsuke"))
+        .map(|directory| directory.join(name))
         .find(|candidate| candidate.is_file())
         .and_then(|candidate| Utf8PathBuf::from_path_buf(candidate).ok())
-        .context("netsuke must be on PATH to run the Netsukefile action tests")
+        .with_context(|| format!("{name} must be on PATH to run the Netsukefile action tests"))
 }

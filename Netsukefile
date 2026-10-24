@@ -57,8 +57,8 @@ actions:
 
   # The runner is chosen when the recipe runs, after the PATH prepend, so
   # nextest is found in `$HOME/.cargo/bin` even when Netsuke itself was
-  # launched with a reduced PATH. Nextest does not run doctests, so that
-  # branch runs them separately.
+  # launched with a reduced PATH. Neither nextest nor `cargo test
+  # --all-targets` runs doctests, so both branches run them separately.
   - name: test
     description: Run tests with warnings treated as errors
     command:
@@ -67,12 +67,12 @@ actions:
       - >-
         if command -v cargo-nextest >/dev/null 2>&1; then
         echo "[netsuke:test] cargo-nextest found; using nextest runner";
-        "${CARGO:-cargo}" nextest run {{ cargo_flags }} ${BUILD_JOBS:-} &&
-        "${CARGO:-cargo}" test --doc --workspace --all-features;
+        "${CARGO:-cargo}" nextest run {{ cargo_flags }} ${BUILD_JOBS:-};
         else
         echo "[netsuke:test] cargo-nextest not found; falling back to cargo test";
         "${CARGO:-cargo}" test {{ cargo_flags }} ${BUILD_JOBS:-};
         fi
+      - '"${CARGO:-cargo}" test --doc --workspace --all-features'
 
   # Whitaker is mandatory: the suite is a required gate, and `$WHITAKER`
   # overrides the binary. It runs after Clippy so both share the build cache.
