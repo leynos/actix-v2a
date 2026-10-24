@@ -137,14 +137,18 @@ has.
 An Ubicloud runner is a self-hosted just-in-time runner, so GitHub's six-hour
 cap for hosted jobs does not bound it and a hung job would hold a billable
 runner. Every job whose `runs-on` can select Ubicloud therefore states its own
-`timeout-minutes`: twice a measured warm Ubicloud run. `coverage-upload` is at
-5 minutes (its first Ubicloud main run took 2.4 min, run 36556920321) and
-`build-test` at 20 (a warm standard-4 run took 9.6 min, run 36568765141).
-`build-test` is `standard-4` on a measured shortfall: on `standard-2` the tool
-installs and lint alone took 30 minutes and the job reached its ceiling (run
-36565211532). A fork's pull request restores a hosted cache that main no longer
-refreshes; fork pull requests are rare here, and a second hosted writer would
-pay double on every main push.
+`timeout-minutes`: twice a measured warm Ubicloud run. `build-test` is at 20
+minutes (a warm standard-4 run took 9.6 min, run 36568765141).
+`coverage-upload` is at 40 minutes: its first Ubicloud main run took 2.4 min
+(run 36556920321), but the test suite now executes Netsuke, and a run that
+misses the Netsuke cache compiles `netsuke-build` from source. That added 7.7
+min to a standard-4 `build-test` run (run 40045937287), so the ceiling allows
+twice that on two vCPUs, doubled again. `build-test` is `standard-4` on a
+measured shortfall: on `standard-2` the tool installs and lint alone took 30
+minutes and the job reached its ceiling (run 36565211532). A fork's pull
+request restores a hosted cache that main no longer refreshes; fork pull
+requests are rare here, and a second hosted writer would pay double on every
+main push.
 
 `tests/runner_placement/placement_cases.rs` holds this to the files. It
 evaluates the expression for a push or dispatch, a same-repository pull
@@ -435,6 +439,18 @@ the standard development environment, `markdownlint-cli2` resolves from
 ```bash
 netsuke build markdownlint
 ```
+
+Two test targets hold the manifest and CI to this contract.
+`tests/netsuke_actions.rs` runs the real `netsuke` against the committed
+`Netsukefile` in a private sandbox with fake tools. The sandbox's `HOME` and
+`PATH` exclude the host's own tools. The tests assert each gate's commands,
+order, and flags, the serial and fail-fast behaviour of `all` and `lint`, both
+test-runner branches, the `PATH` prepend, and the `CARGO` and `RUST_FLAGS`
+overrides. `tests/netsuke_workflow_contract.rs` requires every workflow job
+that runs a gate or the test suite to install `netsuke-build` 0.1.0-beta4 and
+Ninja first. It also forbids `make` calls, and requires CI to run every gate
+through an action the manifest declares. Both targets need `netsuke` and
+`ninja` on `PATH`, so `cargo test` fails rather than skips without them.
 
 Ninja writes `.ninja_log`, and Netsuke keeps its generated serial-ordering
 state under `.netsuke/`; both are ignored by Git. The manifest does not install

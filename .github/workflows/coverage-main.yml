@@ -47,10 +47,14 @@ jobs:
       || github.event.pull_request.user.login == 'dependabot[bot]')
       && 'ubuntu-latest' || 'ubicloud-standard-2' }}
     # An Ubicloud runner is a self-hosted just-in-time runner with no
-    # six-hour hosted cap, so the job states its own ceiling: twice the
-    # 2.4 min the first Ubicloud main run took (run 36556920321), rounded up
-    # to 5.
-    timeout-minutes: 5
+    # six-hour hosted cap, so the job states its own ceiling. The first
+    # Ubicloud main run took 2.4 min (run 36556920321). The test suite now
+    # executes Netsuke, and a run that misses the Netsuke cache compiles
+    # netsuke-build from source: on standard-4 that added 7.7 min to the
+    # pull-request lane (run 40045937287, 17.3 min against a 9.6 min warm
+    # run), so allow twice that on two vCPUs. 2.4 + 15.4, doubled and
+    # rounded up to 40.
+    timeout-minutes: 40
     # The CodeScene token lives in this environment, whose deployment policy
     # admits `main` alone; the codescene environment contract holds it to
     # this job.
@@ -66,6 +70,31 @@ jobs:
           persist-credentials: false
       - name: Setup Rust
         uses: leynos/shared-actions/.github/actions/setup-rust@d5fded1107ee6822fdbf9539d81ff18ce6ce073a
+      - name: Install Ninja
+        # The test suite's `Netsukefile` action tests execute Netsuke, which
+        # runs Ninja.
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Cache Netsuke
+        # The key names the release and the nightly it builds with; keep it
+        # in step with the install step's environment.
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ~/.cargo/bin/netsuke
+          key: netsuke-${{ runner.os }}-${{ runner.arch }}-0.1.0-beta4-nightly-2026-08-23
+      - name: Install Netsuke from crates.io
+        # The release builds with the dated nightly its own toolchain file
+        # pins, not with this repository's toolchain.
+        env:
+          NETSUKE_TOOLCHAIN: nightly-2026-08-23
+          NETSUKE_VERSION: 0.1.0-beta4
+        run: |
+          set -euo pipefail
+          if netsuke --version 2>/dev/null | grep --fixed-strings --quiet "${NETSUKE_VERSION}"; then
+            exit 0
+          fi
+          rustup toolchain install "${NETSUKE_TOOLCHAIN}" --profile minimal
+          cargo "+${NETSUKE_TOOLCHAIN}" install --locked \
+            netsuke-build --version "=${NETSUKE_VERSION}"
       - name: Test and Measure Coverage
         # The same action, format, output path and default baseline files as
         # the pull-request lane, so the figure written here is the figure a

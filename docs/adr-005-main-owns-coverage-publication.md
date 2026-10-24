@@ -106,3 +106,14 @@ shared contract library in `leynos/shared-actions`
 and `.github/cv005.toml` holds this repository's parameters. The clauses are
 unchanged, and the library's own suite proves each one. The paragraphs above
 name the repository-local copy this replaces.
+
+## Addendum, 2026-10-24: the publisher installs Netsuke
+
+The repository's gates moved from a `Makefile` to Netsuke actions, and the test
+suite gained `Netsukefile` action tests that execute the real `netsuke`.
+`coverage-upload` therefore installs Ninja and `netsuke-build` 0.1.0-beta4,
+cached by version and toolchain, before the coverage step. A cache miss compiles
+`netsuke-build` from source, which added 7.7 minutes to a standard-4
+`build-test` run (run 40045937287), so the lane's ceiling rises from 5 to 40
+minutes. The coverage step and its selection are unchanged, so the CV-005
+parity between this publisher and the pull-request ratchet still holds.
