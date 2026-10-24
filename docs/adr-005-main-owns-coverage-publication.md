@@ -100,9 +100,22 @@ The developers' guide section "Runner placement" records the operating rules.
 ## Addendum, 2026-09-29: the contract moved to a shared library
 
 The contract that enforces this decision no longer lives in this repository.
-`make test-workflow-contracts` runs `cv005-contracts check`, the shared
-contract library in `leynos/shared-actions` (`packages/cv005-contracts`), from
-a full commit pinned in the Makefile, and `.github/cv005.toml` holds this
-repository's parameters. The clauses are unchanged, and the library's own suite
-proves each one. The paragraphs above name the repository-local copy this
-replaces.
+`netsuke build test-workflow-contracts` runs `cv005-contracts check`, the
+shared contract library in `leynos/shared-actions`
+(`packages/cv005-contracts`), from a full commit pinned in the `Netsukefile`,
+and `.github/cv005.toml` holds this repository's parameters. The clauses are
+unchanged, and the library's own suite proves each one. The paragraphs above
+name the repository-local copy this replaces.
+
+## Addendum, 2026-10-24: the publisher installs Netsuke
+
+The repository's gates moved from a `Makefile` to Netsuke actions, and the test
+suite gained `Netsukefile` action tests that execute the real `netsuke`.
+`coverage-upload` therefore installs Ninja and `netsuke-build` 0.1.0-beta4,
+cached by version and toolchain, before the coverage step. A cache miss compiles
+`netsuke-build` from source. That compile added 7.7 minutes to a standard-4
+`build-test` run (run 40045937287), whose 20-minute ceiling is unchanged. On
+two vCPUs it is expected to take about twice as long, so the `coverage-upload`
+ceiling rises from 5 to 40 minutes. The coverage step and its selection are
+unchanged, so the CV-005 parity between this publisher and the pull-request
+ratchet still holds.

@@ -19,3 +19,6 @@ __pycache__/
 .claude/
 .memdb/
 .grepai/
+
+# Netsuke dyndep sidecars and generated serial-ordering state
+.netsuke/
