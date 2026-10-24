@@ -7,37 +7,19 @@
 //! observable result: which commands run, in what order, with which flags, and
 //! whether a failure stops the gate.
 
+#[path = "netsuke_actions/gates.rs"]
+mod gates;
 #[path = "netsuke_actions/sandbox.rs"]
 mod sandbox;
 
 use anyhow::{Result, ensure};
+use gates::{CHECK_FMT, Gate, LINT, LintFailure, Runner, UvGate};
 use rstest::rstest;
 use sandbox::{ActionSandbox, ToolHome};
 
-const CHECK_FMT: [&str; 2] = [
-    "cargo\tfmt\t--all\t--\t--check",
-    concat!(
-        "mdtablefix\t--check\t--git\t--include-untracked",
-        "\t--wrap\t--renumber\t--breaks\t--ellipsis\t--fences",
-    ),
-];
-
-const LINT: [&str; 3] = [
-    "cargo\tdoc\t--no-deps",
-    "cargo\tclippy\t--all-targets\t--all-features\t--\t-D\twarnings",
-    "whitaker\t--all\t--\t--all-targets\t--all-features",
-];
-
-const NEXTEST: [&str; 2] = [
-    "cargo\tnextest\trun\t--all-targets\t--all-features",
-    "cargo\ttest\t--doc\t--workspace\t--all-features",
-];
-
-const CARGO_TEST: [&str; 1] = ["cargo\ttest\t--all-targets\t--all-features"];
-
-/// Runs `action` and reports whether Netsuke exited successfully.
-fn run(sandbox: &ActionSandbox, action: &str) -> Result<bool> {
-    let output = sandbox.netsuke(&["build", action])?;
+/// Runs `gate` and reports whether Netsuke exited successfully.
+fn run(sandbox: &ActionSandbox, gate: Gate) -> Result<bool> {
+    let output = sandbox.netsuke(&["build", gate.action()])?;
     Ok(output.status.success())
 }
 
@@ -52,18 +34,15 @@ fn ensure_commands(sandbox: &ActionSandbox, expected: &[&str]) -> Result<()> {
 }
 
 #[rstest]
-#[case::nextest(true, &NEXTEST)]
-#[case::cargo_test_fallback(false, &CARGO_TEST)]
-fn test_selects_the_available_runner(
-    #[case] has_nextest: bool,
-    #[case] expected: &[&str],
-) -> Result<()> {
+#[case::nextest(Runner::Nextest)]
+#[case::cargo_test_fallback(Runner::CargoTest)]
+fn test_selects_the_available_runner(#[case] runner: Runner) -> Result<()> {
     let sandbox = ActionSandbox::with_default_tools()?;
-    if has_nextest {
+    if runner.has_nextest() {
         sandbox.install("cargo-nextest", ToolHome::Path)?;
     }
-    ensure!(run(&sandbox, "test")?, "test action failed");
-    ensure_commands(&sandbox, expected)?;
+    ensure!(run(&sandbox, Gate::Test)?, "test action failed");
+    ensure_commands(&sandbox, runner.commands())?;
     let environment = sandbox.environment()?;
     ensure!(
         environment
@@ -77,7 +56,7 @@ fn test_selects_the_available_runner(
 #[rstest]
 fn lint_runs_rustdoc_clippy_then_whitaker_with_warnings_denied() -> Result<()> {
     let sandbox = ActionSandbox::with_default_tools()?;
-    ensure!(run(&sandbox, "lint")?, "lint action failed");
+    ensure!(run(&sandbox, Gate::Lint)?, "lint action failed");
     ensure_commands(&sandbox, &LINT)?;
     let environment = sandbox.environment()?;
     let expected_flags = [
@@ -96,65 +75,53 @@ fn lint_runs_rustdoc_clippy_then_whitaker_with_warnings_denied() -> Result<()> {
 }
 
 #[rstest]
-#[case::rustdoc_fails("cargo doc", &LINT[..1])]
-#[case::clippy_fails("cargo clippy", &LINT[..2])]
-fn lint_stops_at_the_first_failing_step(
-    #[case] failing: &str,
-    #[case] expected: &[&str],
-) -> Result<()> {
+#[case::rustdoc_fails(LintFailure::Rustdoc)]
+#[case::clippy_fails(LintFailure::Clippy)]
+fn lint_stops_at_the_first_failing_step(#[case] failure: LintFailure) -> Result<()> {
     let mut sandbox = ActionSandbox::with_default_tools()?;
-    sandbox.set_var("FAILING_COMMAND", failing);
+    sandbox.set_var("FAILING_COMMAND", failure.failing_command());
     ensure!(
-        !run(&sandbox, "lint")?,
-        "lint must fail when {failing} fails"
+        !run(&sandbox, Gate::Lint)?,
+        "lint must fail when {failure:?} fails"
     );
-    ensure_commands(&sandbox, expected)
+    ensure_commands(&sandbox, failure.attempted())
 }
 
 #[rstest]
 fn lint_fails_when_whitaker_is_missing() -> Result<()> {
     let sandbox = ActionSandbox::empty()?;
     sandbox.install("cargo", ToolHome::Path)?;
-    ensure!(!run(&sandbox, "lint")?, "lint must fail without whitaker");
-    ensure_commands(&sandbox, &LINT[..2])
+    ensure!(
+        !run(&sandbox, Gate::Lint)?,
+        "lint must fail without whitaker"
+    );
+    ensure_commands(&sandbox, LintFailure::Clippy.attempted())
 }
 
 #[rstest]
 fn check_fmt_checks_rust_then_markdown_tables() -> Result<()> {
     let sandbox = ActionSandbox::with_default_tools()?;
-    ensure!(run(&sandbox, "check-fmt")?, "check-fmt action failed");
+    ensure!(run(&sandbox, Gate::CheckFmt)?, "check-fmt action failed");
     ensure_commands(&sandbox, &CHECK_FMT)
 }
 
 #[rstest]
-#[case::spelling(
-    "spelling",
-    "uv\ttool\trun\t--python\t3.14\t--from\tgit+https://github.com/leynos/typos-config-builder.git@",
-    "\ttypos-config-builder\tgate\t--repository\t."
-)]
-#[case::workflow_contracts(
-    "test-workflow-contracts",
-    "uv\ttool\trun\t--python\t3.13\t--from\tgit+https://github.com/leynos/shared-actions@",
-    "#subdirectory=packages/cv005-contracts\tcv005-contracts\tcheck\t--repository\t."
-)]
-fn uv_gates_run_the_pinned_tool_with_a_repository_cache(
-    #[case] action: &str,
-    #[case] prefix: &str,
-    #[case] suffix: &str,
-) -> Result<()> {
+#[case::spelling(UvGate::SPELLING)]
+#[case::workflow_contracts(UvGate::WORKFLOW_CONTRACTS)]
+fn uv_gates_run_the_pinned_tool_with_a_repository_cache(#[case] uv_gate: UvGate) -> Result<()> {
     let sandbox = ActionSandbox::with_default_tools()?;
-    ensure!(run(&sandbox, action)?, "{action} action failed");
+    ensure!(run(&sandbox, uv_gate.gate)?, "{uv_gate:?} action failed");
     let commands = sandbox.commands()?;
     ensure!(
-        matches!(commands.as_slice(), [only] if only.starts_with(prefix) && only.ends_with(suffix)),
-        "{action} ran unexpected commands: {commands:#?}"
+        uv_gate.is_sole_invocation(&commands),
+        "{uv_gate:?} ran unexpected commands: {commands:#?}"
     );
     let environment = sandbox.environment()?;
     ensure!(
         environment
             .iter()
             .all(|record| record.contains("UV_CACHE_DIR=.uv-cache")),
-        "{action} must keep uv's cache in the repository: {environment:#?}"
+        "{uv_gate:?} must keep uv's cache in the repository: {environment:#?}"
     );
     Ok(())
 }
@@ -163,20 +130,21 @@ fn uv_gates_run_the_pinned_tool_with_a_repository_cache(
 fn all_runs_every_gate_serially_in_declared_order() -> Result<()> {
     let sandbox = ActionSandbox::with_default_tools()?;
     sandbox.install("cargo-nextest", ToolHome::Path)?;
-    ensure!(run(&sandbox, "all")?, "all action failed");
+    ensure!(run(&sandbox, Gate::All)?, "all action failed");
     let commands = sandbox.commands()?;
-    let gates: Vec<&str> = commands.iter().map(|line| gate_name(line)).collect();
+    let gates: Vec<Option<Gate>> = commands.iter().map(|line| Gate::issuing(line)).collect();
     let expected = [
-        "spelling",
-        "workflow-contracts",
-        "check-fmt",
-        "check-fmt",
-        "lint",
-        "lint",
-        "lint",
-        "test",
-        "test",
-    ];
+        Gate::Spelling,
+        Gate::WorkflowContracts,
+        Gate::CheckFmt,
+        Gate::CheckFmt,
+        Gate::Lint,
+        Gate::Lint,
+        Gate::Lint,
+        Gate::Test,
+        Gate::Test,
+    ]
+    .map(Some);
     ensure!(gates == expected, "gate order differs: {commands:#?}");
     Ok(())
 }
@@ -185,7 +153,10 @@ fn all_runs_every_gate_serially_in_declared_order() -> Result<()> {
 fn all_stops_before_later_gates_when_one_fails() -> Result<()> {
     let mut sandbox = ActionSandbox::with_default_tools()?;
     sandbox.set_var("FAILING_COMMAND", "mdtablefix");
-    ensure!(!run(&sandbox, "all")?, "all must fail when check-fmt fails");
+    ensure!(
+        !run(&sandbox, Gate::All)?,
+        "all must fail when check-fmt fails"
+    );
     let commands = sandbox.commands()?;
     ensure!(
         commands.last().map(String::as_str) == CHECK_FMT.last().copied(),
@@ -194,7 +165,7 @@ fn all_stops_before_later_gates_when_one_fails() -> Result<()> {
     ensure!(
         !commands
             .iter()
-            .any(|line| line.starts_with("whitaker") || line.starts_with("cargo\tclippy")),
+            .any(|line| Gate::issuing(line) == Some(Gate::Lint)),
         "lint must not start after check-fmt fails: {commands:#?}"
     );
     Ok(())
@@ -205,7 +176,7 @@ fn actions_prepend_user_tool_directories_to_path() -> Result<()> {
     let sandbox = ActionSandbox::empty()?;
     sandbox.install("nixie", ToolHome::LocalBin)?;
     ensure!(
-        run(&sandbox, "nixie")?,
+        run(&sandbox, Gate::Nixie)?,
         "nixie in $HOME/.local/bin must be found"
     );
     ensure_commands(&sandbox, &["nixie\t--no-sandbox"])
@@ -217,7 +188,7 @@ fn cargo_and_rust_flag_overrides_reach_the_recipe() -> Result<()> {
     sandbox.install("pinned-cargo", ToolHome::Path)?;
     sandbox.set_var("CARGO", "pinned-cargo");
     sandbox.set_var("RUST_FLAGS", "--cfg sandbox");
-    ensure!(run(&sandbox, "typecheck")?, "typecheck action failed");
+    ensure!(run(&sandbox, Gate::Typecheck)?, "typecheck action failed");
     ensure_commands(
         &sandbox,
         &["pinned-cargo\tcheck\t--all-targets\t--all-features"],
@@ -231,7 +202,6 @@ fn cargo_and_rust_flag_overrides_reach_the_recipe() -> Result<()> {
     );
     Ok(())
 }
-
 #[rstest]
 fn help_targets_lists_every_gate() -> Result<()> {
     let sandbox = ActionSandbox::empty()?;
@@ -266,18 +236,4 @@ fn help_targets_lists_every_gate() -> Result<()> {
         "help targets omits {missing:?}:\n{listing}"
     );
     Ok(())
-}
-
-/// Names the gate that issues a logged `tool<TAB>arg...` command line.
-fn gate_name(line: &str) -> &'static str {
-    let mut words = line.split('\t');
-    let invocation = (words.next(), words.next());
-    match invocation {
-        (Some("uv"), _) if line.contains("typos-config-builder") => "spelling",
-        (Some("uv"), _) if line.contains("cv005-contracts") => "workflow-contracts",
-        (Some("cargo"), Some("fmt")) | (Some("mdtablefix"), _) => "check-fmt",
-        (Some("cargo"), Some("doc" | "clippy")) | (Some("whitaker"), _) => "lint",
-        (Some("cargo"), Some("nextest" | "test")) => "test",
-        _ => "unknown",
-    }
 }
