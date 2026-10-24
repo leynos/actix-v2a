@@ -80,6 +80,30 @@ const INSTALLS: &str = r#"
     ),
     1
 )]
+#[case::use_before_install_on_one_line_semicolon(
+    concat!(
+        "      - run: sudo apt-get install -y ninja-build\n",
+        "      - env: { NETSUKE_VERSION: 0.1.0-beta4 }\n",
+        "        run: netsuke build lint; cargo install --locked netsuke-build --version \"=${NETSUKE_VERSION}\"\n",
+    ),
+    1
+)]
+#[case::use_before_install_on_one_line_and(
+    concat!(
+        "      - run: sudo apt-get install -y ninja-build\n",
+        "      - env: { NETSUKE_VERSION: 0.1.0-beta4 }\n",
+        "        run: netsuke build lint && cargo install --locked netsuke-build --version \"=${NETSUKE_VERSION}\"\n",
+    ),
+    1
+)]
+#[case::install_before_use_on_one_line(
+    concat!(
+        "      - run: sudo apt-get install -y ninja-build\n",
+        "      - env: { NETSUKE_VERSION: 0.1.0-beta4 }\n",
+        "        run: cargo install --locked netsuke-build --version \"=${NETSUKE_VERSION}\" && netsuke build lint\n",
+    ),
+    0
+)]
 #[case::installer_version_probe_is_exempt(
     concat!(
         "      - run: sudo apt-get install -y ninja-build\n",

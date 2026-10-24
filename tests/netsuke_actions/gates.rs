@@ -8,9 +8,14 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Gate {
     All,
+    Build,
     CheckFmt,
+    Clean,
+    Fmt,
     Lint,
+    Markdownlint,
     Nixie,
+    Release,
     Spelling,
     Test,
     Typecheck,
@@ -22,9 +27,14 @@ impl Gate {
     pub const fn action(self) -> &'static str {
         match self {
             Self::All => "all",
+            Self::Build => "build",
             Self::CheckFmt => "check-fmt",
+            Self::Clean => "clean",
+            Self::Fmt => "fmt",
             Self::Lint => "lint",
+            Self::Markdownlint => "markdownlint",
             Self::Nixie => "nixie",
+            Self::Release => "release",
             Self::Spelling => "spelling",
             Self::Test => "test",
             Self::Typecheck => "typecheck",
@@ -61,6 +71,50 @@ pub const LINT: [&str; 3] = [
     "cargo\tclippy\t--all-targets\t--all-features\t--\t-D\twarnings",
     "whitaker\t--all\t--\t--all-targets\t--all-features",
 ];
+
+/// A gate whose commands do not depend on which tools are installed.
+#[derive(Clone, Copy, Debug)]
+pub struct Recipe {
+    pub gate: Gate,
+    /// The commands the gate runs, in order.
+    pub commands: &'static [&'static str],
+}
+
+impl Recipe {
+    /// `build` compiles debug artefacts.
+    pub const BUILD: Self = Self {
+        gate: Gate::Build,
+        commands: &["cargo\tbuild"],
+    };
+
+    /// `release` compiles release artefacts.
+    pub const RELEASE: Self = Self {
+        gate: Gate::Release,
+        commands: &["cargo\tbuild\t--release"],
+    };
+
+    /// `clean` removes build artefacts.
+    pub const CLEAN: Self = Self {
+        gate: Gate::Clean,
+        commands: &["cargo\tclean"],
+    };
+
+    /// `fmt` formats Rust, then Markdown tables, then Markdown style.
+    pub const FMT: Self = Self {
+        gate: Gate::Fmt,
+        commands: &[
+            "cargo\tfmt\t--all",
+            concat!(
+                "mdtablefix\t--in-place\t--git\t--include-untracked",
+                "\t--wrap\t--renumber\t--breaks\t--ellipsis\t--fences",
+            ),
+            "markdownlint-cli2\t--fix\t**/*.md",
+        ],
+    };
+}
+
+/// The command `markdownlint` runs after its `spelling` dependency.
+pub const MARKDOWNLINT: &str = "markdownlint-cli2\t**/*.md";
 
 /// The test runner the `test` action should select.
 #[derive(Clone, Copy, Debug)]

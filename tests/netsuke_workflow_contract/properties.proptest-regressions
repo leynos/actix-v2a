@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 955e3ccf0b9961ec86d8b6e6421468d2fdecd875b1d909bed34d3313ecf67bb3 # shrinks to job = [(InstallNetsuke, false), (Gate, true)]
+cc 713b58d66fed1053f9fcdb7db7d5f24d1bc58811b7362b96c85f36989bfeccec # shrinks to job = [(Gate, false), (Gate, true)], position = Index(6148914691236517206), shares_line = false

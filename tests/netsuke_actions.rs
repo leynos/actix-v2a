@@ -13,7 +13,7 @@ mod gates;
 mod sandbox;
 
 use anyhow::{Result, ensure};
-use gates::{CHECK_FMT, Gate, LINT, LintFailure, Runner, UvGate};
+use gates::{CHECK_FMT, Gate, LINT, LintFailure, MARKDOWNLINT, Recipe, Runner, UvGate};
 use rstest::rstest;
 use sandbox::{ActionSandbox, ChildVar, FakeTool, ToolHome};
 
@@ -213,6 +213,74 @@ fn cargo_and_rust_flag_overrides_reach_the_recipe() -> Result<()> {
     );
     Ok(())
 }
+/// The build, clean, and format actions run their commands in order.
+#[rstest]
+#[case::build(Recipe::BUILD)]
+#[case::release(Recipe::RELEASE)]
+#[case::clean(Recipe::CLEAN)]
+#[case::fmt(Recipe::FMT)]
+fn fixed_recipes_run_their_commands(#[case] recipe: Recipe) -> Result<()> {
+    let sandbox = ActionSandbox::with_default_tools()?;
+    ensure!(run(&sandbox, recipe.gate)?, "{recipe:?} failed");
+    ensure_commands(&sandbox, recipe.commands)
+}
+
+/// A failing `fmt` step fails the action and stops the later steps.
+#[rstest]
+fn fmt_stops_at_the_first_failing_step() -> Result<()> {
+    let mut sandbox = ActionSandbox::with_default_tools()?;
+    sandbox.set_var(ChildVar::FailingCommand, "cargo fmt");
+    ensure!(
+        !run(&sandbox, Gate::Fmt)?,
+        "fmt must fail when rustfmt fails"
+    );
+    ensure_commands(&sandbox, Recipe::FMT.commands.split_at(1).0)
+}
+
+/// `BUILD_JOBS` reaches the build actions as separate Cargo arguments.
+#[rstest]
+#[case::build(Gate::Build, "cargo\tbuild\t-j\t2")]
+#[case::release(Gate::Release, "cargo\tbuild\t--release\t-j\t2")]
+fn build_jobs_reach_cargo(#[case] gate: Gate, #[case] expected: &str) -> Result<()> {
+    let mut sandbox = ActionSandbox::with_default_tools()?;
+    sandbox.set_var(ChildVar::BuildJobs, "-j 2");
+    ensure!(run(&sandbox, gate)?, "{gate:?} failed");
+    ensure_commands(&sandbox, &[expected])
+}
+
+/// `markdownlint` runs the spelling gate first, then lints every Markdown file.
+#[rstest]
+fn markdownlint_checks_spelling_first() -> Result<()> {
+    let sandbox = ActionSandbox::with_default_tools()?;
+    ensure!(run(&sandbox, Gate::Markdownlint)?, "markdownlint failed");
+    let commands = sandbox.commands()?;
+    let ran_in_order = commands.split_last().is_some_and(|(last, earlier)| {
+        last == MARKDOWNLINT && UvGate::SPELLING.is_sole_invocation(earlier)
+    });
+    ensure!(
+        ran_in_order,
+        "spelling then markdownlint expected: {commands:#?}"
+    );
+    Ok(())
+}
+
+/// A spelling failure stops `markdownlint` before it lints anything.
+#[rstest]
+fn markdownlint_stops_when_spelling_fails() -> Result<()> {
+    let mut sandbox = ActionSandbox::with_default_tools()?;
+    sandbox.set_var(ChildVar::FailingCommand, "uv");
+    ensure!(
+        !run(&sandbox, Gate::Markdownlint)?,
+        "markdownlint must fail"
+    );
+    let commands = sandbox.commands()?;
+    ensure!(
+        UvGate::SPELLING.is_sole_invocation(&commands),
+        "only the spelling gate should have run: {commands:#?}"
+    );
+    Ok(())
+}
+
 /// `netsuke help targets` lists every gate action.
 #[rstest]
 fn help_targets_lists_every_gate() -> Result<()> {

@@ -102,9 +102,11 @@ fn segments(line: &str) -> impl Iterator<Item = Segment<'_>> {
         .filter(|segment| !segment.0.is_empty())
 }
 
-/// One thing a job does, in order: a step's `uses` action or a `run` line.
+/// One thing a job does, in order: a step's `uses` action, or one simple
+/// command from a `run` line. `text` is the whole line, for diagnostics.
 struct Command<'a> {
     text: &'a str,
+    segment: Segment<'a>,
     version: Option<&'a str>,
     is_coverage: bool,
 }
@@ -112,10 +114,16 @@ struct Command<'a> {
 impl Command<'_> {
     /// Whether this command needs Netsuke and Ninja installed already.
     fn needs_netsuke(&self) -> bool {
-        self.is_coverage
-            || segments(self.text)
-                .any(|segment| segment.runs_netsuke() || segment.runs_test_suite())
+        self.is_coverage || self.segment.runs_netsuke() || self.segment.runs_test_suite()
     }
+
+    /// Whether this command installs the pinned `netsuke-build` release.
+    fn installs_pinned_netsuke(&self) -> bool {
+        self.version == Some(NETSUKE_VERSION) && self.segment.0.join(" ").contains(PINNED_INSTALL)
+    }
+
+    /// Whether this command installs Ninja.
+    fn installs_ninja(&self) -> bool { self.segment.0.contains(&"ninja-build") }
 
     /// Describes this command running before the installs.
     fn premature(&self) -> String {
@@ -126,20 +134,25 @@ impl Command<'_> {
     }
 }
 
-/// Every command in the steps, in the order the job runs them.
+/// Every command in the steps, in the order the job runs them: each step's
+/// `uses` action, then each simple command of each `run` line.
 fn commands(steps: &[Step]) -> impl Iterator<Item = Command<'_>> {
     steps.iter().flat_map(|step| {
         let uses = (!step.uses.is_empty()).then(|| Command {
             text: &step.uses,
+            segment: Segment(Vec::new()),
             version: None,
             is_coverage: step.uses.starts_with(COVERAGE_ACTION),
         });
-        let lines = step.run.lines().map(|line| Command {
-            text: line,
-            version: step.version.as_deref(),
-            is_coverage: false,
+        let runs = step.run.lines().flat_map(move |line| {
+            segments(line).map(move |segment| Command {
+                text: line,
+                segment,
+                version: step.version.as_deref(),
+                is_coverage: false,
+            })
         });
-        uses.into_iter().chain(lines)
+        uses.into_iter().chain(runs)
     })
 }
 
@@ -156,9 +169,8 @@ impl Installed {
 
     /// Records any install that `command` performs.
     fn observe(&mut self, command: &Command<'_>) {
-        let pins_netsuke = command.version == Some(NETSUKE_VERSION);
-        self.netsuke |= pins_netsuke && command.text.contains(PINNED_INSTALL);
-        self.ninja |= command.text.contains("ninja-build");
+        self.netsuke |= command.installs_pinned_netsuke();
+        self.ninja |= command.installs_ninja();
     }
 }
 
@@ -168,8 +180,10 @@ pub fn missing_installs(steps: &[Step]) -> Vec<String> {
     let mut installed = Installed::default();
     commands(steps)
         .filter_map(|command| {
-            installed.observe(&command);
+            // Judge each simple command against the installs that precede
+            // it, so a use earlier on the install's own line still counts.
             let is_premature = command.needs_netsuke() && !installed.is_ready();
+            installed.observe(&command);
             is_premature.then(|| command.premature())
         })
         .collect()

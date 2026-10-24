@@ -89,6 +89,8 @@ pub const DEFAULT_TOOLS: [FakeTool; 6] = [
 /// An environment variable a test may set for the Netsuke child.
 #[derive(Clone, Copy, Debug)]
 pub enum ChildVar {
+    /// Extra Cargo arguments the build actions pass through.
+    BuildJobs,
     /// Read by the manifest in place of `cargo`.
     Cargo,
     /// Makes a matching fake-tool invocation fail; see `FAKE_TOOL`.
@@ -101,6 +103,7 @@ impl ChildVar {
     /// The variable's name in the child environment.
     const fn name(self) -> &'static str {
         match self {
+            Self::BuildJobs => "BUILD_JOBS",
             Self::Cargo => "CARGO",
             Self::FailingCommand => "FAILING_COMMAND",
             Self::RustFlags => "RUST_FLAGS",
