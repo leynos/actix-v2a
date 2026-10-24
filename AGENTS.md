@@ -340,6 +340,13 @@ Record design decisions in the design document. Where a decision is
 substantive, record it in an ADR document following the documentation style
 guide, then reference that ADR from the design document.
 
+Architectural decision records are stored under `docs/adrs/` and named
+`adr-nnnn-title-slug.md`, with a four-digit zero-padded serial number and a
+kebab-case slug derived from the title. Request for Comments documents are
+stored under `docs/rfcs/` and named `rfc-nnnn-title-slug.md`; their numbers are
+allocated independently of ADR numbers. Cite a record by its four-digit number,
+as in "ADR 0001", and update every inbound link when a record is renamed.
+
 Update `docs/users-guide.md` for any change to application behaviour or user
 interface that a user should know about. Document internally facing interfaces
 or practices in the relevant component architecture document. Document

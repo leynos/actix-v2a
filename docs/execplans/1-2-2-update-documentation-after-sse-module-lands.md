@@ -9,7 +9,7 @@ Status: COMPLETE
 ## Purpose / big picture
 
 Roadmap task 1.2.2 closes the documentation loop for the shared Server-Sent
-Events (SSE) helper work from Architecture Decision Record (ADR) 001. The code
+Events (SSE) helper work from Architecture Decision Record (ADR) 0001. The code
 and contract-proof tasks have already landed in the earlier roadmap sequence:
 tasks 1.1.1 through 1.1.3 built the shared wire-helper surface, and task 1.2.1
 proved the contract with unit and behavioural coverage.
@@ -43,13 +43,13 @@ This plan must be approved before implementation begins.
 - Do not implement new SSE functionality in this task. The implementation
   scope is documentation, living-plan maintenance, validation evidence, branch
   publishing, and pull request preparation.
-- Preserve the wire-only boundary from ADR 001. Documentation must not imply
+- Preserve the wire-only boundary from ADR 0001. Documentation must not imply
   that `actix-v2a` owns event-store persistence, stream routing, authorization,
   heartbeat scheduling, or application payload schemata.
-- Treat ADR 001 as the normative shared SSE wire contract unless the
+- Treat ADR 0001 as the normative shared SSE wire contract unless the
   implementation pass discovers an actual conflict. If the closure task changes
-  any contract claim, update ADR 001 in the same commit and record the decision
-  in this plan.
+  any contract claim, update ADR 0001 in the same commit and record the
+  decision in this plan.
 - Keep provenance, but remove machine-specific and checkout-specific paths from
   normative prose. Prefer canonical upstream repository URLs, repository
   relative paths inside this crate, or short prose descriptions.
@@ -73,7 +73,7 @@ This plan must be approved before implementation begins.
   concerns separated where it describes the SSE helper surface.
 - Signpost the relevant documentation for implementers:
   `docs/roadmap.md`, `docs/execplans/import-components-from-wildside.md`,
-  `docs/adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md`,
+  `docs/adrs/adr-0001-shared-sse-wire-contract-for-wildside-and-corbusier.md`,
   `docs/contents.md`, `docs/users-guide.md`, `docs/developers-guide.md`,
   `docs/documentation-style-guide.md`,
   `docs/rust-testing-with-rstest-fixtures.md`,
@@ -95,10 +95,10 @@ This plan must be approved before implementation begins.
 - Scope: if implementation requires non-documentation Rust code changes, stop,
   and request approval before continuing. Narrow doctest or example fixes in
   documentation count as documentation changes; library code changes do not.
-- Contract drift: if ADR 001, `docs/users-guide.md`, `docs/developers-guide.md`,
-  and the landed `src/sse/` API disagree on an observable behaviour, stop after
-  recording the conflict and ask which document or implementation should be
-  authoritative.
+- Contract drift: if ADR 0001, `docs/users-guide.md`,
+  `docs/developers-guide.md`, and the landed `src/sse/` API disagree on an
+  observable behaviour, stop after recording the conflict and ask which
+  document or implementation should be authoritative.
 - Path cleanup: after the scrub pass, the path sweep command shown in
   Milestone 1 must show zero hits outside explicitly labelled planning-time
   provenance notes. Any remaining unlabelled hit blocks closure.
@@ -127,7 +127,7 @@ This plan must be approved before implementation begins.
   completion the final documentation edit, after the import plan, contents
   index, path sweep, gates, and CodeRabbit review are complete.
 - Risk: documentation says the SSE module is broader than it is. Severity:
-  high. Likelihood: low. Mitigation: use ADR 001, the user guide, and the
+  high. Likelihood: low. Mitigation: use ADR 0001, the user guide, and the
   developer guide to preserve the wire-helper boundary and explicitly exclude
   event-store, routing, authorization, and scheduling logic.
 - Risk: a documentation-only task may skip Rust validation and miss doctest or
@@ -136,9 +136,9 @@ This plan must be approved before implementation begins.
   Rust gates requested for this feature before final commit.
 - Risk: external protocol references change over time. Severity: low.
   Likelihood: medium. Mitigation: cite stable primary or ecosystem references
-  only for context, not as a replacement for ADR 001. The useful references for
-  this plan are the WHATWG HTML Server-Sent Events section and the `actix-sse`
-  docs.rs page as prior art for Actix-facing SSE helpers.
+  only for context, not as a replacement for ADR 0001. The useful references
+  for this plan are the WHATWG HTML Server-Sent Events section and the
+  `actix-sse` docs.rs page as prior art for Actix-facing SSE helpers.
 
 ## Repository orientation
 
@@ -157,7 +157,7 @@ the initial SSE contract decision. Its Milestone 6 already requires a final
 documentation scrub for environment-specific paths. Roadmap item 1.2.2 is the
 task that should execute that clean-up and then close the plan honestly.
 
-ADR 001 remains the normative SSE contract. It says that `actix-v2a` provides
+ADR 0001 remains the normative SSE contract. It says that `actix-v2a` provides
 wire-only helpers for browser-compatible Server-Sent Events, including
 validated identifiers, `Last-Event-ID` parsing, frame rendering, cache headers,
 a configurable heartbeat policy with a 20-second default, and the standard
@@ -205,7 +205,7 @@ Read these files before editing:
 
 - `docs/roadmap.md`
 - `docs/execplans/import-components-from-wildside.md`
-- `docs/adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md`
+- `docs/adrs/adr-0001-shared-sse-wire-contract-for-wildside-and-corbusier.md`
 - `docs/contents.md`
 - `docs/users-guide.md`
 - `docs/developers-guide.md`
@@ -267,7 +267,7 @@ implementation-time Wildside path wording with canonical upstream phrasing.
 Keep the existing SSE execplan entries stable and add an entry for
 `docs/execplans/1-2-2-update-documentation-after-sse-module-lands.md`.
 
-Review ADR 001. Edit it only if its context still presents a local checkout
+Review ADR 0001. Edit it only if its context still presents a local checkout
 path as normative or if the closure audit finds a contract statement that no
 longer matches the landed module. The expected edit, if needed, is a wording
 change from local checkout language to canonical upstream Wildside provenance.
@@ -428,7 +428,7 @@ tolerances above. Silence is not approval.
   plan, and the roadmap; `docs/users-guide.md` and `docs/developers-guide.md`
   already describe the landed SSE helper boundary accurately.
 - [x] 2026-05-20: Normalized the old Wildside import plan's provenance
-  wording, recorded SSE closure progress, updated ADR 001 and
+  wording, recorded SSE closure progress, updated ADR 0001 and
   `docs/contents.md`, and scrubbed the stale absolute worktree path from
   `docs/execplans/portwildsidepagination.md`.
 - [x] 2026-05-20: Ran the path sweep over `docs` and `README.md`; it returned
@@ -466,7 +466,7 @@ tolerances above. Silence is not approval.
   the file is still `Status: IN PROGRESS` and still contains unscoped local
   path references. The implementation must reconcile that inconsistency rather
   than simply checking the roadmap box.
-- 2026-05-19: No separate SSE design document exists under `docs/`; ADR 001
+- 2026-05-19: No separate SSE design document exists under `docs/`; ADR 0001
   plus the user's and developer's guides carry the current design and usage
   documentation.
 - 2026-05-20: The broad path sweep found an unrelated absolute worktree path in
@@ -488,7 +488,7 @@ tolerances above. Silence is not approval.
   for `make check-fmt`, `make lint`, and `make test` to succeed, and edited
   Rust examples or doctests can affect those gates.
 - 2026-05-19: Use WHATWG HTML as the protocol reference and `actix-sse` as
-  ecosystem prior art only. Rationale: ADR 001 remains the source of truth for
+  ecosystem prior art only. Rationale: ADR 0001 remains the source of truth for
   this crate's deliberately narrower wire-helper contract.
 - 2026-05-20: Scrub environment-specific path references from the final
   documentation set, not only from the SSE and Wildside import documents.

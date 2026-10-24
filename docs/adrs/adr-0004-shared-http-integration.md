@@ -1,4 +1,4 @@
-# Architectural decision record (ADR) 004: shared HTTP integration
+# Architectural decision record (ADR) 0004: shared HTTP integration
 
 ## Status
 

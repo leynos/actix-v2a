@@ -9,7 +9,7 @@ Status: COMPLETED
 ## Purpose / big picture
 
 `actix-v2a` already contains the first two slices of the shared Server-Sent
-Events (SSE) contract from [Architecture Decision Record (ADR) 001][adr-001]:
+Events (SSE) contract from [Architecture Decision Record (ADR) 0001][adr-0001]:
 validated event identifiers and replay cursors, plus shared frame-rendering and
 live-stream cache-control helpers. Roadmap task 1.1.3 is the next delivery unit
 in that contract. It adds the transport-level helpers that downstream
@@ -43,11 +43,11 @@ Success is observable when:
   using `rstest`.
 - Behavioural tests use `rstest-bdd` only if a scenario-level assertion adds
   clarity beyond straightforward unit coverage.
-- ADR 001, `docs/users-guide.md`, and `docs/developers-guide.md` describe the
+- ADR 0001, `docs/users-guide.md`, and `docs/developers-guide.md` describe the
   approved helper behaviour.
 - `docs/roadmap.md` marks task 1.1.3 done only after all quality gates pass.
 
-[adr-001]: ../adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md
+[adr-0001]: ../adrs/adr-0001-shared-sse-wire-contract-for-wildside-and-corbusier.md
 
 ## Constraints
 
@@ -75,7 +75,7 @@ Success is observable when:
 - Tests must use `rstest` fixtures and parameterized cases where they improve
   clarity. `rstest-bdd` should be used only where scenario structure adds real
   value.
-- Any design decision that sharpens ADR 001 must be recorded in the ADR, not
+- Any design decision that sharpens ADR 0001 must be recorded in the ADR, not
   only in code comments or tests.
 
 ## Tolerances (exception triggers)
@@ -89,8 +89,8 @@ Success is observable when:
   hooks, stop and escalate.
 - Specification ambiguity: if the zero-duration override case, heartbeat frame
   shape, or `stream_reset` helper signature materially affects downstream
-  behaviour and ADR 001 does not already settle the choice, stop and record the
-  proposed decision in the ADR before code lands.
+  behaviour and ADR 0001 does not already settle the choice, stop and record
+  the proposed decision in the ADR before code lands.
 - Iterations: if the same failing test or lint issue persists after three
   focused fix attempts, stop and document the blocker.
 
@@ -104,11 +104,11 @@ Success is observable when:
 - Risk: `stream_reset` could sprawl into a generic application-event builder,
   which would violate the ADR's scope boundary. Severity: medium. Likelihood:
   medium. Mitigation: expose only the fixed `stream_reset` event name and
-  payload defined by ADR 001.
+  payload defined by ADR 0001.
 
 - Risk: the explicit override path may leave zero or otherwise degenerate
   intervals underspecified. Severity: medium. Likelihood: medium. Mitigation:
-  settle the constructor semantics up front, document them in ADR 001 if they
+  settle the constructor semantics up front, document them in ADR 0001 if they
   become normative, and cover them with tests.
 
 - Risk: `rstest-bdd` may add ceremony without increasing confidence because the
@@ -118,7 +118,7 @@ Success is observable when:
 
 ## Progress
 
-- [x] Read `docs/roadmap.md`, ADR 001, the current SSE module, and the prior
+- [x] Read `docs/roadmap.md`, ADR 0001, the current SSE module, and the prior
   execplans for tasks 1.1.1 and 1.1.2.
 - [x] Review the referenced testing and documentation guidance.
 - [x] Draft this execution plan.
@@ -126,7 +126,7 @@ Success is observable when:
 - [x] Implement the heartbeat policy helper.
 - [x] Implement the `stream_reset` helper.
 - [x] Add unit tests and any justified behavioural tests.
-- [x] Update ADR 001, `docs/users-guide.md`, and `docs/developers-guide.md`.
+- [x] Update ADR 0001, `docs/users-guide.md`, and `docs/developers-guide.md`.
 - [x] Mark roadmap task 1.1.3 done after the implementation passes all gates.
 - [x] Run `make check-fmt`, `make lint`, `make test`, `make fmt`,
   `make markdownlint`, and `make nixie` with `tee` logs for the implementation
@@ -221,7 +221,7 @@ recommended direction is:
 - one fixed `stream_reset` helper that emits the standard event name and JSON
   payload without exposing generic application-event wiring.
 
-This stage must also settle the few details ADR 001 leaves implicit:
+This stage must also settle the few details ADR 0001 leaves implicit:
 
 - whether the explicit override path rejects `Duration::ZERO`;
 - whether the heartbeat helper is entirely infallible or validates override
@@ -235,7 +235,7 @@ If any of these choices changes or sharpens the normative contract, update ADR
 Validation for Stage A:
 
 - the user approves this plan;
-- ADR 001 is ready to accept any needed clarifications;
+- ADR 0001 is ready to accept any needed clarifications;
 - no scheduler, responder, or lifecycle abstraction has leaked into the
   proposed API.
 
@@ -308,7 +308,7 @@ Validation for Stage C:
 
 After code and tests are green, update the documentation set:
 
-1. `docs/adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md`
+1. `docs/adrs/adr-0001-shared-sse-wire-contract-for-wildside-and-corbusier.md`
    records any design decisions taken during implementation, especially the
    explicit override semantics and the chosen helper surface.
 2. `docs/users-guide.md` documents the default heartbeat policy, the override
@@ -355,7 +355,7 @@ Task 1.1.3 is done when all of the following are true:
   clarity; otherwise the execplan explicitly records why they were not needed.
 - `make check-fmt`, `make lint`, `make test`, `make fmt`,
   `make markdownlint`, and `make nixie` all pass.
-- ADR 001, `docs/users-guide.md`, and `docs/developers-guide.md` reflect the
+- ADR 0001, `docs/users-guide.md`, and `docs/developers-guide.md` reflect the
   approved helper behaviour.
 - `docs/roadmap.md` marks 1.1.3 complete.
 
@@ -415,7 +415,7 @@ scope.
   - `render_stream_reset_frame()` built on `render_event_frame`.
 - Updated crate-root and `src/sse/mod.rs` re-exports so downstream callers can
   use the helpers directly from `actix_v2a`.
-- Updated ADR 001, the user's guide, the developer's guide, and the roadmap to
+- Updated ADR 0001, the user's guide, the developer's guide, and the roadmap to
   describe the heartbeat override semantics and the fixed `stream_reset`
   surface.
 - Passed the mandated quality gates with `tee` logs:

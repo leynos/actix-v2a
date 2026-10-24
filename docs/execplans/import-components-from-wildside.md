@@ -79,10 +79,10 @@ of the planned application contract.
 
 For SSE specifically, this execplan owns delivery sequencing, extraction
 boundaries, and gates. The normative shared SSE wire contract belongs in
-[ADR 001][adr-001], which must stay authoritative if the two documents ever
+[ADR 0001][adr-0001], which must stay authoritative if the two documents ever
 diverge.
 
-[adr-001]: ../adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md
+[adr-0001]: ../adrs/adr-0001-shared-sse-wire-contract-for-wildside-and-corbusier.md
 
 ## Constraints
 
@@ -271,7 +271,7 @@ depending on Wildside's full route set.
 Because Wildside does not currently expose a reusable SSE helper and Corbusier
 already documents replay-aware SSE expectations, begin the SSE work by writing
 or confirming an ADR in this repository. The initial draft is expected to live
-at `docs/adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md`.
+at `docs/adrs/adr-0001-shared-sse-wire-contract-for-wildside-and-corbusier.md`.
 
 Run one focused implementation-time discovery pass against Wildside for
 reusable SSE code. The planning investigation did not confirm any helper module
@@ -408,7 +408,7 @@ Implementation must not begin until the following gates are satisfied:
   documentation loop and execute the environment-specific path scrub required
   by Milestone 6.
 - [x] 2026-05-20 CEST: normalized Wildside provenance to canonical upstream
-  wording and repository-relative paths, updated ADR 001 and the documentation
+  wording and repository-relative paths, updated ADR 0001 and the documentation
   contents index, and removed the stale absolute worktree path from the
   pagination hardening execplan.
 - [x] 2026-05-20 CEST: passed the final documentation closure gates for
@@ -483,7 +483,7 @@ Implementation must not begin until the following gates are satisfied:
 Milestone 1 shipped the pagination foundation, Milestone 2 shipped the
 idempotency primitives and HTTP helpers, Milestone 3 shipped the shared error
 envelope plus Actix adapter, and Milestone 4 shipped the reusable `utoipa`
-schema fragments. Milestone 5 produced ADR 001 and the later roadmap sequence
+schema fragments. Milestone 5 produced ADR 0001 and the later roadmap sequence
 from 1.1.1 through 1.2.1 shipped the shared SSE wire helpers and their
 contract-proof coverage. Milestone 6 closed in roadmap task 1.2.2 by removing
 machine-local and sibling-checkout paths from the finished documentation set
