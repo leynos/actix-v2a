@@ -13,6 +13,12 @@
 - [Developer's guide](developers-guide.md): internal conventions, module
   structure, quality gates, and contribution guidance for `actix-v2a`
   maintainers.
+- [Netsuke user's guide](netsuke-users-guide.md): vendored copy of the
+  Netsuke v0.1.0-beta4 users' guide, the reference for the `Netsukefile`
+  manifest syntax that drives the repository gates.
+- [Netsuke v0.1.0 migration guide](netsuke-v0-1-0-migration-guide.md):
+  vendored Netsuke v0.1.0-beta4 migration notes, including the beta4 shell
+  dollar-escaping and command-list behaviour the `Netsukefile` relies on.
 - [Roadmap](roadmap.md): phased implementation backlog for planned shared
   `actix-v2a` capabilities and follow-on delivery work.
 - [Complexity antipatterns and refactoring strategies](complexity-antipatterns-and-refactoring-strategies.md):

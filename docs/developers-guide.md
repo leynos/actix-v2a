@@ -5,10 +5,10 @@
 Run the spelling gate with:
 
 ```bash
-make spelling
+netsuke build spelling
 ```
 
-`TYPOS_CONFIG_BUILDER_VERSION` in the `Makefile` pins the
+The `typos_config_builder_version` variable in the `Netsukefile` pins the
 `typos-config-builder` release the gate runs (currently `v0.1.3`). Raise it
 together with the regenerated `typos.toml`, never on its own.
 
@@ -78,17 +78,18 @@ The reasons are both quiet failures: a pull request from a fork cannot read the
 secret, so an upload there is silently skipped, and CodeScene accepts an upload
 only for a branch it analyses, which a pull request head is not.
 
-`make test-workflow-contracts` enforces the split by running
+`netsuke build test-workflow-contracts` enforces the split by running
 `cv005-contracts check`, the shared contract library in `leynos/shared-actions`
-(`packages/cv005-contracts`), from a full commit named by `CV005_CONTRACTS_REF`
-in the Makefile; CI runs it in a "Check the CV-005 contracts" step. A fix to
-the rules is therefore a pin bump. The target needs `uv`, which fetches the
-Python 3.13 the library runs under. The repository's parameters are in
-`.github/cv005.toml`: its `repository` name and the `[selection]` the baseline
-measures (`format`, `output-path` and `with-ratchet`), which the publisher's
-generator must carry and every pull-request lane must match. The library's own
-suite proves each rule refuses the shape it exists to refuse, so this
-repository keeps no copy of the readers or the refusal cases.
+(`packages/cv005-contracts`), from a full commit named by the
+`cv005_contracts_ref` variable in the `Netsukefile`; CI runs it in a "Check the
+CV-005 contracts" step. A fix to the rules is therefore a pin bump. The target
+needs `uv`, which fetches the Python 3.13 the library runs under. The
+repository's parameters are in `.github/cv005.toml`: its `repository` name and
+the `[selection]` the baseline measures (`format`, `output-path` and
+`with-ratchet`), which the publisher's generator must carry and every
+pull-request lane must match. The library's own suite proves each rule refuses
+the shape it exists to refuse, so this repository keeps no copy of the readers
+or the refusal cases.
 
 The rule covers every workflow a pull request can reach, following local
 reusable-workflow calls transitively, and every other workflow too: only the
@@ -136,14 +137,18 @@ has.
 An Ubicloud runner is a self-hosted just-in-time runner, so GitHub's six-hour
 cap for hosted jobs does not bound it and a hung job would hold a billable
 runner. Every job whose `runs-on` can select Ubicloud therefore states its own
-`timeout-minutes`: twice a measured warm Ubicloud run. `coverage-upload` is at
-5 minutes (its first Ubicloud main run took 2.4 min, run 36556920321) and
-`build-test` at 20 (a warm standard-4 run took 9.6 min, run 36568765141).
-`build-test` is `standard-4` on a measured shortfall: on `standard-2` the tool
-installs and lint alone took 30 minutes and the job reached its ceiling (run
-36565211532). A fork's pull request restores a hosted cache that main no longer
-refreshes; fork pull requests are rare here, and a second hosted writer would
-pay double on every main push.
+`timeout-minutes`: twice a measured warm Ubicloud run. `build-test` is at 20
+minutes (a warm standard-4 run took 9.6 min, run 36568765141).
+`coverage-upload` is at 40 minutes: its first Ubicloud main run took 2.4 min
+(run 36556920321), but the test suite now executes Netsuke, and a run that
+misses the Netsuke cache compiles `netsuke-build` from source. That added 7.7
+min to a standard-4 `build-test` run (run 40045937287), so the ceiling allows
+twice that on two vCPUs, doubled again. `build-test` is `standard-4` on a
+measured shortfall: on `standard-2` the tool installs and lint alone took 30
+minutes and the job reached its ceiling (run 36565211532). A fork's pull
+request restores a hosted cache that main no longer refreshes; fork pull
+requests are rare here, and a second hosted writer would pay double on every
+main push.
 
 `tests/runner_placement/placement_cases.rs` holds this to the files. It
 evaluates the expression for a push or dispatch, a same-repository pull
@@ -371,41 +376,49 @@ same pattern as `map_idempotency_key_error`.
 
 ## Build tooling
 
-Netsuke is the primary repository build driver during the dogfooding pilot that
-replaces direct GNU Make usage. Netsuke compiles the root `Netsukefile` into a
-Ninja build graph, then Ninja runs the selected action. Install Ninja and
-Netsuke before running repository gates:
+Netsuke is the repository build driver. It compiles the root `Netsukefile` into
+a Ninja build graph, then Ninja runs the selected action. There is no
+`Makefile`; run every gate through `netsuke build <action>`. Install Ninja and
+the published `netsuke-build` v0.1.0-beta4 release before running repository
+gates. The release builds with the dated nightly pinned by its own toolchain
+file:
 
 ```bash
 sudo dnf install ninja-build
-cargo install --git https://github.com/example-org/netsuke.git \
-  --rev bb1b6b66820f0088286272a25aa990a281602ab2 \
-  netsuke --locked
+rustup toolchain install nightly-2026-08-23
+cargo +nightly-2026-08-23 install --locked netsuke-build --version =0.1.0-beta4
 ```
 
-Use the documented Netsuke targets instead of calling the underlying commands
-directly. The root `Makefile` remains as a compatibility shim for existing
-hooks and developer habits, but each Make target now delegates to Netsuke.
+List the available actions and their descriptions with:
 
-The Netsuke actions prepend `$HOME/.cargo/bin`, `$HOME/.bun/bin`, and
+```bash
+netsuke help targets
+```
+
+Running `netsuke build` with no action runs `all`, which executes `spelling`,
+`test-workflow-contracts`, `check-fmt`, `lint`, and `test` in that order. It
+uses `dependency_order: serial`, so a failing gate stops the later ones.
+
+The manifest targets the Netsuke v0.1.0-beta4 recipe contract, documented in
+the vendored [Netsuke user's guide](netsuke-users-guide.md) and
+[v0.1.0 migration guide](netsuke-v0-1-0-migration-guide.md). Write shell
+dollars normally: Netsuke escapes them for Ninja, so a recipe that writes
+`$$PATH` would hand the shell its own process identifier. Multi-step actions
+use YAML command lists, which run in one shell and stop at the first failing
+entry.
+
+Each action prepends `$HOME/.cargo/bin`, `$HOME/.bun/bin`, and
 `$HOME/.local/bin` while preserving the caller-provided `PATH`. This keeps
-targets working when hook environments omit common user install directories.
-Cargo-based actions honour `CARGO`; Markdown and Mermaid actions honour
-`MDLINT` and `NIXIE`.
+actions working when hook environments omit common user install directories.
+Cargo-based actions honour `CARGO`, `RUST_FLAGS`, `RUSTDOC_FLAGS`, and
+`BUILD_JOBS`; the remaining tools honour `MDLINT`, `MDTABLEFIX`, `NIXIE`,
+`WHITAKER`, and `UV`.
 
 Override Cargo by exporting `CARGO` before invoking Netsuke:
 
 ```bash
 CARGO=/path/to/cargo netsuke build test
 ```
-
-Optional tooling is probed at manifest time. The `test` and `whitaker-lint`
-actions use the `command_available` predicate in `when` clauses to select
-between complementary action variants while Netsuke loads the manifest, so only
-the applicable variant reaches the generated Ninja file. Because the probe
-resolves executables against the PATH of the Netsuke process itself, invoke
-Netsuke with the Cargo and local tool directories on `PATH`; the Makefile
-targets already do this.
 
 Install `cargo-nextest` to `$HOME/.cargo/bin` to enable `netsuke build test` to
 use nextest:
@@ -414,10 +427,13 @@ use nextest:
 cargo install cargo-nextest
 ```
 
-If `cargo-nextest` is absent when the manifest loads, `netsuke build test`
-selects the `cargo test` fallback variant instead. Similarly,
-`netsuke build lint` runs `whitaker` after Clippy when it is available and
-prints a skip notice otherwise.
+The `test` action chooses its runner when the recipe runs, after the `PATH`
+prepend, so it finds nextest even when Netsuke was started from a reduced
+`PATH`. If `cargo-nextest` is absent, it falls back to
+`cargo test --all-targets --all-features`. Neither runner executes doctests, so
+the action then runs `cargo test --doc --workspace --all-features` in both
+cases. The `lint` action always runs `whitaker` after rustdoc and Clippy; the
+Whitaker suite is a required gate.
 
 Markdown linting uses `MDLINT`, resolved through the same scoped prepend. In
 the standard development environment, `markdownlint-cli2` resolves from
@@ -427,11 +443,24 @@ the standard development environment, `markdownlint-cli2` resolves from
 netsuke build markdownlint
 ```
 
-Developers using CI hooks, reduced-`PATH` shells, or other non-standard shell
-environments must ensure the Cargo and Bun binary directories exist when those
-tools are installed. The Netsuke manifest handles ordinary `$HOME/.cargo/bin`
-and `$HOME/.bun/bin` installs automatically; it does not install missing tools
-or create shims.
+Two test targets hold the manifest and CI to this contract.
+`tests/netsuke_actions.rs` runs the real `netsuke` against the committed
+`Netsukefile` in a private sandbox with fake tools. The sandbox's `HOME` and
+`PATH` exclude the host's own tools. The tests assert each gate's commands,
+order, and flags, the serial and fail-fast behaviour of `all` and `lint`, both
+test-runner branches, the `PATH` prepend, and the `CARGO` and `RUST_FLAGS`
+overrides. `tests/netsuke_workflow_contract.rs` requires every workflow job
+that runs a gate or the test suite to install `netsuke-build` 0.1.0-beta4 and
+Ninja first. It also forbids `make` calls, and requires CI to run every gate
+through an action the manifest declares. The workflow-contract target only
+parses files and runs no executables. The action tests resolve `netsuke` and
+`ninja` from the host `PATH` before narrowing it, and hand Ninja to Netsuke
+through `NETSUKE_NINJA`. So `cargo test` needs both on `PATH`, and fails rather
+than skips without them.
+
+Ninja writes `.ninja_log`, and Netsuke keeps its generated serial-ordering
+state under `.netsuke/`; both are ignored by Git. The manifest does not install
+missing tools or create shims.
 
 ## Quality gates
 

@@ -8,8 +8,9 @@
 //! real files, because a check run only over this repository's own correct
 //! workflows would pass whether or not it detected anything.
 //!
-//! The CV-005 `CodeScene` contract is not here: `make test-workflow-contracts`
-//! runs it from the shared `cv005-contracts` library.
+//! The CV-005 `CodeScene` contract is not here:
+//! `netsuke build test-workflow-contracts` runs it from the shared
+//! `cv005-contracts` library.
 
 #[path = "runner_placement/placement.rs"]
 mod placement;
