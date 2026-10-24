@@ -41,16 +41,16 @@ without pulling event-store, routing, or authorization logic into this crate.
   Requires 1.1.3. See ADR 001 "Migration plan" Phase 2.
   - Cover identifier validation, `Last-Event-ID` parsing, frame formatting,
     cache headers, heartbeat output, and `stream_reset` output.
-  - Pass `make check-fmt`, `make lint`, and `make test` with the new coverage
-    enabled.
+  - Pass `netsuke build check-fmt`, `netsuke build lint`, and
+    `netsuke build test` with the new coverage enabled.
 - [x] 1.2.2. Update the execution plan and documentation after the SSE module
   lands. Requires 1.2.1.
   - Record the completed SSE milestone in
     `docs/execplans/import-components-from-wildside.md`.
   - Remove implementation-time environment-specific path references as required
     by the execplan closing milestone.
-  - Pass `make fmt`, `make markdownlint`, and `make nixie` on the final
-    documentation set.
+  - Pass `netsuke build fmt`, `netsuke build markdownlint`, and
+    `netsuke build nixie` on the final documentation set.
 
 ## 2. Pagination documentation hardening
 

@@ -27,7 +27,8 @@ name: Coverage (main)
 # not a guarantee of commit order. A manual re-run of an older run keeps its
 # SHA and its run id: it republishes that commit's coverage to CodeScene, but
 # its baseline cache key already exists, so it replaces no baseline unless the
-# original run saved none. `make test-workflow-contracts` pins this group.
+# original run saved none. `netsuke build test-workflow-contracts` pins this
+# group.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false

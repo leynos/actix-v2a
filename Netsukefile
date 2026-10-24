@@ -1,99 +1,149 @@
 netsuke_version: "1.0.0"
 
+# Netsuke v0.1.0-beta4 escapes shell dollars for Ninja itself, so every
+# recipe below writes `$` exactly as the shell should receive it.
 vars:
-  prepend_path: "$$HOME/.cargo/bin:$$HOME/.bun/bin:$$HOME/.local/bin"
+  # Hook environments and reduced-PATH shells often omit the user install
+  # directories, so each recipe that runs a tool prepends them while keeping
+  # the caller's PATH. Command-list entries share one shell, so this export
+  # holds for every later entry of the same recipe.
+  path_setup: >-
+    export PATH="$HOME/.cargo/bin:$HOME/.bun/bin:$HOME/.local/bin:$PATH"
   cargo_flags: "--all-targets --all-features"
   rust_flags: "-D warnings"
   rustdoc_flags: "-D warnings"
+  uv_env: "UV_CACHE_DIR=.uv-cache UV_TOOL_DIR=.uv-tools"
+  # The CV-005 CodeScene contracts live in shared-actions and run from a full
+  # commit, so a fix is a pin bump. `.github/cv005.toml` holds this
+  # repository's only parameters.
+  cv005_contracts_ref: "88977798a5c3bae1549afb99642529488c665276"
+  typos_config_builder_version: "v0.1.3"
+  # `fmt` and `check-fmt` call mdtablefix directly. `--git` selects the
+  # Markdown files Git tracks and `--include-untracked` adds the untracked
+  # files Git does not ignore, so a new document is formatted before it is
+  # staged. Both modes need mdtablefix 0.6.0 or later; CI pins the version at
+  # the install-mdtablefix step.
+  mdtablefix_args: >-
+    --git --include-untracked --wrap --renumber --breaks --ellipsis --fences
 
 actions:
   - name: all
+    description: Run spelling, workflow contracts, format, lint, and tests
+    dependency_order: serial
     deps:
+      - spelling
+      - test-workflow-contracts
       - check-fmt
       - lint
       - test
-    command: "true"
 
   - name: build
-    command: >-
-      sh -e -c 'PATH="{{ prepend_path }}:$$PATH"
-      "$${CARGO:-cargo}" build $${BUILD_JOBS:-}'
+    description: Build debug artefacts
+    command:
+      - "{{ path_setup }}"
+      - '"${CARGO:-cargo}" build ${BUILD_JOBS:-}'
 
   - name: release
-    command: >-
-      sh -e -c 'PATH="{{ prepend_path }}:$$PATH"
-      "$${CARGO:-cargo}" build --release $${BUILD_JOBS:-}'
+    description: Build release artefacts
+    command:
+      - "{{ path_setup }}"
+      - '"${CARGO:-cargo}" build --release ${BUILD_JOBS:-}'
 
   - name: clean
-    command: >-
-      sh -e -c 'PATH="{{ prepend_path }}:$$PATH"
-      "$${CARGO:-cargo}" clean'
+    description: Remove build artefacts
+    command:
+      - "{{ path_setup }}"
+      - '"${CARGO:-cargo}" clean'
 
-  # Tool availability is probed at manifest time with command_available, so
-  # invoke Netsuke with cargo and local tool directories on PATH (the
-  # Makefile targets do this) for optional tooling to be discovered.
+  # The runner is chosen when the recipe runs, after the PATH prepend, so
+  # nextest is found in `$HOME/.cargo/bin` even when Netsuke itself was
+  # launched with a reduced PATH. Nextest does not run doctests, so that
+  # branch runs them separately.
   - name: test
-    when: command_available("cargo-nextest")
-    command: >-
-      sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
-      echo "[netsuke:test] cargo-nextest found; using nextest runner";
-      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}";
-      RUSTFLAGS="$$RUSTFLAGS" "$${CARGO:-cargo}" nextest run {{ cargo_flags }} $${BUILD_JOBS:-};
-      RUSTFLAGS="$$RUSTFLAGS" "$${CARGO:-cargo}" test --doc --workspace --all-features'
+    description: Run tests with warnings treated as errors
+    command:
+      - "{{ path_setup }}"
+      - 'export RUSTFLAGS="{{ rust_flags }} ${RUST_FLAGS:-}"'
+      - >-
+        if command -v cargo-nextest >/dev/null 2>&1; then
+        echo "[netsuke:test] cargo-nextest found; using nextest runner";
+        "${CARGO:-cargo}" nextest run {{ cargo_flags }} ${BUILD_JOBS:-} &&
+        "${CARGO:-cargo}" test --doc --workspace --all-features;
+        else
+        echo "[netsuke:test] cargo-nextest not found; falling back to cargo test";
+        "${CARGO:-cargo}" test {{ cargo_flags }} ${BUILD_JOBS:-};
+        fi
 
-  - name: test
-    when: not command_available("cargo-nextest")
-    command: >-
-      sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
-      echo "[netsuke:test] cargo-nextest not found; falling back to cargo test";
-      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}" "$${CARGO:-cargo}" test {{ cargo_flags }} $${BUILD_JOBS:-}'
-
-  - name: clippy-lint
-    command: >-
-      sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
-      RUSTDOCFLAGS="{{ rustdoc_flags }} $${RUSTDOC_FLAGS:-}" "$${CARGO:-cargo}" doc --no-deps;
-      "$${CARGO:-cargo}" clippy {{ cargo_flags }} -- {{ rust_flags }} $${RUST_FLAGS:-}'
-
-  # Depends on clippy-lint so lint work stays sequential and benefits
-  # from the shared build cache. Whitaker is mandatory: the suite is a
-  # required gate, and $WHITAKER allows overriding the binary.
-  - name: whitaker-lint
-    deps: clippy-lint
-    command: >-
-      sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
-      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}" "$${WHITAKER:-whitaker}" --all -- {{ cargo_flags }}'
-
+  # Whitaker is mandatory: the suite is a required gate, and `$WHITAKER`
+  # overrides the binary. It runs after Clippy so both share the build cache.
   - name: lint
-    deps: whitaker-lint
-    command: "true"
+    description: Run rustdoc, Clippy, and the Whitaker Dylint suite
+    command:
+      - "{{ path_setup }}"
+      - >-
+        RUSTDOCFLAGS="{{ rustdoc_flags }} ${RUSTDOC_FLAGS:-}"
+        "${CARGO:-cargo}" doc --no-deps
+      - >-
+        "${CARGO:-cargo}" clippy {{ cargo_flags }} --
+        {{ rust_flags }} ${RUST_FLAGS:-}
+      - >-
+        RUSTFLAGS="{{ rust_flags }} ${RUST_FLAGS:-}"
+        "${WHITAKER:-whitaker}" --all -- {{ cargo_flags }}
 
   - name: typecheck
-    command: >-
-      sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
-      RUSTFLAGS="{{ rust_flags }} $${RUST_FLAGS:-}" "$${CARGO:-cargo}" check {{ cargo_flags }}'
+    description: Type-check without building
+    command:
+      - "{{ path_setup }}"
+      - >-
+        RUSTFLAGS="{{ rust_flags }} ${RUST_FLAGS:-}"
+        "${CARGO:-cargo}" check {{ cargo_flags }}
 
   - name: fmt
-    command: >-
-      sh -e -c 'PATH="{{ prepend_path }}:$$PATH";
-      "$${CARGO:-cargo}" +nightly fmt --all;
-      "$${MDTABLEFIX:-mdtablefix}" --in-place --git --include-untracked
-      --wrap --renumber --breaks --ellipsis --fences;
-      "$${MDLINT:-markdownlint-cli2}" --fix '"'"'**/*.md'"'"''
+    description: Format Rust and Markdown sources
+    command:
+      - "{{ path_setup }}"
+      - '"${CARGO:-cargo}" fmt --all'
+      - '"${MDTABLEFIX:-mdtablefix}" --in-place {{ mdtablefix_args }}'
+      - '"${MDLINT:-markdownlint-cli2}" --fix "**/*.md"'
 
   - name: check-fmt
-    command: >-
-      sh -e -c 'PATH="{{ prepend_path }}:$$PATH"
-      "$${CARGO:-cargo}" fmt --all -- --check'
+    description: Verify Rust and Markdown formatting
+    command:
+      - "{{ path_setup }}"
+      - '"${CARGO:-cargo}" fmt --all -- --check'
+      - '"${MDTABLEFIX:-mdtablefix}" --check {{ mdtablefix_args }}'
 
   - name: markdownlint
-    command: >-
-      sh -e -c 'PATH="{{ prepend_path }}:$$PATH"
-      "$${MDLINT:-markdownlint-cli2}" '"'"'**/*.md'"'"''
+    description: Lint Markdown files and enforce spelling
+    deps:
+      - spelling
+    command:
+      - "{{ path_setup }}"
+      - '"${MDLINT:-markdownlint-cli2}" "**/*.md"'
+
+  - name: spelling
+    description: Enforce en-GB-oxendict spelling
+    command:
+      - "{{ path_setup }}"
+      - >-
+        {{ uv_env }} "${UV:-uv}" tool run --python 3.14
+        --from "git+https://github.com/leynos/typos-config-builder.git@{{ typos_config_builder_version }}"
+        typos-config-builder gate --repository .
+
+  - name: test-workflow-contracts
+    description: Check the CV-005 CodeScene workflow contracts
+    command:
+      - "{{ path_setup }}"
+      - >-
+        {{ uv_env }} "${UV:-uv}" tool run --python 3.13
+        --from "git+https://github.com/leynos/shared-actions@{{ cv005_contracts_ref }}#subdirectory=packages/cv005-contracts"
+        cv005-contracts check --repository .
 
   - name: nixie
-    command: >-
-      sh -e -c 'PATH="{{ prepend_path }}:$$PATH"
-      "$${NIXIE:-nixie}" --no-sandbox'
+    description: Validate Mermaid diagrams
+    command:
+      - "{{ path_setup }}"
+      - '"${NIXIE:-nixie}" --no-sandbox'
 
 targets: []
 

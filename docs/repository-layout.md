@@ -14,7 +14,6 @@ day-to-day contributors and omits generated or implementation-specific detail.
 ├── AGENTS.md
 ├── Cargo.toml
 ├── Cargo.lock
-├── Makefile
 ├── Netsukefile
 ├── README.md
 ├── clippy.toml
@@ -34,8 +33,7 @@ Table: Top-level repository files and their responsibilities.
 | `AGENTS.md`           | Repository instructions for agents and maintainers.                 |
 | `Cargo.toml`          | Workspace manifest and crate metadata.                              |
 | `Cargo.lock`          | Locked dependency versions for reproducible builds.                 |
-| `Makefile`            | Stable task entry points for build, lint, and formatting workflows. |
-| `Netsukefile`         | Build-driver configuration consumed by `netsuke`.                   |
+| `Netsukefile`         | Build, lint, test, and formatting actions run with `netsuke build`. |
 | `README.md`           | Public overview and first-stop entry point for new readers.         |
 | `clippy.toml`         | Clippy configuration and lint policy.                               |
 | `codecov.yml`         | Coverage configuration.                                             |

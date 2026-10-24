@@ -100,9 +100,9 @@ The developers' guide section "Runner placement" records the operating rules.
 ## Addendum, 2026-09-29: the contract moved to a shared library
 
 The contract that enforces this decision no longer lives in this repository.
-`make test-workflow-contracts` runs `cv005-contracts check`, the shared
-contract library in `leynos/shared-actions` (`packages/cv005-contracts`), from
-a full commit pinned in the Makefile, and `.github/cv005.toml` holds this
-repository's parameters. The clauses are unchanged, and the library's own suite
-proves each one. The paragraphs above name the repository-local copy this
-replaces.
+`netsuke build test-workflow-contracts` runs `cv005-contracts check`, the
+shared contract library in `leynos/shared-actions`
+(`packages/cv005-contracts`), from a full commit pinned in the `Netsukefile`,
+and `.github/cv005.toml` holds this repository's parameters. The clauses are
+unchanged, and the library's own suite proves each one. The paragraphs above
+name the repository-local copy this replaces.

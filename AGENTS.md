@@ -133,33 +133,43 @@ This repository is written in Rust and uses Cargo for building and dependency
 management. Contributors should follow these best practices when working on the
 project:
 
-- Run `make check-fmt`, `make lint`, and `make test` before committing. These
-  targets wrap the following commands, so contributors understand the exact
-  behaviour and policy enforced:
-  - `make check-fmt` executes:
+- Run `netsuke build check-fmt`, `netsuke build lint`, and
+  `netsuke build test` before committing. The repository has no `Makefile`; the
+  `Netsukefile` actions wrap the following commands, so contributors understand
+  the exact behaviour and policy enforced:
+  - `netsuke build check-fmt` executes:
 
     ```sh
-    cargo fmt --workspace -- --check
+    cargo fmt --all -- --check
+    mdtablefix --check --git --include-untracked --wrap --renumber --breaks --ellipsis --fences
     ```
 
-    validating formatting across the entire workspace without modifying files.
-  - `make lint` executes:
+    validating Rust and Markdown formatting without modifying files.
+  - `netsuke build lint` executes:
 
     ```sh
-    cargo clippy --workspace --all-targets --all-features -- -D warnings
+    RUSTDOCFLAGS="-D warnings" cargo doc --no-deps
+    cargo clippy --all-targets --all-features -- -D warnings
+    RUSTFLAGS="-D warnings" whitaker --all -- --all-targets --all-features
     ```
 
-    linting every target with all features enabled and denying all Clippy
-    warnings.
-  - `make test` executes:
+    building the documentation with warnings denied, linting every target with
+    all features enabled and denying all Clippy warnings, then running the
+    required Whitaker Dylint suite.
+  - `netsuke build test` executes:
 
     ```sh
-    cargo test --workspace
+    RUSTFLAGS="-D warnings" cargo nextest run --all-targets --all-features
+    RUSTFLAGS="-D warnings" cargo test --doc --workspace --all-features
     ```
 
-    running the full workspace test suite. Use `make fmt`
-    (`cargo fmt --workspace`) to apply formatting fixes reported by the
-    formatter check.
+    running the full test suite and doctests, or
+    `cargo test --all-targets --all-features` when `cargo-nextest` is not
+    installed. Use `netsuke build fmt` to apply the Rust and Markdown
+    formatting fixes reported by the formatter check.
+  - `netsuke build` with no action runs `all`: spelling, the CV-005 workflow
+    contracts, `check-fmt`, `lint`, and `test`, in that order.
+  - `netsuke help targets` lists every action with its description.
 - Clippy warnings MUST be disallowed.
 - Fix any warnings emitted during tests in the code itself rather than
   silencing them.
@@ -307,10 +317,11 @@ project:
 
 ## Markdown guidance
 
-- Validate Markdown files using `make markdownlint`.
-- Run `make fmt` after any documentation changes to format all Markdown
-  files and fix table markup.
-- Validate Mermaid diagrams in Markdown files by running `make nixie`.
+- Validate Markdown files using `netsuke build markdownlint`.
+- Run `netsuke build fmt` after any documentation changes to format all
+  Markdown files and fix table markup.
+- Validate Mermaid diagrams in Markdown files by running
+  `netsuke build nixie`.
 - Markdown paragraphs and bullet points must be wrapped at 80 columns.
 - Code blocks must be wrapped at 120 columns.
 - Tables and headings must not be wrapped.
@@ -322,15 +333,15 @@ project:
 
 ## Spelling
 
-- `make spelling` runs the pinned `typos-config-builder gate`, which
-  regenerates `typos.toml` from the shared en-GB-oxendict dictionary and
+- `netsuke build spelling` runs the pinned `typos-config-builder gate`,
+  which regenerates `typos.toml` from the shared en-GB-oxendict dictionary and
   `typos.local.toml`, then checks spelling and the shared phrase corrections.
 - `typos.toml` is generated: never edit it by hand. Put narrow
   repository-specific exceptions in `typos.local.toml`, as exact or full-line
   patterns rather than bare accepted words.
-- When `make spelling` changes `typos.toml`, commit the regenerated file. If
-  the change is unrelated to your work, commit it in a separate base pull
-  request and stack your branch on it, so each review diff stays focused.
+- When `netsuke build spelling` changes `typos.toml`, commit the regenerated
+  file. If the change is unrelated to your work, commit it in a separate base
+  pull request and stack your branch on it, so each review diff stays focused.
 
 <!-- typos-config-builder:agents-md:end -->
 
