@@ -31,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Rust
-        uses: leynos/shared-actions/.github/actions/setup-rust@d5fded1107ee6822fdbf9539d81ff18ce6ce073a
+        uses: leynos/shared-actions/.github/actions/setup-rust@0f3047d45d1371d8ae700c69e7bed42c4f8862a1
       - name: Install uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
         # v10.0.0
@@ -78,7 +78,7 @@ jobs:
       - name: Install mdtablefix
         # `netsuke build check-fmt` runs `mdtablefix --check --git`; 0.6.0 is the
         # first release with `--check` and `--git`.
-        uses: leynos/shared-actions/.github/actions/install-mdtablefix@d5fded1107ee6822fdbf9539d81ff18ce6ce073a
+        uses: leynos/shared-actions/.github/actions/install-mdtablefix@0f3047d45d1371d8ae700c69e7bed42c4f8862a1
         with:
           version: "0.6.1"
       - name: Check the CV-005 contracts
@@ -98,7 +98,7 @@ jobs:
           set -o pipefail;
           netsuke --verbose build nixie 2>&1 | tee /tmp/netsuke-nixie-actix-v2a-adopt-netsuke-ci.out
       - name: Install Whitaker Dylint suite
-        uses: leynos/shared-actions/.github/actions/install-whitaker@d5fded1107ee6822fdbf9539d81ff18ce6ce073a
+        uses: leynos/shared-actions/.github/actions/install-whitaker@0f3047d45d1371d8ae700c69e7bed42c4f8862a1
       - name: Lint
         run: >-
           set -o pipefail;
@@ -113,7 +113,7 @@ jobs:
         # is not. `coverage-main.yml` owns both persistent outputs, and the
         # baseline paths are the action's defaults on both sides, so this
         # ratchet reads the baseline that workflow writes.
-        uses: leynos/shared-actions/.github/actions/generate-coverage@d5fded1107ee6822fdbf9539d81ff18ce6ce073a
+        uses: leynos/shared-actions/.github/actions/generate-coverage@0f3047d45d1371d8ae700c69e7bed42c4f8862a1
         with:
           output-path: lcov.info
           format: lcov
