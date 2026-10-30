@@ -50,7 +50,26 @@ impl ExampleWorkspace {
             .directory
             .write("Cargo.toml", manifest())
             .context("write the example manifest")?;
+        workspace
+            .install_repository_lockfile()
+            .context("seed the example lockfile")?;
         Ok(workspace)
+    }
+
+    /// Seed the workspace with the repository's own lockfile.
+    ///
+    /// Cargo accepts versions named in a lockfile even after crates.io yanks
+    /// them, but a package without a lockfile resolves afresh. Seeding makes
+    /// the example package reuse the versions the repository already builds,
+    /// so an offline resolution cannot fail on a yanked transitive crate.
+    fn install_repository_lockfile(&self) -> Result<()> {
+        let lockfile = Dir::open_ambient_dir(repository_root(), ambient_authority())
+            .context("open the repository root")?
+            .read("Cargo.lock")
+            .context("read the repository lockfile")?;
+        self.directory
+            .write("Cargo.lock", lockfile)
+            .context("write the example lockfile")
     }
 
     /// Add one Rust example as a binary without altering its published source.
