@@ -69,7 +69,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup Rust
-        uses: leynos/shared-actions/.github/actions/setup-rust@8e6a325765ba382691d1b1c65fcccf1fc1d1b00c
+        uses: leynos/shared-actions/.github/actions/setup-rust@6e99f225cb06684f9e6f89b63a7ca4a04095c067
       - name: Install Ninja
         # The test suite's `Netsukefile` action tests execute Netsuke, which
         # runs Ninja.
@@ -100,7 +100,7 @@ jobs:
         # the pull-request lane, so the figure written here is the figure a
         # pull request is measured against. The action decides by the event
         # whether it writes the baseline or compares with it.
-        uses: leynos/shared-actions/.github/actions/generate-coverage@8e6a325765ba382691d1b1c65fcccf1fc1d1b00c
+        uses: leynos/shared-actions/.github/actions/generate-coverage@6e99f225cb06684f9e6f89b63a7ca4a04095c067
         with:
           output-path: lcov.info
           format: lcov
@@ -119,7 +119,7 @@ jobs:
         # uploading a branch CodeScene does not analyse: the push trigger is
         # restricted to `main`, but a dispatch may name any branch.
         if: ${{ steps.codescene-token.outputs.available == 'true' && github.ref == 'refs/heads/main' }}
-        uses: leynos/shared-actions/.github/actions/upload-codescene-coverage@8e6a325765ba382691d1b1c65fcccf1fc1d1b00c
+        uses: leynos/shared-actions/.github/actions/upload-codescene-coverage@6e99f225cb06684f9e6f89b63a7ca4a04095c067
         with:
           path: lcov.info
           format: lcov
