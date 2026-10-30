@@ -109,6 +109,14 @@ jobs:
         run: >-
           set -o pipefail;
           netsuke --verbose build lint 2>&1 | tee /tmp/netsuke-lint-actix-v2a-adopt-netsuke-ci.out
+      - name: Documentation contracts
+        # The marked examples in the user's guide are compiled and run as their
+        # own gate, so a broken example fails with a documentation-specific
+        # signal rather than inside the general coverage run.
+        run: >-
+          set -o pipefail;
+          netsuke --verbose build test-documentation-contracts 2>&1
+          | tee /tmp/netsuke-test-documentation-contracts-actix-v2a-adopt-netsuke-ci.out
       - name: Test and Measure Coverage
         # Coverage here is for the local ratchet and nothing else. The report
         # is neither archived (`publish-artefact: 'false'`) nor sent to

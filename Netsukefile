@@ -90,6 +90,27 @@ actions:
         fi
       - '"${CARGO:-cargo}" test --doc --workspace --all-features'
 
+  # CI runs this named gate so a broken guide is reported as a documentation
+  # failure rather than a generic test failure. The `test` action also runs
+  # these targets, so `all` does not repeat the compile here.
+  - name: test-documentation-contracts
+    description: Compile and run the marked documentation examples
+    command:
+      - "{{ path_setup }}"
+      - 'export RUSTFLAGS="{{ rust_flags }} ${RUST_FLAGS:-}"'
+      - >-
+        if command -v cargo-nextest >/dev/null 2>&1; then
+        "${CARGO:-cargo}" nextest run
+        --test documentation_examples_tests
+        --test documentation_examples_bdd
+        ${BUILD_JOBS:-};
+        else
+        "${CARGO:-cargo}" test
+        --test documentation_examples_tests
+        --test documentation_examples_bdd
+        ${BUILD_JOBS:-};
+        fi
+
   # Whitaker is mandatory: the suite is a required gate, and `$WHITAKER`
   # overrides the binary. It runs after Clippy so both share the build cache.
   - name: lint

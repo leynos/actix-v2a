@@ -62,6 +62,8 @@ The `tests/` tree holds integration, BDD-style, and snapshot coverage:
 
 - `tests/features/` contains reusable BDD feature files.
 - `tests/support/` contains shared test harness helpers.
+- `tests/documentation_examples/` contains the loader, parser tests, and
+  example workspace shared by the documentation example suites.
 - `tests/snapshots/` contains checked-in snapshot expectations.
 - `tests/*_bdd.rs` and `tests/*_tests.rs` cover externally observable behaviour.
 

@@ -9,6 +9,7 @@
 
 #[path = "netsuke_actions/gates.rs"]
 mod gates;
+
 #[path = "netsuke_actions/sandbox.rs"]
 mod sandbox;
 
@@ -264,6 +265,7 @@ fn the_standard_flags_reach_development_recipes_but_not_release(
     );
     Ok(())
 }
+
 /// The build, clean, and format actions run their commands in order.
 #[rstest]
 #[case::build(Recipe::BUILD)]
@@ -351,6 +353,7 @@ fn help_targets_lists_every_gate() -> Result<()> {
         "check-fmt",
         "markdownlint",
         "spelling",
+        "test-documentation-contracts",
         "test-workflow-contracts",
         "nixie",
     ];
