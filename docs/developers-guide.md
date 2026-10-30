@@ -539,8 +539,11 @@ duplicate identifier, so a new example cannot silently escape the suite.
 `tests/documentation_examples_tests.rs` holds the closed registry of example
 identifiers, compiles and runs every Rust fence in an isolated Cargo workspace
 under `target/documentation-examples`, and checks the shell and plain-text
-fences against the behaviour they claim. The generated package strips inherited
-`RUSTFLAGS` because the published fences are illustrative snippets rather than
+fences against the behaviour they claim. The generated package is seeded with
+the repository's `Cargo.lock`, so its offline build reuses the versions the
+repository already compiles rather than resolving afresh and rejecting a crate
+version that crates.io has since yanked. It strips inherited `RUSTFLAGS`
+because the published fences are illustrative snippets rather than
 warning-clean production code.
 
 `tests/documentation_examples_bdd.rs` shares the same loader and cross-checks
