@@ -566,7 +566,8 @@ Include these sections as appropriate to the decision's complexity:
   a caption below the table (e.g. “_Table 1: Trade-offs between X and Y._”).
 - Include code snippets with language identifiers when illustrating technical
   approaches. Use `no_run` for illustrative Rust code that should not be
-  executed.
+  executed, but remember that `no_run` examples must still compile. Use
+  `ignore` for snippets that cannot compile.
 - Add screen reader descriptions before complex diagrams or code blocks.
 - Reference external sources using inline links or footnotes.
 
@@ -696,8 +697,9 @@ contents of the manual.
 - Place examples under `# Examples`. Let examples run as documentation tests
   when they can execute correctly, so the compiler verifies that they compile
   and behave as documented. Mark examples with `no_run` only when they
-  genuinely cannot execute, such as examples that require external resources,
-  incomplete snippets, or environment-specific setup.
+  genuinely cannot execute, such as examples that require external resources or
+  environment-specific setup. `no_run` examples must still compile; use
+  `ignore` for incomplete snippets that cannot compile.
 - Put function attributes after the doc comment.
 
 ```rust,no_run

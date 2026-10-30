@@ -300,6 +300,7 @@ fn help_targets_lists_every_gate() -> Result<()> {
         "check-fmt",
         "markdownlint",
         "spelling",
+        "test-documentation-contracts",
         "test-workflow-contracts",
         "nixie",
     ];

@@ -22,11 +22,12 @@ use rstest::rstest;
 use rules::Step;
 
 /// Gates CI must run through Netsuke; `test` runs inside the coverage action.
-const CI_GATES: [&str; 5] = [
+const CI_GATES: [&str; 6] = [
     "check-fmt",
     "lint",
     "nixie",
     "spelling",
+    "test-documentation-contracts",
     "test-workflow-contracts",
 ];
 

@@ -523,6 +523,41 @@ tests cover:
 - Conversion traits (`AsRef<str>`, `Display`, `From`, `TryFrom`)
 - Error mapping to API error envelope
 
+### Documentation examples
+
+The documentation style guide requires every user-facing fenced example to be
+marked and exercised. The crate enforces that requirement for `README.md` and
+`docs/users-guide.md` with a shared loader and two test targets.
+
+Each fence must sit immediately below a `tested-example` marker, for example
+`<!-- tested-example: guide-render-event-frame -->`. Identifiers use lowercase
+letters, digits, and single hyphens. The loader in
+`tests/documentation_examples/mod.rs` rejects an unmarked fence, an
+unterminated fence, a fence without a language, an empty identifier, and a
+duplicate identifier, so a new example cannot silently escape the suite.
+
+`tests/documentation_examples_tests.rs` holds the closed registry of example
+identifiers, compiles and runs every Rust fence in an isolated Cargo workspace
+under `target/documentation-examples`, and checks the shell and plain-text
+fences against the behaviour they claim. The generated package strips inherited
+`RUSTFLAGS` because the published fences are illustrative snippets rather than
+warning-clean production code.
+
+`tests/documentation_examples_bdd.rs` shares the same loader and cross-checks
+the documented operator output against the tracing events the crate emits at
+runtime. The scenario fails if a documented field name or value drifts from the
+live event.
+
+CI runs the examples as a named gate:
+
+```bash
+netsuke build test-documentation-contracts
+```
+
+`netsuke build test` also covers the same targets locally. When adding a fence,
+add its marker, extend `EXPECTED_EXAMPLE_IDS`, and add a semantic contract for
+any non-Rust language.
+
 ### Testing dependencies
 
 Test-only dependencies live under `[dev-dependencies]` in `Cargo.toml`.
