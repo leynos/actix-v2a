@@ -49,6 +49,9 @@
 - [ADR 005: `main` owns coverage publication](adr-005-main-owns-coverage-publication.md):
   accepted split between the pull-request coverage ratchet and the CodeScene
   publisher on `main`.
+- [ADR 006: Rust build standard](adr-006-rust-build-standard.md): accepted
+  frontend, linker, backend and footprint defaults, and Whitaker's isolation
+  from them.
 - `execplans/`: living execution plans for non-trivial change work.
   - [Port Wildside pagination documentation
     hardening](execplans/portwildsidepagination.md): completed execution plan
