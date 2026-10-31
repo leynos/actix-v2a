@@ -7,6 +7,9 @@
 //! observable result: which commands run, in what order, with which flags, and
 //! whether a failure stops the gate.
 
+#[path = "netsuke_actions/documentation.rs"]
+mod documentation;
+
 #[path = "netsuke_actions/gates.rs"]
 mod gates;
 
@@ -52,31 +55,6 @@ fn test_selects_the_available_runner(#[case] runner: Runner) -> Result<()> {
             .iter()
             .all(|record| record.contains("RUSTFLAGS=-D warnings")),
         "every test command must deny warnings: {environment:#?}"
-    );
-    Ok(())
-}
-
-/// `test-documentation-contracts` runs only the documentation targets, with
-/// the available runner and warnings denied.
-#[rstest]
-#[case::nextest(Runner::Nextest)]
-#[case::cargo_test_fallback(Runner::CargoTest)]
-fn documentation_contracts_selects_the_available_runner(#[case] runner: Runner) -> Result<()> {
-    let sandbox = ActionSandbox::with_default_tools()?;
-    if runner.has_nextest() {
-        sandbox.install(FakeTool::CargoNextest, ToolHome::Path)?;
-    }
-    ensure!(
-        run(&sandbox, Gate::DocumentationContracts)?,
-        "test-documentation-contracts action failed"
-    );
-    ensure_commands(&sandbox, runner.documentation_contracts_commands())?;
-    let environment = sandbox.environment()?;
-    ensure!(
-        environment
-            .iter()
-            .all(|record| record.contains("RUSTFLAGS=-D warnings")),
-        "the documentation gate must deny warnings: {environment:#?}"
     );
     Ok(())
 }

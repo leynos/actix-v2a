@@ -86,7 +86,7 @@ fn shorter_inner_fence_does_not_close_the_block() {
 #[test]
 fn document_without_fences_has_no_examples() {
     let examples = parse("# Heading\n\nProse only.\n").expect("prose is valid");
-    assert!(examples.is_empty());
+    assert_eq!(examples, Vec::<DocumentedExample>::new());
 }
 
 #[rstest]

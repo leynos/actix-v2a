@@ -163,17 +163,35 @@ impl Runner {
     ///
     /// The gate names both documentation targets, so it runs exactly those
     /// tests and reports them as a documentation failure rather than a
-    /// generic test failure.
-    pub const fn documentation_contracts_commands(self) -> &'static [&'static str] {
-        match self {
-            Self::Nextest => &[concat!(
+    /// generic test failure. `build_jobs` is the caller's `BUILD_JOBS` value;
+    /// the recipe expands it unquoted, so the shell splits it into separate
+    /// Cargo arguments.
+    pub fn documentation_contracts_commands(self, build_jobs: &str) -> Vec<String> {
+        let base = match self {
+            Self::Nextest => concat!(
                 "cargo\tnextest\trun\t--test\tdocumentation_examples_tests",
                 "\t--test\tdocumentation_examples_bdd",
-            )],
-            Self::CargoTest => &[concat!(
+            ),
+            Self::CargoTest => concat!(
                 "cargo\ttest\t--test\tdocumentation_examples_tests",
                 "\t--test\tdocumentation_examples_bdd",
-            )],
+            ),
+        };
+        let mut command = base.to_owned();
+        for word in build_jobs.split_whitespace() {
+            command.push('\t');
+            command.push_str(word);
+        }
+        vec![command]
+    }
+
+    /// The `FAILING_COMMAND` value that makes this runner fail the
+    /// documentation gate: the Cargo tool and the subcommand that selects the
+    /// runner.
+    pub const fn failing_command(self) -> &'static str {
+        match self {
+            Self::Nextest => "cargo nextest",
+            Self::CargoTest => "cargo test",
         }
     }
 }

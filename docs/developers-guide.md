@@ -452,10 +452,12 @@ order, and flags, the serial and fail-fast behaviour of `all` and `lint`, both
 test-runner branches, the `PATH` prepend, and the `CARGO` and `RUST_FLAGS`
 overrides. `tests/netsuke_workflow_contract.rs` requires every workflow job
 that runs a gate or the test suite to install `netsuke-build` 0.1.0-beta4 and
-Ninja first. It also forbids `make` calls, and requires CI to run every gate
-through an action the manifest declares. The workflow-contract target only
-parses files and runs no executables. The action tests resolve `netsuke` and
-`ninja` from the host `PATH` before narrowing it, and hand Ninja to Netsuke
+Ninja first. It also forbids `make` calls, requires CI to run every gate
+through an action the manifest declares, and requires any step that pipes a
+Netsuke gate into `tee` to enable `pipefail` before the pipe, so `tee` cannot
+report its own success in place of a failing gate. The workflow-contract target
+only parses files and runs no executables. The action tests resolve `netsuke`
+and `ninja` from the host `PATH` before narrowing it, and hand Ninja to Netsuke
 through `NETSUKE_NINJA`. So `cargo test` needs both on `PATH`, and fails rather
 than skips without them.
 
