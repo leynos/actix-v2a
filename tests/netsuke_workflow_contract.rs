@@ -161,6 +161,14 @@ fn make_rule_flags_make_invocations(
     "netsuke build lint 2>&1 | tee /tmp/lint.out\nset -o pipefail\n",
     1
 )]
+#[case::pipefail_disabled(
+    "set -o pipefail\nset +o pipefail\nnetsuke build lint 2>&1 | tee /tmp/lint.out\n",
+    1
+)]
+#[case::pipefail_disabled_with_options(
+    "set -euo pipefail\nset +euo pipefail\nnetsuke build lint 2>&1 | tee /tmp/lint.out\n",
+    1
+)]
 #[case::not_netsuke("capture --verbose | tee /tmp/capture.out\n", 0)]
 fn pipefail_rule_flags_unprotected_netsuke_pipelines(
     #[case] script: &str,

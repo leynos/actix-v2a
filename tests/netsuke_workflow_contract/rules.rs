@@ -213,6 +213,19 @@ pub fn enables_pipefail(script: &str) -> bool {
         .any(|enablement| script.contains(enablement))
 }
 
+/// Whether `script` switches `pipefail` off with a `set +...` statement.
+///
+/// A later `set +o pipefail` (alone, or with other options) undoes an earlier
+/// enablement, so a pipeline after it is unprotected again.
+fn disables_pipefail(script: &str) -> bool {
+    let words: Vec<&str> = script.split_whitespace().collect();
+    words.windows(2).any(|pair| {
+        matches!(pair, ["set", option] if option.starts_with('+') && option.contains("pipefail"))
+    }) || words
+        .windows(3)
+        .any(|triple| matches!(triple, ["set", option, "pipefail"] if option.starts_with('+')))
+}
+
 /// Whether `text` names the `netsuke` executable.
 fn names_netsuke(text: &str) -> bool {
     text.split_whitespace()
@@ -243,8 +256,10 @@ pub fn unprotected_pipelines(steps: &[Step]) -> Vec<String> {
                 let before_netsuke = line
                     .split_once("netsuke")
                     .map_or(line, |(before, _)| before);
-                let is_protected = pipefail_seen || enables_pipefail(before_netsuke);
-                pipefail_seen |= enables_pipefail(line);
+                let is_protected = enables_pipefail(before_netsuke)
+                    || (pipefail_seen && !disables_pipefail(before_netsuke));
+                pipefail_seen =
+                    !disables_pipefail(line) && (enables_pipefail(line) || pipefail_seen);
                 (pipes_netsuke_into_tee(line) && !is_protected).then(|| {
                     format!(
                         "`{}` pipes a Netsuke gate into tee without enabling pipefail first",

@@ -239,6 +239,7 @@ fn cargo_and_rust_flag_overrides_reach_the_recipe() -> Result<()> {
 #[case::build(Gate::Build, "cargo build", true)]
 #[case::typecheck(Gate::Typecheck, "cargo check", true)]
 #[case::test_run(Gate::Test, "cargo test", true)]
+#[case::documentation_contracts(Gate::DocumentationContracts, "cargo test", true)]
 #[case::clippy(Gate::Lint, "cargo clippy", true)]
 #[case::release(Gate::Release, "cargo build", false)]
 fn the_standard_flags_reach_development_recipes_but_not_release(
