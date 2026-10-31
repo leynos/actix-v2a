@@ -42,7 +42,7 @@ impl Cursor {
 pub struct DocumentedExample {
     /// Stable identifier declared by the `tested-example` marker.
     pub id: String,
-    /// Markdown fence language, such as `rust`, `sh`, or `text`.
+    /// Markdown fence language, such as `rust`, `sh`, or `plaintext`.
     pub language: String,
     /// Exact text inside the fence, including a trailing newline.
     pub body: String,
