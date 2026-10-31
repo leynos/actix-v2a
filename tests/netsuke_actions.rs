@@ -7,8 +7,12 @@
 //! observable result: which commands run, in what order, with which flags, and
 //! whether a failure stops the gate.
 
+#[path = "netsuke_actions/documentation.rs"]
+mod documentation;
+
 #[path = "netsuke_actions/gates.rs"]
 mod gates;
+
 #[path = "netsuke_actions/sandbox.rs"]
 mod sandbox;
 
@@ -235,6 +239,7 @@ fn cargo_and_rust_flag_overrides_reach_the_recipe() -> Result<()> {
 #[case::build(Gate::Build, "cargo build", true)]
 #[case::typecheck(Gate::Typecheck, "cargo check", true)]
 #[case::test_run(Gate::Test, "cargo test", true)]
+#[case::documentation_contracts(Gate::DocumentationContracts, "cargo test", true)]
 #[case::clippy(Gate::Lint, "cargo clippy", true)]
 #[case::release(Gate::Release, "cargo build", false)]
 fn the_standard_flags_reach_development_recipes_but_not_release(
@@ -264,6 +269,7 @@ fn the_standard_flags_reach_development_recipes_but_not_release(
     );
     Ok(())
 }
+
 /// The build, clean, and format actions run their commands in order.
 #[rstest]
 #[case::build(Recipe::BUILD)]
@@ -351,6 +357,7 @@ fn help_targets_lists_every_gate() -> Result<()> {
         "check-fmt",
         "markdownlint",
         "spelling",
+        "test-documentation-contracts",
         "test-workflow-contracts",
         "nixie",
     ];

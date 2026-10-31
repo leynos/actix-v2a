@@ -1,4 +1,4 @@
-# Architectural decision record (ADR) 006: Rust build standard
+# Architectural decision record (ADR) 0006: Rust build standard
 
 ## Status
 

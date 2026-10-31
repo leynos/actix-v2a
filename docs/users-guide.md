@@ -15,6 +15,7 @@ rather than a numeric offset.
 Use `PageParams` with Actix Web's query extractor to parse the shared `cursor`
 and `limit` query parameters:
 
+<!-- tested-example: guide-pagination-query-params -->
 ```rust
 use actix_v2a::pagination::{PageParams, Paginated, PaginationLinks};
 use actix_web::{HttpRequest, get, web};
@@ -64,6 +65,7 @@ async fn list_users(
 Cursor keys must match the endpoint's stable ordering. A typical key contains a
 sortable field followed by a unique tie-breaker:
 
+<!-- tested-example: guide-cursor-key -->
 ```rust
 use serde::{Deserialize, Serialize};
 
@@ -100,8 +102,11 @@ underlying serialization error for investigation.
 Pagination query parameters are endpoint-local API details. Document them on
 each endpoint rather than exposing a shared schema wrapper:
 
+<!-- tested-example: guide-openapi-params -->
 ```rust
 #[utoipa::path(
+    get,
+    path = "/users",
     params(
         ("cursor" = Option<String>, Query, description = "Opaque pagination cursor"),
         ("limit" = Option<usize>, Query, description = "Page size, capped at 100")
@@ -144,6 +149,7 @@ requirements (UUID, integer, composite key, etc.).
 
 #### Usage
 
+<!-- tested-example: guide-event-id -->
 ```rust
 use actix_v2a::EventId;
 
@@ -177,12 +183,14 @@ Use `extract_actix_replay_cursor` to parse and validate the `Last-Event-ID`
 request header in Actix Web handlers. The `extract_replay_cursor` function is
 the framework-agnostic domain function and takes `&[SseHeader]`.
 
+<!-- tested-example: guide-extract-actix-replay-cursor -->
 ```rust
-use actix_v2a::extract_actix_replay_cursor;
+use actix_v2a::{extract_actix_replay_cursor, map_replay_cursor_error};
 use actix_web::HttpRequest;
 
-fn handle_sse_request(req: HttpRequest) -> Result<(), Error> {
-    let replay_cursor = extract_actix_replay_cursor(req.headers())?;
+fn handle_sse_request(req: HttpRequest) -> Result<(), actix_v2a::Error> {
+    let replay_cursor = extract_actix_replay_cursor(req.headers())
+        .map_err(|error| map_replay_cursor_error(&error))?;
 
     if let Some(cursor) = replay_cursor {
         // Client is reconnecting; start replay from cursor.event_id()
@@ -217,6 +225,7 @@ fn handle_sse_request(req: HttpRequest) -> Result<(), Error> {
 reset semantics, so callers only see `ReplayCursorError::Empty` after an
 explicit `From<EventIdValidationError>` conversion.
 
+<!-- tested-example: guide-classify-replay-errors -->
 ```rust
 use actix_v2a::{EventIdValidationError, ReplayCursorError, SseHeader, extract_replay_cursor};
 
@@ -259,13 +268,15 @@ Each error event carries two structured fields:
 To capture these events, configure a subscriber that accepts ERROR-level events
 from the crate:
 
+<!-- tested-example: guide-operator-log-command -->
 ```sh
 RUST_LOG=actix_v2a=error cargo run
 ```
 
 Example event fields emitted for a duplicate `Last-Event-ID` header:
 
-```text
+<!-- tested-example: guide-operator-log-output -->
+```plaintext
 ERROR actix_v2a::sse::replay_cursor: replay cursor header extraction failed
   header_name="Last-Event-ID"
   error_variant="InvalidHeader"
@@ -297,6 +308,7 @@ and returns typed errors without emitting tracing events itself.
 Use `map_replay_cursor_error` to convert validation failures to the shared API
 error envelope:
 
+<!-- tested-example: guide-map-replay-cursor-error -->
 ```rust
 use actix_v2a::{extract_actix_replay_cursor, map_replay_cursor_error};
 use actix_web::HttpRequest;
@@ -317,6 +329,7 @@ messages suitable for client responses.
 
 The `LAST_EVENT_ID_HEADER` constant provides the standardized header name:
 
+<!-- tested-example: guide-last-event-id-header -->
 ```rust
 use actix_v2a::{LAST_EVENT_ID_HEADER, SseHeader, extract_replay_cursor};
 
@@ -332,6 +345,7 @@ assert_eq!(cursor.as_ref(), "evt-001");
 Use `render_event_frame` to emit complete SSE event frames terminated by a
 blank line:
 
+<!-- tested-example: guide-render-event-frame -->
 ```rust
 use actix_v2a::{EventId, render_event_frame};
 
@@ -362,6 +376,7 @@ Rendering rules:
 
 Use `render_comment_frame` for heartbeat traffic or other comment frames:
 
+<!-- tested-example: guide-render-comment-frame -->
 ```rust
 use actix_v2a::render_comment_frame;
 
@@ -377,6 +392,7 @@ breaks and rejects NULL with `SseFrameError::InvalidComment`.
 Use `HeartbeatPolicy` when an endpoint needs the shared heartbeat cadence in
 typed form:
 
+<!-- tested-example: guide-heartbeat-policy -->
 ```rust
 use std::time::Duration;
 use actix_v2a::{DEFAULT_HEARTBEAT_INTERVAL, HeartbeatPolicy};
@@ -394,6 +410,7 @@ disable heartbeat scheduling entirely.
 
 Use `render_heartbeat_frame` to emit the canonical heartbeat wire frame:
 
+<!-- tested-example: guide-render-heartbeat-frame -->
 ```rust
 use actix_v2a::render_heartbeat_frame;
 
@@ -409,6 +426,7 @@ for timer ownership, background tasks, and stream lifecycle.
 Use `render_stream_reset_frame` when replay cannot resume from the supplied
 cursor:
 
+<!-- tested-example: guide-render-stream-reset-frame -->
 ```rust
 use actix_v2a::{
     STREAM_RESET_EVENT_NAME,
@@ -437,6 +455,7 @@ application-event builder.
 Use `apply_actix_event_stream_cache_control` to set the canonical anti-reuse
 policy for a live event stream in Actix Web responses.
 
+<!-- tested-example: guide-cache-control -->
 ```rust
 use actix_v2a::{EVENT_STREAM_CACHE_CONTROL, CACHE_CONTROL_HEADER};
 use actix_v2a::apply_actix_event_stream_cache_control;

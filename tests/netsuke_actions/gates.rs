@@ -11,6 +11,7 @@ pub enum Gate {
     Build,
     CheckFmt,
     Clean,
+    DocumentationContracts,
     Fmt,
     Lint,
     Markdownlint,
@@ -30,6 +31,7 @@ impl Gate {
             Self::Build => "build",
             Self::CheckFmt => "check-fmt",
             Self::Clean => "clean",
+            Self::DocumentationContracts => "test-documentation-contracts",
             Self::Fmt => "fmt",
             Self::Lint => "lint",
             Self::Markdownlint => "markdownlint",
@@ -50,6 +52,11 @@ impl Gate {
             (Some("uv"), _) if line.contains("cv005-contracts") => Some(Self::WorkflowContracts),
             (Some("cargo"), Some("fmt")) | (Some("mdtablefix"), _) => Some(Self::CheckFmt),
             (Some("cargo"), Some("doc" | "clippy")) | (Some("whitaker"), _) => Some(Self::Lint),
+            (Some("cargo"), Some("nextest" | "test"))
+                if line.contains("--test\tdocumentation_examples") =>
+            {
+                Some(Self::DocumentationContracts)
+            }
             (Some("cargo"), Some("nextest" | "test")) => Some(Self::Test),
             _ => None,
         }
@@ -149,6 +156,42 @@ impl Runner {
                 "cargo\ttest\t--all-targets\t--all-features",
                 "cargo\ttest\t--doc\t--workspace\t--all-features",
             ],
+        }
+    }
+
+    /// The command `test-documentation-contracts` should run with this runner.
+    ///
+    /// The gate names both documentation targets, so it runs exactly those
+    /// tests and reports them as a documentation failure rather than a
+    /// generic test failure. `build_jobs` is the caller's `BUILD_JOBS` value;
+    /// the recipe expands it unquoted, so the shell splits it into separate
+    /// Cargo arguments.
+    pub fn documentation_contracts_commands(self, build_jobs: &str) -> Vec<String> {
+        let base = match self {
+            Self::Nextest => concat!(
+                "cargo\tnextest\trun\t--test\tdocumentation_examples_tests",
+                "\t--test\tdocumentation_examples_bdd",
+            ),
+            Self::CargoTest => concat!(
+                "cargo\ttest\t--test\tdocumentation_examples_tests",
+                "\t--test\tdocumentation_examples_bdd",
+            ),
+        };
+        let mut command = base.to_owned();
+        for word in build_jobs.split_whitespace() {
+            command.push('\t');
+            command.push_str(word);
+        }
+        vec![command]
+    }
+
+    /// The `FAILING_COMMAND` value that makes this runner fail the
+    /// documentation gate: the Cargo tool and the subcommand that selects the
+    /// runner.
+    pub const fn failing_command(self) -> &'static str {
+        match self {
+            Self::Nextest => "cargo nextest",
+            Self::CargoTest => "cargo test",
         }
     }
 }

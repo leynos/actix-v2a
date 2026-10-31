@@ -1,4 +1,4 @@
-# Architectural decision record (ADR) 003: mutation recovery and replay
+# Architectural decision record (ADR) 0003: mutation recovery and replay
 
 ## Status
 
@@ -62,8 +62,8 @@ Use explicit state and result contracts. Prefer additive APIs and prohibit
 implicit retries of unknown outcomes. Allow reclamation only with evidence that
 execution cannot overlap or that the destination enforces fencing or
 idempotency. Keep leases, result retention, and permanent deduplication markers
-separate. The [design](shared-mutation-contract-design.md) specifies invariants
-that any accepted representation must satisfy.
+separate. The [design](../shared-mutation-contract-design.md) specifies
+invariants that any accepted representation must satisfy.
 
 ## Goals and non-goals
 

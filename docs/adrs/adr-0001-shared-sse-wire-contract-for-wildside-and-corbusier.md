@@ -1,4 +1,4 @@
-# Architectural decision record (ADR) 001: shared SSE wire contract for Wildside and Corbusier <!-- markdownlint-disable-line MD013 -->
+# Architectural decision record (ADR) 0001: shared SSE wire contract for Wildside and Corbusier <!-- markdownlint-disable-line MD013 -->
 
 ## Status
 
@@ -28,9 +28,9 @@ it needs a shared wire contract that is generic enough for both applications,
 specific enough to be testable, and small enough to avoid dragging
 application-specific event stores or transport assumptions into this library.
 This ADR complements the Wildside import
-[`execplan`](execplans/import-components-from-wildside.md): the execplan owns
-sequencing, milestones, and gates, while this ADR owns the normative SSE wire
-contract that downstream implementation must follow.
+[`execplan`](../execplans/import-components-from-wildside.md): the execplan
+owns sequencing, milestones, and gates, while this ADR owns the normative SSE
+wire contract that downstream implementation must follow.
 
 ## Decision Drivers
 

@@ -22,11 +22,12 @@ use rstest::rstest;
 use rules::Step;
 
 /// Gates CI must run through Netsuke; `test` runs inside the coverage action.
-const CI_GATES: [&str; 5] = [
+const CI_GATES: [&str; 6] = [
     "check-fmt",
     "lint",
     "nixie",
     "spelling",
+    "test-documentation-contracts",
     "test-workflow-contracts",
 ];
 
@@ -38,6 +39,17 @@ fn job_steps(yaml: &str) -> Result<Vec<Step>> {
         .next()
         .context("constructed workflow has a job")?;
     Ok(rules::steps(job))
+}
+
+/// Wraps a shell script as the only `run` step of a constructed job.
+fn run_step(script: &str) -> String {
+    let indented = script.lines().fold(String::new(), |mut body, line| {
+        body.push_str("          ");
+        body.push_str(line);
+        body.push('\n');
+        body
+    });
+    format!("jobs:\n  gate:\n    steps:\n      - run: |\n{indented}")
 }
 
 /// Installs Ninja and the pinned Netsuke, as two steps.
@@ -140,6 +152,34 @@ fn make_rule_flags_make_invocations(
     Ok(())
 }
 
+/// The pipefail rule reports a Netsuke gate whose failure `tee` would mask.
+#[rstest]
+#[case::protected("set -o pipefail;\nnetsuke build lint 2>&1 | tee /tmp/lint.out\n", 0)]
+#[case::extended_pipefail("set -euo pipefail\nnetsuke build lint 2>&1 | tee /tmp/lint.out\n", 0)]
+#[case::missing_pipefail("netsuke build lint 2>&1 | tee /tmp/lint.out\n", 1)]
+#[case::pipefail_after_the_pipe(
+    "netsuke build lint 2>&1 | tee /tmp/lint.out\nset -o pipefail\n",
+    1
+)]
+#[case::pipefail_disabled(
+    "set -o pipefail\nset +o pipefail\nnetsuke build lint 2>&1 | tee /tmp/lint.out\n",
+    1
+)]
+#[case::pipefail_disabled_with_options(
+    "set -euo pipefail\nset +euo pipefail\nnetsuke build lint 2>&1 | tee /tmp/lint.out\n",
+    1
+)]
+#[case::not_netsuke("capture --verbose | tee /tmp/capture.out\n", 0)]
+fn pipefail_rule_flags_unprotected_netsuke_pipelines(
+    #[case] script: &str,
+    #[case] expected: usize,
+) -> Result<()> {
+    let steps = job_steps(&run_step(script))?;
+    let problems = rules::unprotected_pipelines(&steps);
+    ensure!(problems.len() == expected, "{problems:#?}");
+    Ok(())
+}
+
 /// Action extraction reads verbose, piped, and chained invocations, including
 /// every `netsuke build` on one line.
 #[rstest]
@@ -210,5 +250,52 @@ fn ci_runs_every_gate_through_declared_netsuke_actions() -> Result<()> {
         .filter(|gate| !built.iter().any(|action| action == gate))
         .collect();
     ensure!(missing.is_empty(), "CI does not run gates {missing:?}");
+    Ok(())
+}
+
+/// No workflow lets `tee` mask a Netsuke gate failure.
+#[rstest]
+fn every_netsuke_pipeline_enables_pipefail_before_its_tee() -> Result<()> {
+    let workflows = reader::workflows()?;
+    let problems: Vec<String> = workflows
+        .iter()
+        .flat_map(|(name, workflow)| {
+            reader::jobs(workflow)
+                .into_iter()
+                .flat_map(move |(id, job)| {
+                    rules::unprotected_pipelines(&rules::steps(job))
+                        .into_iter()
+                        .map(move |problem| format!("{name} {id}: {problem}"))
+                })
+        })
+        .collect();
+    ensure!(problems.is_empty(), "{problems:#?}");
+    Ok(())
+}
+
+/// The documentation gate's step runs through a protected `tee`, so the gate's
+/// own failure, not `tee`'s success, decides whether the step passes.
+#[rstest]
+fn ci_documentation_gate_pipes_through_a_protected_tee() -> Result<()> {
+    let workflows = reader::workflows()?;
+    let ci = workflows.get("ci.yml").context("ci.yml exists")?;
+    let steps: Vec<Step> = reader::jobs(ci)
+        .into_iter()
+        .flat_map(|(_, job)| rules::steps(job))
+        .collect();
+    let step = steps
+        .iter()
+        .find(|step| step.run.contains("build test-documentation-contracts"))
+        .context("CI runs the documentation gate")?;
+    ensure!(
+        rules::pipes_netsuke_into_tee(&step.run),
+        "the documentation gate must pipe its output to tee: {}",
+        step.run
+    );
+    ensure!(
+        rules::enables_pipefail(&step.run),
+        "the documentation gate must enable pipefail before the pipe: {}",
+        step.run
+    );
     Ok(())
 }

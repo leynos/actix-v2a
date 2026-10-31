@@ -203,6 +203,74 @@ pub fn make_calls(steps: &[Step]) -> Vec<String> {
         .collect()
 }
 
+/// Shell statements that enable `pipefail`, alone or with other options.
+const PIPEFAIL_ENABLES: [&str; 2] = ["set -o pipefail", "set -euo pipefail"];
+
+/// Whether `script` enables `pipefail` anywhere within it.
+pub fn enables_pipefail(script: &str) -> bool {
+    PIPEFAIL_ENABLES
+        .iter()
+        .any(|enablement| script.contains(enablement))
+}
+
+/// Whether `script` switches `pipefail` off with a `set +...` statement.
+///
+/// A later `set +o pipefail` (alone, or with other options) undoes an earlier
+/// enablement, so a pipeline after it is unprotected again.
+fn disables_pipefail(script: &str) -> bool {
+    let words: Vec<&str> = script.split_whitespace().collect();
+    words.windows(2).any(|pair| {
+        matches!(pair, ["set", option] if option.starts_with('+') && option.contains("pipefail"))
+    }) || words
+        .windows(3)
+        .any(|triple| matches!(triple, ["set", option, "pipefail"] if option.starts_with('+')))
+}
+
+/// Whether `text` names the `netsuke` executable.
+fn names_netsuke(text: &str) -> bool {
+    text.split_whitespace()
+        .any(|word| word == "netsuke" || word.ends_with("/netsuke"))
+}
+
+/// Whether `line` pipes a Netsuke invocation into `tee`.
+///
+/// The line is judged by pipeline stage, so the `2>&1` redirection that
+/// commonly precedes the pipe does not confuse it.
+pub fn pipes_netsuke_into_tee(line: &str) -> bool {
+    let stages: Vec<&str> = line.split('|').collect();
+    stages.windows(2).any(|pair| {
+        matches!(pair, [left, right]
+            if names_netsuke(left) && right.split_whitespace().next() == Some("tee"))
+    })
+}
+
+/// Describes each step that pipes a Netsuke gate into `tee` without enabling
+/// `pipefail` first; `tee` would then report its own success and hide the
+/// gate's failure.
+pub fn unprotected_pipelines(steps: &[Step]) -> Vec<String> {
+    steps
+        .iter()
+        .flat_map(|step| {
+            let mut pipefail_seen = false;
+            step.run.split_inclusive('\n').filter_map(move |line| {
+                let before_netsuke = line
+                    .split_once("netsuke")
+                    .map_or(line, |(before, _)| before);
+                let is_protected = enables_pipefail(before_netsuke)
+                    || (pipefail_seen && !disables_pipefail(before_netsuke));
+                pipefail_seen =
+                    !disables_pipefail(line) && (enables_pipefail(line) || pipefail_seen);
+                (pipes_netsuke_into_tee(line) && !is_protected).then(|| {
+                    format!(
+                        "`{}` pipes a Netsuke gate into tee without enabling pipefail first",
+                        line.trim()
+                    )
+                })
+            })
+        })
+        .collect()
+}
+
 /// Returns each action named by `netsuke ... build <action>` in the steps,
 /// including every invocation on a line that chains several.
 pub fn built_actions(steps: &[Step]) -> BTreeSet<String> {

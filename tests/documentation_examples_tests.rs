@@ -1,0 +1,131 @@
+//! Executable contracts for examples in the published user's guide.
+//!
+//! Every fenced example is loaded from `docs/users-guide.md` through the shared
+//! loader. Rust fences are compiled and run in an isolated Cargo package, while
+//! console and operator-output fences have their documented text checked
+//! against the behaviour they claim.
+
+#[path = "documentation_examples/mod.rs"]
+mod documentation_examples;
+#[path = "documentation_examples/workspace.rs"]
+mod example_workspace;
+#[path = "documentation_examples/parser_tests.rs"]
+mod parser_tests;
+#[path = "documentation_examples/properties.rs"]
+mod properties;
+
+use std::collections::BTreeSet;
+
+use anyhow::{Result, ensure};
+use documentation_examples::{DocumentedExample, documented_example, load_documented_examples};
+use example_workspace::ExampleWorkspace;
+
+/// The closed registry of user-guide examples and their fence languages.
+///
+/// Recording the language keeps a fence inside its behavioural contract: a
+/// Rust example re-labelled `sh` would otherwise leave the registry intact
+/// while dropping out of compilation and execution.
+const EXPECTED_EXAMPLES: &[(&str, &str)] = &[
+    ("guide-cache-control", "rust"),
+    ("guide-classify-replay-errors", "rust"),
+    ("guide-cursor-key", "rust"),
+    ("guide-event-id", "rust"),
+    ("guide-extract-actix-replay-cursor", "rust"),
+    ("guide-heartbeat-policy", "rust"),
+    ("guide-last-event-id-header", "rust"),
+    ("guide-map-replay-cursor-error", "rust"),
+    ("guide-openapi-params", "rust"),
+    ("guide-operator-log-command", "sh"),
+    ("guide-operator-log-output", "plaintext"),
+    ("guide-pagination-query-params", "rust"),
+    ("guide-render-comment-frame", "rust"),
+    ("guide-render-event-frame", "rust"),
+    ("guide-render-heartbeat-frame", "rust"),
+    ("guide-render-stream-reset-frame", "rust"),
+];
+
+#[test]
+fn documented_examples_match_the_registry() -> Result<()> {
+    let examples = load_documented_examples()?;
+    let actual = examples
+        .iter()
+        .map(|example| (example.id.as_str(), example.language.as_str()))
+        .collect::<BTreeSet<_>>();
+    let expected = EXPECTED_EXAMPLES.iter().copied().collect::<BTreeSet<_>>();
+    ensure!(
+        actual == expected,
+        "documented example registry drifted\nexpected: {expected:#?}\nactual: {actual:#?}"
+    );
+    Ok(())
+}
+
+/// Compiles and runs every Rust fence from the published guide.
+#[test]
+fn documented_rust_examples_compile_and_run() -> Result<()> {
+    let rust_examples = rust_examples()?;
+    ensure!(
+        !rust_examples.is_empty(),
+        "the user-facing documentation should declare at least one Rust example"
+    );
+
+    let workspace = ExampleWorkspace::new()?;
+    for example in &rust_examples {
+        workspace.add_binary(example)?;
+    }
+    workspace.build()?;
+    for example in &rust_examples {
+        workspace.run(&example.id)?;
+    }
+    Ok(())
+}
+
+#[test]
+fn documented_operator_guidance_matches_the_tracing_contract() -> Result<()> {
+    let command = documented_example("guide-operator-log-command")?;
+    ensure!(
+        command.language == "sh",
+        "operator command should be a shell fence"
+    );
+    ensure!(
+        command.body == "RUST_LOG=actix_v2a=error cargo run\n",
+        "operator command drifted: {:?}",
+        command.body
+    );
+
+    let output = documented_example("guide-operator-log-output")?;
+    ensure!(
+        output.language == "plaintext",
+        "operator output should be a plaintext fence"
+    );
+    ensure!(
+        output.body
+            == concat!(
+                "ERROR actix_v2a::sse::replay_cursor: ",
+                "replay cursor header extraction failed\n",
+                "  header_name=\"Last-Event-ID\"\n",
+                "  error_variant=\"InvalidHeader\"\n",
+            ),
+        "operator output drifted: {:?}",
+        output.body
+    );
+    Ok(())
+}
+
+#[test]
+fn documented_rust_fences_are_non_empty() -> Result<()> {
+    for example in rust_examples()? {
+        ensure!(
+            !example.body.trim().is_empty(),
+            "documented Rust example '{}' should not be empty",
+            example.id
+        );
+    }
+    Ok(())
+}
+
+fn rust_examples() -> Result<Vec<&'static DocumentedExample>> {
+    Ok(load_documented_examples()?
+        .iter()
+        .filter(|example| example.language == "rust")
+        .collect())
+}

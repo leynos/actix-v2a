@@ -7,7 +7,7 @@
 //! They use the published crate-root import paths rather than internal module
 //! paths.
 //!
-//! ADR 001 (`docs/adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md`)
+//! ADR 0001 (`docs/adrs/adr-0001-shared-sse-wire-contract-for-wildside-and-corbusier.md`)
 //! is the normative SSE wire contract. These tests verify that the crate-root
 //! adapter surface honours its header-transformation and
 //! replay-cursor-extraction semantics.
