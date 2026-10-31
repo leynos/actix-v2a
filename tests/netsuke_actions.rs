@@ -56,6 +56,31 @@ fn test_selects_the_available_runner(#[case] runner: Runner) -> Result<()> {
     Ok(())
 }
 
+/// `test-documentation-contracts` runs only the documentation targets, with
+/// the available runner and warnings denied.
+#[rstest]
+#[case::nextest(Runner::Nextest)]
+#[case::cargo_test_fallback(Runner::CargoTest)]
+fn documentation_contracts_selects_the_available_runner(#[case] runner: Runner) -> Result<()> {
+    let sandbox = ActionSandbox::with_default_tools()?;
+    if runner.has_nextest() {
+        sandbox.install(FakeTool::CargoNextest, ToolHome::Path)?;
+    }
+    ensure!(
+        run(&sandbox, Gate::DocumentationContracts)?,
+        "test-documentation-contracts action failed"
+    );
+    ensure_commands(&sandbox, runner.documentation_contracts_commands())?;
+    let environment = sandbox.environment()?;
+    ensure!(
+        environment
+            .iter()
+            .all(|record| record.contains("RUSTFLAGS=-D warnings")),
+        "the documentation gate must deny warnings: {environment:#?}"
+    );
+    Ok(())
+}
+
 /// `lint` runs rustdoc, Clippy, then Whitaker, each with warnings denied, and Whitaker alone
 /// starts outside the checkout, clears an inherited encoded-flags variable, and takes only the
 /// literal warning flags.

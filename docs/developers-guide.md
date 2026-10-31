@@ -592,14 +592,19 @@ unterminated fence, a fence without a language, an empty identifier, and a
 duplicate identifier, so a new example cannot silently escape the suite.
 
 `tests/documentation_examples_tests.rs` holds the closed registry of example
-identifiers, compiles and runs every Rust fence in an isolated Cargo workspace
-under `target/documentation-examples`, and checks the shell and plain-text
-fences against the behaviour they claim. The generated package is seeded with
-the repository's `Cargo.lock`, so its offline build reuses the versions the
-repository already compiles rather than resolving afresh and rejecting a crate
-version that crates.io has since yanked. It strips inherited `RUSTFLAGS`
-because the published fences are illustrative snippets rather than
-warning-clean production code.
+identifiers and their fence languages, compiles and runs every Rust fence in an
+isolated Cargo workspace under `target/documentation-examples`, and checks the
+shell and plain-text fences against the behaviour they claim. The generated
+package is seeded with the repository's `Cargo.lock`, so its offline build
+reuses the versions the repository already compiles rather than resolving
+afresh and rejecting a crate version that crates.io has since yanked. It strips
+inherited `RUSTFLAGS` because the published fences are illustrative snippets
+rather than warning-clean production code.
+
+`tests/documentation_examples/properties.rs` states the loader's contract over
+generated documents: a document it accepts round-trips to the examples it was
+rendered from, and an unmarked fence, a duplicate identifier, or an identifier
+with a disallowed character is always rejected.
 
 `tests/documentation_examples_bdd.rs` shares the same loader and cross-checks
 the documented operator output against the tracing events the crate emits at
@@ -612,9 +617,12 @@ CI runs the examples as a named gate:
 netsuke build test-documentation-contracts
 ```
 
-`netsuke build test` also covers the same targets locally. When adding a fence,
-add its marker, extend `EXPECTED_EXAMPLE_IDS`, and add a semantic contract for
-any non-Rust language.
+`tests/netsuke_actions.rs` drives that gate, like every other action, against
+the committed manifest with fake tools, and covers both the `cargo-nextest` and
+`cargo test` branches. `netsuke build test` also covers the same targets
+locally. When adding a fence, add its marker, extend `EXPECTED_EXAMPLES` with
+its identifier and language, and add a semantic contract for any non-Rust
+language.
 
 ### Testing dependencies
 
