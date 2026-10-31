@@ -37,7 +37,7 @@ pub struct Step {
 pub fn steps(job: &Mapping) -> Vec<Step> {
     reader::get(job, "steps")
         .and_then(Value::as_sequence)
-        .map_or_default(|sequence| {
+        .map_or_else(Default::default, |sequence| {
             sequence
                 .iter()
                 .filter_map(Value::as_mapping)
@@ -221,7 +221,7 @@ pub fn declared_actions(manifest: &Value) -> BTreeSet<String> {
         .as_mapping()
         .and_then(|root| reader::get(root, "actions"))
         .and_then(Value::as_sequence)
-        .map_or_default(|actions| {
+        .map_or_else(Default::default, |actions| {
             actions
                 .iter()
                 .filter_map(Value::as_mapping)
