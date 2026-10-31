@@ -116,17 +116,15 @@ impl ExampleWorkspace {
     ///
     /// # Errors
     ///
-    /// Returns an error when the binary cannot be started or exits non-zero.
+    /// Returns an error when the example cannot be started or exits non-zero.
     pub fn run(&self, id: &str) -> Result<()> {
         ensure!(
             is_valid_example_id(id),
             "documented example '{id}' is not a safe binary name"
         );
-        let binary = target_directory()
-            .join("debug")
-            .join(format!("{id}{}", std::env::consts::EXE_SUFFIX));
-        let output = Command::new(&binary)
-            .current_dir(self.root.path())
+        let output = self
+            .cargo()
+            .args(["run", "--offline", "--quiet", "--bin", id])
             .output()
             .with_context(|| format!("run documented example '{id}'"))?;
         ensure_success(&format!("documented example '{id}' should run"), &output)
@@ -165,8 +163,6 @@ fn ensure_success(context: &str, output: &Output) -> Result<()> {
 fn wrapped_source(body: &str) -> String {
     format!(
         concat!(
-            "#![allow(dead_code, unused_imports, unused_variables, unused_mut)]\n",
-            "\n",
             "fn main() -> Result<(), Box<dyn std::error::Error>> {{\n",
             "{body}",
             "    Ok(())\n",

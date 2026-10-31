@@ -276,7 +276,7 @@ RUST_LOG=actix_v2a=error cargo run
 Example event fields emitted for a duplicate `Last-Event-ID` header:
 
 <!-- tested-example: guide-operator-log-output -->
-```text
+```plaintext
 ERROR actix_v2a::sse::replay_cursor: replay cursor header extraction failed
   header_name="Last-Event-ID"
   error_variant="InvalidHeader"

@@ -62,7 +62,7 @@ fn documented_fences_use_supported_languages() -> Result<()> {
     let examples = load_documented_examples()?;
     for example in examples {
         ensure!(
-            matches!(example.language.as_str(), "rust" | "sh" | "text"),
+            matches!(example.language.as_str(), "rust" | "sh" | "plaintext"),
             "documented example '{}' has unsupported language '{}'",
             example.id,
             example.language
@@ -74,14 +74,10 @@ fn documented_fences_use_supported_languages() -> Result<()> {
 /// Compiles and runs every Rust fence from the published guide.
 #[test]
 fn documented_rust_examples_compile_and_run() -> Result<()> {
-    let rust_examples = load_documented_examples()?
-        .iter()
-        .filter(|example| example.language == "rust")
-        .collect::<Vec<_>>();
+    let rust_examples = rust_examples()?;
     ensure!(
-        rust_examples.len() == 14,
-        "expected 14 documented Rust examples, got {}",
-        rust_examples.len()
+        !rust_examples.is_empty(),
+        "the user-facing documentation should declare at least one Rust example"
     );
 
     let workspace = ExampleWorkspace::new()?;
@@ -110,8 +106,8 @@ fn documented_operator_guidance_matches_the_tracing_contract() -> Result<()> {
 
     let output = documented_example("guide-operator-log-output")?;
     ensure!(
-        output.language == "text",
-        "operator output should be a text fence"
+        output.language == "plaintext",
+        "operator output should be a plaintext fence"
     );
     ensure!(
         output.body

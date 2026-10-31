@@ -530,8 +530,9 @@ marked and exercised. The crate enforces that requirement for `README.md` and
 `docs/users-guide.md` with a shared loader and two test targets.
 
 Each fence must sit immediately below a `tested-example` marker, for example
-`<!-- tested-example: guide-render-event-frame -->`. Identifiers use lowercase
-letters, digits, and single hyphens. The loader in
+`<!-- tested-example: guide-render-event-frame -->`. An identifier starts with
+a lowercase ASCII letter, continues with lowercase letters, digits, and single
+hyphens, and does not end with a hyphen. The loader in
 `tests/documentation_examples/mod.rs` rejects an unmarked fence, an
 unterminated fence, a fence without a language, an empty identifier, and a
 duplicate identifier, so a new example cannot silently escape the suite.
