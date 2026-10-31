@@ -110,9 +110,11 @@ actions:
       # the caller. It also runs from the checkout's parent with an absolute
       # manifest path, so Cargo never discovers this checkout's
       # `.cargo/config.toml`, whose Cranelift profile the installer-managed
-      # toolchain does not carry.
+      # toolchain does not carry. An inherited `CARGO_ENCODED_RUSTFLAGS` outranks
+      # `RUSTFLAGS`, so it is cleared first.
       - >-
         checkout="$PWD"; cd "$(dirname "$checkout")" &&
+        unset CARGO_ENCODED_RUSTFLAGS &&
         RUSTFLAGS="-D warnings" "${WHITAKER:-whitaker}"
         --manifest-path "$checkout/Cargo.toml" --all -- {{ cargo_flags }}
 

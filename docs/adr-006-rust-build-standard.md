@@ -43,11 +43,12 @@ incremental state and debug information that nobody read. Cargo selects one
   `[unstable] embed-metadata = false` is the native Cargo key for the dated
   nightly (the `rust-dev-build-footprint` rule).
 - Whitaker is isolated: the `lint` recipe starts it from the checkout's parent
-  with an absolute `--manifest-path` and the literal `RUSTFLAGS="-D warnings"`,
-  so it takes none of the standard and Cargo never discovers this checkout's
-  `.cargo/config.toml` and its Cranelift profile, which the installer-managed
-  toolchain does not carry. CI installs Whitaker with `cranelift: 'true'` for
-  the same reason.
+  with an absolute `--manifest-path` and the literal `RUSTFLAGS="-D warnings"`
+  (clearing an inherited `CARGO_ENCODED_RUSTFLAGS` first, which Cargo ranks
+  above `RUSTFLAGS`), so it takes none of the standard and Cargo never
+  discovers this checkout's `.cargo/config.toml` and its Cranelift profile,
+  which the installer-managed toolchain does not carry. CI installs Whitaker
+  with `cranelift: 'true'` for the same reason.
 
 ## Consequences
 

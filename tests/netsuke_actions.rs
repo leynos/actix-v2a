@@ -56,10 +56,12 @@ fn test_selects_the_available_runner(#[case] runner: Runner) -> Result<()> {
 }
 
 /// `lint` runs rustdoc, Clippy, then Whitaker, each with warnings denied, and Whitaker alone
-/// starts outside the checkout with only the literal warning flags.
+/// starts outside the checkout, clears an inherited encoded-flags variable, and takes only the
+/// literal warning flags.
 #[rstest]
 fn lint_runs_rustdoc_clippy_then_whitaker_with_warnings_denied() -> Result<()> {
-    let sandbox = ActionSandbox::with_default_tools()?;
+    let mut sandbox = ActionSandbox::with_default_tools()?;
+    sandbox.set_var(ChildVar::InheritedEncodedRustflags, "-Awarnings");
     ensure!(run(&sandbox, Gate::Lint)?, "lint action failed");
     let parent = sandbox.checkout_parent()?;
     let manifest = format!("{parent}/work/Cargo.toml");
@@ -70,7 +72,7 @@ fn lint_runs_rustdoc_clippy_then_whitaker_with_warnings_denied() -> Result<()> {
     let expected_flags = [
         ("cargo doc", "RUSTDOCFLAGS=-D warnings"),
         ("whitaker --manifest-path", "RUSTFLAGS=-D warnings\t"),
-        ("whitaker --manifest-path", &format!("CWD={parent}")),
+        ("whitaker --manifest-path", "ENCODED=\t"),
     ];
     for (command, flag) in expected_flags {
         ensure!(
@@ -80,6 +82,13 @@ fn lint_runs_rustdoc_clippy_then_whitaker_with_warnings_denied() -> Result<()> {
             "{command} must run with {flag}: {environment:#?}"
         );
     }
+    let cwd = format!("CWD={parent}");
+    ensure!(
+        environment
+            .iter()
+            .any(|record| record.starts_with("whitaker --manifest-path") && record.ends_with(&cwd)),
+        "whitaker must start exactly in {parent}: {environment:#?}"
+    );
     Ok(())
 }
 
@@ -241,6 +250,10 @@ fn the_standard_flags_reach_development_recipes_but_not_release(
         .iter()
         .find(|record| record.starts_with(command))
         .with_context(|| format!("no {command} record: {environment:#?}"))?;
+    ensure!(
+        record.contains("RUSTFLAGS=-D warnings"),
+        "{command}: the inherited RUSTFLAGS must reach the build: {record}"
+    );
     ensure!(
         record.contains("-Zthreads=8") == takes_standard,
         "{command}: the parallel frontend flag must be {takes_standard}: {record}"

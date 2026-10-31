@@ -37,9 +37,9 @@ const FAKE_TOOL: &str = concat!(
     "line=$tool\n",
     "for argument in \"$@\"; do line=$(printf '%s\\t%s' \"$line\" \"$argument\"); done\n",
     "printf '%s\\n' \"$line\" >> \"$ACTION_LOG\"\n",
-    "printf '%s\\tRUSTFLAGS=%s\\tRUSTDOCFLAGS=%s\\tUV_CACHE_DIR=%s\\tCWD=%s\\n' \\\n",
-    "  \"$tool ${1:-}\" \"${RUSTFLAGS:-}\" \"${RUSTDOCFLAGS:-}\" \"${UV_CACHE_DIR:-}\" \"$(pwd \
-     -P)\" \\\n",
+    "printf '%s\\tRUSTFLAGS=%s\\tRUSTDOCFLAGS=%s\\tUV_CACHE_DIR=%s\\tENCODED=%s\\tCWD=%s\\n' \\\n",
+    "  \"$tool ${1:-}\" \"${RUSTFLAGS:-}\" \"${RUSTDOCFLAGS:-}\" \"${UV_CACHE_DIR:-}\" \\\n",
+    "  \"${CARGO_ENCODED_RUSTFLAGS:-}\" \"$(pwd -P)\" \\\n",
     "  >> \"$ENV_LOG\"\n",
     "case \"${FAILING_COMMAND:-}\" in\n",
     "  \"$tool\"|\"$tool ${1:-}\") exit 23 ;;\n",
@@ -100,6 +100,8 @@ pub enum ChildVar {
     RustFlags,
     /// A `RUSTFLAGS` value inherited from the caller, as CI's `setup-rust` exports one.
     InheritedRustflags,
+    /// An encoded flags value inherited from the caller, which Cargo ranks above `RUSTFLAGS`.
+    InheritedEncodedRustflags,
 }
 
 impl ChildVar {
@@ -111,6 +113,7 @@ impl ChildVar {
             Self::FailingCommand => "FAILING_COMMAND",
             Self::RustFlags => "RUST_FLAGS",
             Self::InheritedRustflags => "RUSTFLAGS",
+            Self::InheritedEncodedRustflags => "CARGO_ENCODED_RUSTFLAGS",
         }
     }
 }

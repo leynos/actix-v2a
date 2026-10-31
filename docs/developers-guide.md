@@ -497,13 +497,14 @@ the repository's own Cargo configuration.
 ### Whitaker isolation
 
 The `lint` recipe runs Whitaker from the checkout's parent directory with an
-absolute `--manifest-path` and the literal `RUSTFLAGS="-D warnings"`. Whitaker
-runs under the toolchain its installer manages, so it takes none of the
-development standard (no parallel frontend, no `mold` linker flag and no
-inherited `RUSTFLAGS`), and because it starts outside the checkout, Cargo never
-discovers `.cargo/config.toml` and its Cranelift profile, which that toolchain
-does not carry. `tests/netsuke_actions.rs` proves the working directory, the
-manifest path and the literal flags against the real manifest.
+absolute `--manifest-path` and the literal `RUSTFLAGS="-D warnings"`, after
+clearing an inherited `CARGO_ENCODED_RUSTFLAGS`, which Cargo ranks above
+`RUSTFLAGS`. Whitaker runs under the toolchain its installer manages, so it
+takes none of the development standard (no parallel frontend, no `mold` linker
+flag and no inherited `RUSTFLAGS`), and because it starts outside the checkout,
+Cargo never discovers `.cargo/config.toml` and its Cranelift profile, which
+that toolchain does not carry. `tests/netsuke_actions.rs` proves the working
+directory, the manifest path and the literal flags against the real manifest.
 
 ### Cranelift
 
