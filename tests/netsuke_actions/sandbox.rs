@@ -37,8 +37,9 @@ const FAKE_TOOL: &str = concat!(
     "line=$tool\n",
     "for argument in \"$@\"; do line=$(printf '%s\\t%s' \"$line\" \"$argument\"); done\n",
     "printf '%s\\n' \"$line\" >> \"$ACTION_LOG\"\n",
-    "printf '%s\\tRUSTFLAGS=%s\\tRUSTDOCFLAGS=%s\\tUV_CACHE_DIR=%s\\n' \\\n",
+    "printf '%s\\tRUSTFLAGS=%s\\tRUSTDOCFLAGS=%s\\tUV_CACHE_DIR=%s\\tENCODED=%s\\tCWD=%s\\n' \\\n",
     "  \"$tool ${1:-}\" \"${RUSTFLAGS:-}\" \"${RUSTDOCFLAGS:-}\" \"${UV_CACHE_DIR:-}\" \\\n",
+    "  \"${CARGO_ENCODED_RUSTFLAGS:-}\" \"$(pwd -P)\" \\\n",
     "  >> \"$ENV_LOG\"\n",
     "case \"${FAILING_COMMAND:-}\" in\n",
     "  \"$tool\"|\"$tool ${1:-}\") exit 23 ;;\n",
@@ -97,6 +98,10 @@ pub enum ChildVar {
     FailingCommand,
     /// Extra flags the manifest appends to `RUSTFLAGS`.
     RustFlags,
+    /// A `RUSTFLAGS` value inherited from the caller, as CI's `setup-rust` exports one.
+    InheritedRustflags,
+    /// An encoded flags value inherited from the caller, which Cargo ranks above `RUSTFLAGS`.
+    InheritedEncodedRustflags,
 }
 
 impl ChildVar {
@@ -107,6 +112,8 @@ impl ChildVar {
             Self::Cargo => "CARGO",
             Self::FailingCommand => "FAILING_COMMAND",
             Self::RustFlags => "RUST_FLAGS",
+            Self::InheritedRustflags => "RUSTFLAGS",
+            Self::InheritedEncodedRustflags => "CARGO_ENCODED_RUSTFLAGS",
         }
     }
 }
@@ -285,6 +292,23 @@ impl ActionSandbox {
     }
 
     /// The sandbox root as a UTF-8 path.
+    /// Returns the sandbox root, which is the checkout's parent: the directory Whitaker must start
+    /// in.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the root cannot be resolved to a UTF-8 path.
+    pub fn checkout_parent(&self) -> Result<String> {
+        let resolved = self
+            .root
+            .path()
+            .canonicalize()
+            .context("resolve sandbox root")?;
+        Ok(Utf8PathBuf::try_from(resolved)
+            .context("sandbox path is not UTF-8")?
+            .into_string())
+    }
+
     fn root_path(&self) -> Result<&Utf8Path> {
         Utf8Path::from_path(self.root.path()).context("sandbox path is not UTF-8")
     }

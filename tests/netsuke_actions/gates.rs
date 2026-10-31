@@ -65,12 +65,20 @@ pub const CHECK_FMT: [&str; 2] = [
     ),
 ];
 
-/// The commands `lint` runs, in order.
+/// The commands `lint` runs, in order. Whitaker names the manifest by absolute path, because it
+/// runs from the checkout's parent; `{manifest}` stands for that path.
 pub const LINT: [&str; 3] = [
     "cargo\tdoc\t--no-deps",
     "cargo\tclippy\t--all-targets\t--all-features\t--\t-D\twarnings",
-    "whitaker\t--all\t--\t--all-targets\t--all-features",
+    "whitaker\t--manifest-path\t{manifest}\t--all\t--\t--all-targets\t--all-features",
 ];
+
+/// The commands `lint` runs for a sandbox whose checkout holds the manifest at `manifest`.
+pub fn lint_commands(manifest: &str) -> Vec<String> {
+    LINT.iter()
+        .map(|command| command.replace("{manifest}", manifest))
+        .collect()
+}
 
 /// A gate whose commands do not depend on which tools are installed.
 #[derive(Clone, Copy, Debug)]

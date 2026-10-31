@@ -42,7 +42,7 @@ fn successful_encode_produces_span_without_error_events() {
 
     assert_eq!(result, Ok("eyJrZXkiOiJrZXkiLCJkaXIiOiJOZXh0In0".to_owned()));
     assert!(recorder.span_names().contains(&"encode".to_owned()));
-    assert!(recorder.error_events().is_empty());
+    assert_eq!(recorder.error_events(), [] as [std::string::String; 0]);
 }
 
 #[test]
@@ -78,7 +78,7 @@ fn successful_decode_produces_span_without_error_events() {
 
     assert_eq!(result, Ok(Cursor::new("key".to_owned())));
     assert!(recorder.span_names().contains(&"decode".to_owned()));
-    assert!(recorder.error_events().is_empty());
+    assert_eq!(recorder.error_events(), [] as [std::string::String; 0]);
 }
 
 #[test]
@@ -103,7 +103,7 @@ fn failing_decode_produces_no_error_events() {
         ));
     });
 
-    assert!(recorder.error_events().is_empty());
+    assert_eq!(recorder.error_events(), [] as [std::string::String; 0]);
 }
 
 #[derive(Clone, Default)]

@@ -37,14 +37,13 @@ pub struct Step {
 pub fn steps(job: &Mapping) -> Vec<Step> {
     reader::get(job, "steps")
         .and_then(Value::as_sequence)
-        .map(|sequence| {
+        .map_or_else(Default::default, |sequence| {
             sequence
                 .iter()
                 .filter_map(Value::as_mapping)
                 .map(step)
                 .collect()
         })
-        .unwrap_or_default()
 }
 
 /// Reduces one step mapping to its `run`, `uses`, and `NETSUKE_VERSION`.
@@ -222,12 +221,11 @@ pub fn declared_actions(manifest: &Value) -> BTreeSet<String> {
         .as_mapping()
         .and_then(|root| reader::get(root, "actions"))
         .and_then(Value::as_sequence)
-        .map(|actions| {
+        .map_or_else(Default::default, |actions| {
             actions
                 .iter()
                 .filter_map(Value::as_mapping)
                 .filter_map(|action| reader::get(action, "name")?.as_str().map(str::to_owned))
                 .collect()
         })
-        .unwrap_or_default()
 }

@@ -12,8 +12,8 @@ mod gates;
 #[path = "netsuke_actions/sandbox.rs"]
 mod sandbox;
 
-use anyhow::{Result, ensure};
-use gates::{CHECK_FMT, Gate, LINT, LintFailure, MARKDOWNLINT, Recipe, Runner, UvGate};
+use anyhow::{Context, Result, ensure};
+use gates::{CHECK_FMT, Gate, LintFailure, MARKDOWNLINT, Recipe, Runner, UvGate, lint_commands};
 use rstest::rstest;
 use sandbox::{ActionSandbox, ChildVar, FakeTool, ToolHome};
 
@@ -55,16 +55,24 @@ fn test_selects_the_available_runner(#[case] runner: Runner) -> Result<()> {
     Ok(())
 }
 
-/// `lint` runs rustdoc, Clippy, then Whitaker, each with warnings denied.
+/// `lint` runs rustdoc, Clippy, then Whitaker, each with warnings denied, and Whitaker alone
+/// starts outside the checkout, clears an inherited encoded-flags variable, and takes only the
+/// literal warning flags.
 #[rstest]
 fn lint_runs_rustdoc_clippy_then_whitaker_with_warnings_denied() -> Result<()> {
-    let sandbox = ActionSandbox::with_default_tools()?;
+    let mut sandbox = ActionSandbox::with_default_tools()?;
+    sandbox.set_var(ChildVar::InheritedEncodedRustflags, "-Awarnings");
     ensure!(run(&sandbox, Gate::Lint)?, "lint action failed");
-    ensure_commands(&sandbox, &LINT)?;
+    let parent = sandbox.checkout_parent()?;
+    let manifest = format!("{parent}/work/Cargo.toml");
+    let commands = lint_commands(&manifest);
+    let expected: Vec<&str> = commands.iter().map(String::as_str).collect();
+    ensure_commands(&sandbox, &expected)?;
     let environment = sandbox.environment()?;
     let expected_flags = [
         ("cargo doc", "RUSTDOCFLAGS=-D warnings"),
-        ("whitaker --all", "RUSTFLAGS=-D warnings"),
+        ("whitaker --manifest-path", "RUSTFLAGS=-D warnings\t"),
+        ("whitaker --manifest-path", "ENCODED=\t"),
     ];
     for (command, flag) in expected_flags {
         ensure!(
@@ -74,6 +82,13 @@ fn lint_runs_rustdoc_clippy_then_whitaker_with_warnings_denied() -> Result<()> {
             "{command} must run with {flag}: {environment:#?}"
         );
     }
+    let cwd = format!("CWD={parent}");
+    ensure!(
+        environment
+            .iter()
+            .any(|record| record.starts_with("whitaker --manifest-path") && record.ends_with(&cwd)),
+        "whitaker must start exactly in {parent}: {environment:#?}"
+    );
     Ok(())
 }
 
@@ -206,10 +221,46 @@ fn cargo_and_rust_flag_overrides_reach_the_recipe() -> Result<()> {
     )?;
     let environment = sandbox.environment()?;
     ensure!(
-        environment
-            .iter()
-            .any(|record| record.contains("RUSTFLAGS=-D warnings --cfg sandbox")),
-        "RUST_FLAGS must extend the denied-warnings flags: {environment:#?}"
+        environment.iter().any(|record| {
+            record.contains("RUSTFLAGS=-D warnings -Zthreads=8") && record.contains("--cfg sandbox")
+        }),
+        "RUST_FLAGS must extend the denied-warnings and standard flags: {environment:#?}"
+    );
+    Ok(())
+}
+
+/// The development recipes compose the standard's flags onto an inherited `RUSTFLAGS`, as CI's
+/// `setup-rust` exports one; the release build keeps the platform linker and frontend.
+#[rstest]
+#[case::build(Gate::Build, "cargo build", true)]
+#[case::typecheck(Gate::Typecheck, "cargo check", true)]
+#[case::test_run(Gate::Test, "cargo test", true)]
+#[case::clippy(Gate::Lint, "cargo clippy", true)]
+#[case::release(Gate::Release, "cargo build", false)]
+fn the_standard_flags_reach_development_recipes_but_not_release(
+    #[case] gate: Gate,
+    #[case] command: &str,
+    #[case] takes_standard: bool,
+) -> Result<()> {
+    let mut sandbox = ActionSandbox::with_default_tools()?;
+    sandbox.set_var(ChildVar::InheritedRustflags, "-D warnings");
+    ensure!(run(&sandbox, gate)?, "{gate:?} failed");
+    let environment = sandbox.environment()?;
+    let record = environment
+        .iter()
+        .find(|record| record.starts_with(command))
+        .with_context(|| format!("no {command} record: {environment:#?}"))?;
+    ensure!(
+        record.contains("RUSTFLAGS=-D warnings"),
+        "{command}: the inherited RUSTFLAGS must reach the build: {record}"
+    );
+    ensure!(
+        record.contains("-Zthreads=8") == takes_standard,
+        "{command}: the parallel frontend flag must be {takes_standard}: {record}"
+    );
+    ensure!(
+        record.contains("-fuse-ld=mold") == (takes_standard && cfg!(target_os = "linux")),
+        "{command}: the mold flag is Linux-only and development-only: {record}"
     );
     Ok(())
 }

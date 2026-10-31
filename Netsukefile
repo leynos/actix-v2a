@@ -11,6 +11,15 @@ vars:
     export PATH="$HOME/.cargo/bin:$HOME/.bun/bin:$HOME/.local/bin:$PATH"
   cargo_flags: "--all-targets --all-features"
   rust_flags: "-D warnings"
+  # The development build standard (concordat rule `rust-build-defaults`): the
+  # parallel rustc frontend and, on Linux, the mold linker. An assigned
+  # RUSTFLAGS replaces every `rustflags` table in .cargo/config.toml, so each
+  # recipe that sets it composes these onto any inherited value (CI's
+  # setup-rust exports one). The shell evaluates the Linux test when the
+  # recipe runs.
+  standard_rustflags: >-
+    -Zthreads=8
+    $(if [ "$(uname -s)" = Linux ]; then echo -Clink-arg=-fuse-ld=mold; fi)
   rustdoc_flags: "-D warnings"
   uv_env: "UV_CACHE_DIR=.uv-cache UV_TOOL_DIR=.uv-tools"
   # The CV-005 CodeScene contracts live in shared-actions and run from a full
@@ -41,13 +50,20 @@ actions:
     description: Build debug artefacts
     command:
       - "{{ path_setup }}"
-      - '"${CARGO:-cargo}" build ${BUILD_JOBS:-}'
+      - >-
+        RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }{{ standard_rustflags }}"
+        "${CARGO:-cargo}" build ${BUILD_JOBS:-}
 
+  # A shipped artefact keeps the platform linker and the single-threaded
+  # frontend: assigning RUSTFLAGS, even to an inherited empty value, displaces
+  # the configuration's rustflags tables.
   - name: release
     description: Build release artefacts
     command:
       - "{{ path_setup }}"
-      - '"${CARGO:-cargo}" build --release ${BUILD_JOBS:-}'
+      - >-
+        RUSTFLAGS="${RUSTFLAGS-}"
+        "${CARGO:-cargo}" build --release ${BUILD_JOBS:-}
 
   - name: clean
     description: Remove build artefacts
@@ -63,7 +79,7 @@ actions:
     description: Run tests with warnings treated as errors
     command:
       - "{{ path_setup }}"
-      - 'export RUSTFLAGS="{{ rust_flags }} ${RUST_FLAGS:-}"'
+      - 'export RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }{{ rust_flags }} {{ standard_rustflags }} ${RUST_FLAGS:-}"'
       - >-
         if command -v cargo-nextest >/dev/null 2>&1; then
         echo "[netsuke:test] cargo-nextest found; using nextest runner";
@@ -82,20 +98,32 @@ actions:
       - "{{ path_setup }}"
       - >-
         RUSTDOCFLAGS="{{ rustdoc_flags }} ${RUSTDOC_FLAGS:-}"
+        RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }{{ standard_rustflags }}"
         "${CARGO:-cargo}" doc --no-deps
       - >-
+        RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }{{ standard_rustflags }}"
         "${CARGO:-cargo}" clippy {{ cargo_flags }} --
         {{ rust_flags }} ${RUST_FLAGS:-}
+      # Whitaker runs under the toolchain its installer manages, so it takes
+      # none of the development standard: its literal `RUSTFLAGS` displaces the
+      # `rustflags` tables (no frontend flag, no mold) and inherits nothing from
+      # the caller. It also runs from the checkout's parent with an absolute
+      # manifest path, so Cargo never discovers this checkout's
+      # `.cargo/config.toml`, whose Cranelift profile the installer-managed
+      # toolchain does not carry. An inherited `CARGO_ENCODED_RUSTFLAGS` outranks
+      # `RUSTFLAGS`, so it is cleared first.
       - >-
-        RUSTFLAGS="{{ rust_flags }} ${RUST_FLAGS:-}"
-        "${WHITAKER:-whitaker}" --all -- {{ cargo_flags }}
+        checkout="$PWD"; cd "$(dirname "$checkout")" &&
+        unset CARGO_ENCODED_RUSTFLAGS &&
+        RUSTFLAGS="-D warnings" "${WHITAKER:-whitaker}"
+        --manifest-path "$checkout/Cargo.toml" --all -- {{ cargo_flags }}
 
   - name: typecheck
     description: Type-check without building
     command:
       - "{{ path_setup }}"
       - >-
-        RUSTFLAGS="{{ rust_flags }} ${RUST_FLAGS:-}"
+        RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }{{ rust_flags }} {{ standard_rustflags }} ${RUST_FLAGS:-}"
         "${CARGO:-cargo}" check {{ cargo_flags }}
 
   - name: fmt

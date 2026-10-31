@@ -70,6 +70,8 @@ jobs:
           persist-credentials: false
       - name: Setup Rust
         uses: leynos/shared-actions/.github/actions/setup-rust@6e99f225cb06684f9e6f89b63a7ca4a04095c067
+        with:
+          install-mold: 'true'
       - name: Install Ninja
         # The test suite's `Netsukefile` action tests execute Netsuke, which
         # runs Ninja.
@@ -100,6 +102,12 @@ jobs:
         # the pull-request lane, so the figure written here is the figure a
         # pull request is measured against. The action decides by the event
         # whether it writes the baseline or compares with it.
+        env:
+          # One of the two exclusions from the build standard: a coverage build is
+          # a measurement, so it takes neither the parallel frontend nor the mold
+          # linker. Assigning RUSTFLAGS displaces every `rustflags` table in
+          # .cargo/config.toml.
+          RUSTFLAGS: -D warnings
         uses: leynos/shared-actions/.github/actions/generate-coverage@6e99f225cb06684f9e6f89b63a7ca4a04095c067
         with:
           output-path: lcov.info

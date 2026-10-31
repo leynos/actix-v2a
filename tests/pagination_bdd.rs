@@ -52,30 +52,18 @@ fn a_malformed_opaque_cursor_token(world: &World) {
 }
 
 #[given("pagination parameters without a limit")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
 fn pagination_parameters_without_a_limit(world: &World) {
     let params = PageParams::new(None, None).expect("default params should be valid");
     world.page_params.set(params);
 }
 
 #[given("normalized pagination parameters with cursor {cursor}")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
 fn normalized_pagination_parameters_with_cursor(world: &World, cursor: String) {
     let params = PageParams::new(Some(cursor), Some(25)).expect("params should be valid");
     world.page_params.set(params);
 }
 
 #[given("a request URL with filter query parameters")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
 fn a_request_url_with_filter_query_parameters(world: &World) {
     let url = Url::parse(
         "https://example.test/api/v1/users?role=admin&status=active&limit=1&cursor=stale",
@@ -85,10 +73,6 @@ fn a_request_url_with_filter_query_parameters(world: &World) {
 }
 
 #[when("the key is encoded into an opaque cursor and decoded again")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
 fn the_key_is_encoded_into_an_opaque_cursor_and_decoded_again(world: &World) {
     let key = world.key.get().expect("key should be set");
     let token = Cursor::new(key.clone())
@@ -101,10 +85,6 @@ fn the_key_is_encoded_into_an_opaque_cursor_and_decoded_again(world: &World) {
 }
 
 #[when("the cursor is decoded")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
 fn the_cursor_is_decoded(world: &World) {
     let token = world
         .cursor_token
@@ -122,10 +102,6 @@ fn the_parameters_are_normalized(_world: &World) {
 }
 
 #[when("pagination parameters request limit {limit:u64}")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
 fn pagination_parameters_request_limit(world: &World, limit: u64) {
     let requested_limit = usize::try_from(limit).expect("fixture limit should fit usize");
     let params = PageParams::new(None, Some(requested_limit)).expect("params should be valid");
@@ -156,10 +132,6 @@ fn a_paginated_envelope_is_built_without_pagination_cursors(world: &World) {
     world.page.set(page);
 }
 
-#[expect(
-    clippy::expect_used,
-    reason = "BDD helpers use expect for clear failures"
-)]
 fn build_paginated_envelope(
     world: &World,
     next_cursor: Option<&str>,
@@ -175,10 +147,6 @@ fn build_paginated_envelope(
 }
 
 #[then("the decoded cursor key matches the original key")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
 fn the_decoded_cursor_key_matches_the_original_key(world: &World) {
     let key = world.key.get().expect("key should be set");
     let decode_result = world
@@ -193,10 +161,6 @@ fn the_decoded_cursor_key_matches_the_original_key(world: &World) {
 }
 
 #[then("cursor decoding fails")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
 fn cursor_decoding_fails(world: &World) {
     let result = world
         .decode_result
@@ -207,10 +171,6 @@ fn cursor_decoding_fails(world: &World) {
 }
 
 #[then("the normalized limit is {limit:u64}")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
 fn the_normalized_limit_is(world: &World, limit: u64) {
     let params = world.page_params.get().expect("page params should be set");
 
@@ -221,10 +181,6 @@ fn the_normalized_limit_is(world: &World, limit: u64) {
 }
 
 #[then("the self link preserves the current cursor and filter")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
 fn the_self_link_preserves_the_current_cursor_and_filter(world: &World) {
     let page = world.page.get().expect("page should be set");
 
@@ -235,10 +191,6 @@ fn the_self_link_preserves_the_current_cursor_and_filter(world: &World) {
 }
 
 #[then("the next link uses the next cursor")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
 fn the_next_link_uses_the_next_cursor(world: &World) {
     let page = world.page.get().expect("page should be set");
 
@@ -251,10 +203,6 @@ fn the_next_link_uses_the_next_cursor(world: &World) {
 }
 
 #[then("the prev link uses the prev cursor")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
 fn the_prev_link_uses_the_prev_cursor(world: &World) {
     let page = world.page.get().expect("page should be set");
 
@@ -280,10 +228,6 @@ fn the_prev_link_is_omitted_from_the_envelope(world: &World) {
     assert!(links.get("prev").is_none());
 }
 
-#[expect(
-    clippy::expect_used,
-    reason = "BDD helpers use expect for clear failures"
-)]
 fn serialized_links(world: &World) -> serde_json::Map<String, Value> {
     let page = world.page.get().expect("page should be set");
     let payload = serde_json::to_value(page).expect("paginated envelope should serialize");
@@ -310,10 +254,6 @@ fn pagination_direction_prev(world: &World) {
 }
 
 #[when("the key and direction are encoded into a cursor and decoded")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
 fn the_key_and_direction_are_encoded_into_a_cursor_and_decoded(world: &World) {
     let key = world.key.get().expect("key should be set");
     let dir = world.direction.get().expect("direction should be set");
@@ -327,10 +267,6 @@ fn the_key_and_direction_are_encoded_into_a_cursor_and_decoded(world: &World) {
 }
 
 #[then("the decoded cursor has direction Next")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
 fn the_decoded_cursor_has_direction_next(world: &World) {
     let decode_result = world
         .decode_result
@@ -344,10 +280,6 @@ fn the_decoded_cursor_has_direction_next(world: &World) {
 }
 
 #[then("the decoded cursor has direction Prev")]
-#[expect(
-    clippy::expect_used,
-    reason = "BDD steps use expect for clear failures"
-)]
 fn the_decoded_cursor_has_direction_prev(world: &World) {
     let decode_result = world
         .decode_result
