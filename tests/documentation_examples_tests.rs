@@ -11,6 +11,8 @@ mod documentation_examples;
 mod example_workspace;
 #[path = "documentation_examples/parser_tests.rs"]
 mod parser_tests;
+#[path = "documentation_examples/properties.rs"]
+mod properties;
 
 use std::collections::BTreeSet;
 
@@ -18,56 +20,42 @@ use anyhow::{Result, ensure};
 use documentation_examples::{DocumentedExample, documented_example, load_documented_examples};
 use example_workspace::ExampleWorkspace;
 
-/// The closed registry of user-guide examples. Adding a fence without choosing
-/// its identifier and behavioural contract fails this list.
-const EXPECTED_EXAMPLE_IDS: &[&str] = &[
-    "guide-cache-control",
-    "guide-classify-replay-errors",
-    "guide-cursor-key",
-    "guide-event-id",
-    "guide-extract-actix-replay-cursor",
-    "guide-heartbeat-policy",
-    "guide-last-event-id-header",
-    "guide-map-replay-cursor-error",
-    "guide-openapi-params",
-    "guide-operator-log-command",
-    "guide-operator-log-output",
-    "guide-pagination-query-params",
-    "guide-render-comment-frame",
-    "guide-render-event-frame",
-    "guide-render-heartbeat-frame",
-    "guide-render-stream-reset-frame",
+/// The closed registry of user-guide examples and their fence languages.
+///
+/// Recording the language keeps a fence inside its behavioural contract: a
+/// Rust example re-labelled `sh` would otherwise leave the registry intact
+/// while dropping out of compilation and execution.
+const EXPECTED_EXAMPLES: &[(&str, &str)] = &[
+    ("guide-cache-control", "rust"),
+    ("guide-classify-replay-errors", "rust"),
+    ("guide-cursor-key", "rust"),
+    ("guide-event-id", "rust"),
+    ("guide-extract-actix-replay-cursor", "rust"),
+    ("guide-heartbeat-policy", "rust"),
+    ("guide-last-event-id-header", "rust"),
+    ("guide-map-replay-cursor-error", "rust"),
+    ("guide-openapi-params", "rust"),
+    ("guide-operator-log-command", "sh"),
+    ("guide-operator-log-output", "plaintext"),
+    ("guide-pagination-query-params", "rust"),
+    ("guide-render-comment-frame", "rust"),
+    ("guide-render-event-frame", "rust"),
+    ("guide-render-heartbeat-frame", "rust"),
+    ("guide-render-stream-reset-frame", "rust"),
 ];
 
 #[test]
-fn every_documented_fence_has_a_known_unique_identifier() -> Result<()> {
+fn documented_examples_match_the_registry() -> Result<()> {
     let examples = load_documented_examples()?;
     let actual = examples
         .iter()
-        .map(|example| example.id.as_str())
+        .map(|example| (example.id.as_str(), example.language.as_str()))
         .collect::<BTreeSet<_>>();
-    let expected = EXPECTED_EXAMPLE_IDS
-        .iter()
-        .copied()
-        .collect::<BTreeSet<_>>();
+    let expected = EXPECTED_EXAMPLES.iter().copied().collect::<BTreeSet<_>>();
     ensure!(
         actual == expected,
         "documented example registry drifted\nexpected: {expected:#?}\nactual: {actual:#?}"
     );
-    Ok(())
-}
-
-#[test]
-fn documented_fences_use_supported_languages() -> Result<()> {
-    let examples = load_documented_examples()?;
-    for example in examples {
-        ensure!(
-            matches!(example.language.as_str(), "rust" | "sh" | "plaintext"),
-            "documented example '{}' has unsupported language '{}'",
-            example.id,
-            example.language
-        );
-    }
     Ok(())
 }
 
