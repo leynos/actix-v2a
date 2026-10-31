@@ -7,10 +7,11 @@ APIs. The roadmap phases 3 and 4 deliver these capabilities. Existing key,
 payload-hash, response-snapshot, pagination, and Server-Sent Events (SSE)
 helpers remain supported until an explicit migration is published.
 
-[ADR 002](adr-002-scoped-mutation-contracts.md) accepts the shared behavioural
-boundary. [ADR 003](adr-003-mutation-recovery-and-replay.md) records proposed
-recovery and replay choices. [ADR 004](adr-004-shared-http-integration.md)
-records proposed HTTP integration and extraction decisions.
+[ADR 0002](adrs/adr-0002-scoped-mutation-contracts.md) accepts the shared
+behavioural boundary. [ADR 0003](adrs/adr-0003-mutation-recovery-and-replay.md)
+records proposed recovery and replay choices.
+[ADR 0004](adrs/adr-0004-shared-http-integration.md) records proposed HTTP
+integration and extraction decisions.
 
 The library owns reusable operation identity, state-transition contracts,
 transport helpers, and conformance tests. Consumers own authorization,
@@ -67,7 +68,7 @@ The payload fingerprint is associated data, never part of the uniqueness key.
 Two different payloads for the same identity conflict rather than create two
 operations. Scope components need unambiguous, versioned encoding; delimiter
 concatenation is insufficient. Concrete wrappers and generic parameters remain
-open under ADR 003.
+open under ADR 0003.
 
 Fingerprinting operates on validated, normalized request intent, before adding
 server-generated identifiers or timestamps. Each record stores the fingerprint
@@ -216,7 +217,7 @@ define which response fields and headers are safe to persist.
 The shared HTTP layer maps typed outcomes to documented responses, including
 retry guidance where appropriate. Status codes, reason identifiers, retry
 headers, and compatibility with each consumer's existing envelope are resolved
-in ADR 004 before implementation. Unknown outcomes must remain distinguishable
+in ADR 0004 before implementation. Unknown outcomes must remain distinguishable
 from requests that are known not to have executed.
 
 The following bounded extensions reuse the existing error and pagination

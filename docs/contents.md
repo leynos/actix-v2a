@@ -33,22 +33,23 @@
   setup.
 - [Scripting standards](scripting-standards.md): reference for Python and shell
   scripting conventions used in this repository.
-- [Architectural decision record (ADR) 001: shared SSE wire
-  contract for Wildside and
-  Corbusier](adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md):
-  proposed shared Server-Sent Events (SSE) contract for cross-application
-  streaming helpers in `actix-v2a`.
+- `adrs/`: architectural decision records for accepted and proposed decisions.
+  - [Architectural decision record (ADR) 0001: shared SSE wire
+    contract for Wildside and
+    Corbusier](adrs/adr-0001-shared-sse-wire-contract-for-wildside-and-corbusier.md):
+    proposed shared Server-Sent Events (SSE) contract for cross-application
+    streaming helpers in `actix-v2a`.
+  - [ADR 0002: scoped mutation contracts](adrs/adr-0002-scoped-mutation-contracts.md):
+    accepted ownership boundary for shared behaviour and consumer persistence.
+  - [ADR 0003: mutation recovery and replay](adrs/adr-0003-mutation-recovery-and-replay.md):
+    proposed API, ownership, recovery, and persisted-format choices.
+  - [ADR 0004: shared HTTP integration](adrs/adr-0004-shared-http-integration.md):
+    proposed extraction scope and open wire-compatibility decisions.
+  - [ADR 0005: `main` owns coverage publication](adrs/adr-0005-main-owns-coverage-publication.md):
+    accepted split between the pull-request coverage ratchet and the CodeScene
+    publisher on `main`.
 - [Shared mutation and HTTP integration design](shared-mutation-contract-design.md):
   future scoped mutation contracts, recovery semantics, and consumer adoption.
-- [ADR 002: scoped mutation contracts](adr-002-scoped-mutation-contracts.md):
-  accepted ownership boundary for shared behaviour and consumer persistence.
-- [ADR 003: mutation recovery and replay](adr-003-mutation-recovery-and-replay.md):
-  proposed API, ownership, recovery, and persisted-format choices.
-- [ADR 004: shared HTTP integration](adr-004-shared-http-integration.md):
-  proposed extraction scope and open wire-compatibility decisions.
-- [ADR 005: `main` owns coverage publication](adr-005-main-owns-coverage-publication.md):
-  accepted split between the pull-request coverage ratchet and the CodeScene
-  publisher on `main`.
 - `execplans/`: living execution plans for non-trivial change work.
   - [Port Wildside pagination documentation
     hardening](execplans/portwildsidepagination.md): completed execution plan

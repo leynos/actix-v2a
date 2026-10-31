@@ -62,6 +62,8 @@ The `tests/` tree holds integration, BDD-style, and snapshot coverage:
 
 - `tests/features/` contains reusable BDD feature files.
 - `tests/support/` contains shared test harness helpers.
+- `tests/documentation_examples/` contains the loader, parser tests, and
+  example workspace shared by the documentation example suites.
 - `tests/snapshots/` contains checked-in snapshot expectations.
 - `tests/*_bdd.rs` and `tests/*_tests.rs` cover externally observable behaviour.
 
@@ -78,7 +80,10 @@ The `docs/` tree holds the long-lived project knowledge base:
   conventions.
 - `docs/users-guide.md` describes user-facing behaviour and workflows.
 - `docs/repository-layout.md` explains where files and directories belong.
-- `docs/adr-*.md` files capture accepted architectural decisions.
+- `docs/adrs/` contains `adr-nnnn-title-slug.md` files, one per architectural
+  decision, numbered sequentially in allocation order.
+- `docs/rfcs/` is where `rfc-nnnn-title-slug.md` proposals belong when a change
+  needs review before it becomes binding.
 - `docs/*-design.md` files explain the shape and rationale of major systems.
 - `docs/roadmap.md` records the broader delivery backlog.
 - `docs/execplans/` contains living execution plans and retrospectives.

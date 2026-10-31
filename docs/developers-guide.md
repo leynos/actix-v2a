@@ -33,7 +33,8 @@ orientation, start with [documentation contents](contents.md) and
 
 Coverage has two workflows, and the split is a contract (concordat's CV-005,
 `main-owned-codescene-coverage`), not a convention.
-[ADR 005](adr-005-main-owns-coverage-publication.md) records the decision.
+[ADR 0005](adrs/adr-0005-main-owns-coverage-publication.md) records the
+decision.
 
 - `ci.yml` measures lcov coverage on every pull request with the shared
   `generate-coverage` action, `with-ratchet: 'true'` and
@@ -162,7 +163,7 @@ job fails it until the inventory is updated in the same commit.
 
 The `src/sse/` module implements validated Server-Sent Events (SSE) wire-level
 helpers per
-[ADR 001](adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md).
+[ADR 0001](adrs/adr-0001-shared-sse-wire-contract-for-wildside-and-corbusier.md).
 
 ### Module layout
 
@@ -522,6 +523,53 @@ tests cover:
 - Conversion traits (`AsRef<str>`, `Display`, `From`, `TryFrom`)
 - Error mapping to API error envelope
 
+### Documentation examples
+
+The documentation style guide requires every user-facing fenced example to be
+marked and exercised. The crate enforces that requirement for `README.md` and
+`docs/users-guide.md` with a shared loader and two test targets.
+
+Each fence must sit immediately below a `tested-example` marker, for example
+`<!-- tested-example: guide-render-event-frame -->`. An identifier starts with
+a lowercase ASCII letter, continues with lowercase letters, digits, and single
+hyphens, and does not end with a hyphen. The loader in
+`tests/documentation_examples/mod.rs` rejects an unmarked fence, an
+unterminated fence, a fence without a language, an empty identifier, and a
+duplicate identifier, so a new example cannot silently escape the suite.
+
+`tests/documentation_examples_tests.rs` holds the closed registry of example
+identifiers and their fence languages, compiles and runs every Rust fence in an
+isolated Cargo workspace under `target/documentation-examples`, and checks the
+shell and plain-text fences against the behaviour they claim. The generated
+package is seeded with the repository's `Cargo.lock`, so its offline build
+reuses the versions the repository already compiles rather than resolving
+afresh and rejecting a crate version that crates.io has since yanked. It strips
+inherited `RUSTFLAGS` because the published fences are illustrative snippets
+rather than warning-clean production code.
+
+`tests/documentation_examples/properties.rs` states the loader's contract over
+generated documents: a document it accepts round-trips to the examples it was
+rendered from, and an unmarked fence, a duplicate identifier, or an identifier
+with a disallowed character is always rejected.
+
+`tests/documentation_examples_bdd.rs` shares the same loader and cross-checks
+the documented operator output against the tracing events the crate emits at
+runtime. The scenario fails if a documented field name or value drifts from the
+live event.
+
+CI runs the examples as a named gate:
+
+```bash
+netsuke build test-documentation-contracts
+```
+
+`tests/netsuke_actions.rs` drives that gate, like every other action, against
+the committed manifest with fake tools, and covers both the `cargo-nextest` and
+`cargo test` branches. `netsuke build test` also covers the same targets
+locally. When adding a fence, add its marker, extend `EXPECTED_EXAMPLES` with
+its identifier and language, and add a semantic contract for any non-Rust
+language.
+
 ### Testing dependencies
 
 Test-only dependencies live under `[dev-dependencies]` in `Cargo.toml`.
@@ -728,9 +776,9 @@ Pagination tests are split by contract:
 
 ## Additional resources
 
-- [ADR 001: Shared SSE wire contract for Wildside and
-  Corbusier](adr-001-shared-sse-wire-contract-for-wildside-and-corbusier.md) —
-  normative specification for the SSE module
+- [ADR 0001: Shared SSE wire contract for Wildside and
+  Corbusier](adrs/adr-0001-shared-sse-wire-contract-for-wildside-and-corbusier.md)
+  — normative specification for the SSE module
 - [ExecPlan: Implement SSE identifier and replay cursor
   helpers](execplans/1-1-1-implement-sse-identifier-and-replay-cursor-helpers.md)
   — implementation plan for task 1.1.1
