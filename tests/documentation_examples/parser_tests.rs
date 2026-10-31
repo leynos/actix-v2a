@@ -11,6 +11,14 @@ use crate::documentation_examples::{DocumentedExample, is_valid_example_id, pars
 
 const MARKED_FENCE: &str = "<!-- tested-example: example-id -->\n```rust\nfn main() {}\n```\n";
 
+/// Two marked fences that reuse the same identifier.
+const DUPLICATED_FENCES: &str = concat!(
+    "<!-- tested-example: example-id -->\n",
+    "```rust\nfn main() {}\n```\n",
+    "<!-- tested-example: example-id -->\n",
+    "```rust\nfn main() {}\n```\n",
+);
+
 fn parse(contents: &str) -> Result<Vec<DocumentedExample>> {
     parse_document("fixture.md", contents)
 }
@@ -34,68 +42,45 @@ fn marked_fence_is_loaded_with_its_exact_body() {
     assert_eq!(example.body, "fn main() {}\n");
 }
 
-#[test]
-fn unmarked_fence_is_rejected() {
-    let error = error_message("```rust\nfn main() {}\n```\n");
-    assert!(
-        error.contains("missing a tested-example marker"),
-        "unexpected error: {error}"
-    );
+#[rstest]
+#[case::unmarked_fence("```rust\nfn main() {}\n```\n", "missing a tested-example marker")]
+#[case::marker_without_a_fence("<!-- tested-example: example-id -->\n", "marker has no fence")]
+#[case::fence_without_a_language(
+    "<!-- tested-example: example-id -->\n```\nbody\n```\n",
+    "declare a language"
+)]
+#[case::unterminated_fence(
+    "<!-- tested-example: example-id -->\n```rust\nfn main() {}\n",
+    "fence is not terminated"
+)]
+#[case::empty_identifier(
+    "<!-- tested-example: -->\n```rust\nfn main() {}\n```\n",
+    "identifier must not be empty"
+)]
+#[case::whitespace_identifier(
+    "<!-- tested-example:  -->\n```rust\nfn main() {}\n```\n",
+    "identifier must not be empty"
+)]
+#[case::duplicate_identifier(DUPLICATED_FENCES, "duplicate tested-example identifier 'example-id'")]
+fn malformed_documents_are_rejected(#[case] contents: &str, #[case] expected: &str) {
+    let error = error_message(contents);
+    assert!(error.contains(expected), "unexpected error: {error}");
 }
 
 #[test]
-fn marker_without_a_fence_is_rejected() {
-    let error = error_message("<!-- tested-example: example-id -->\n");
-    assert!(
-        error.contains("marker has no fence"),
-        "unexpected error: {error}"
-    );
+fn longer_closing_fence_terminates_the_block() {
+    let contents = "<!-- tested-example: example-id -->\n````rust\nfn main() {}\n`````\n";
+    let examples = parse(contents).expect("a longer closing fence should terminate the block");
+    let example = examples.first().expect("fixture has one example");
+    assert_eq!(example.body, "fn main() {}\n");
 }
 
 #[test]
-fn fence_without_a_language_is_rejected() {
-    let error = error_message("<!-- tested-example: example-id -->\n```\nbody\n```\n");
-    assert!(
-        error.contains("declare a language"),
-        "unexpected error: {error}"
-    );
-}
-
-#[test]
-fn unterminated_fence_is_rejected() {
-    let error = error_message("<!-- tested-example: example-id -->\n```rust\nfn main() {}\n");
-    assert!(
-        error.contains("fence is not terminated"),
-        "unexpected error: {error}"
-    );
-}
-
-#[test]
-fn empty_identifier_marker_is_rejected() {
-    let error = error_message("<!-- tested-example: -->\n```rust\nfn main() {}\n```\n");
-    assert!(
-        error.contains("identifier must not be empty"),
-        "unexpected error: {error}"
-    );
-}
-
-#[test]
-fn whitespace_identifier_marker_is_rejected() {
-    let error = error_message("<!-- tested-example:  -->\n```rust\nfn main() {}\n```\n");
-    assert!(
-        error.contains("identifier must not be empty"),
-        "unexpected error: {error}"
-    );
-}
-
-#[test]
-fn duplicate_identifiers_are_rejected() {
-    let duplicated = format!("{MARKED_FENCE}{MARKED_FENCE}");
-    let error = error_message(&duplicated);
-    assert!(
-        error.contains("duplicate tested-example identifier 'example-id'"),
-        "unexpected error: {error}"
-    );
+fn shorter_inner_fence_does_not_close_the_block() {
+    let contents = "<!-- tested-example: example-id -->\n````rust\n```\nfn main() {}\n````\n";
+    let examples = parse(contents).expect("an inner shorter fence should remain body text");
+    let example = examples.first().expect("fixture has one example");
+    assert_eq!(example.body, "```\nfn main() {}\n");
 }
 
 #[test]

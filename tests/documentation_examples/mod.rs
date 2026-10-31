@@ -224,12 +224,21 @@ fn parse_fence(line: &str) -> Option<(Fence, &str)> {
 }
 
 fn is_matching_closing_fence(line: &str, opening_fence: Fence) -> bool {
-    matches!(
-        parse_fence(line),
-        Some((closing_fence, suffix))
-            if closing_fence == opening_fence
-                && suffix.bytes().all(|byte| matches!(byte, b' ' | b'\t'))
-    )
+    let Some((closing_fence, suffix)) = parse_fence(line) else {
+        return false;
+    };
+    can_close_fence(closing_fence, opening_fence) && has_no_info_string(suffix)
+}
+
+/// A closing fence uses the opening delimiter and is at least as long.
+const fn can_close_fence(closing_fence: Fence, opening_fence: Fence) -> bool {
+    closing_fence.delimiter == opening_fence.delimiter
+        && closing_fence.length >= opening_fence.length
+}
+
+/// Only spaces and tabs may follow a closing fence's delimiter run.
+fn has_no_info_string(suffix: &str) -> bool {
+    suffix.bytes().all(|byte| matches!(byte, b' ' | b'\t'))
 }
 
 fn read_fence_body<'a>(
