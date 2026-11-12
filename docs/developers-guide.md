@@ -108,10 +108,12 @@ clause a change breaks.
 
 ## Runner placement
 
-`ci.yml`'s `build-test` runs on `ubicloud-standard-4` and `coverage-main.yml`'s
-`coverage-upload`, main's only cache writer, on `ubicloud-standard-2`.
-`runs-on` selects the class with the runner-selection expression, shown here for
-`standard-2`:
+`ci.yml`'s `build-test` runs on `ubicloud-standard-4`. `coverage-main.yml` is
+split three ways: `coverage-upload` measures and uploads on `ubuntu-24.04`,
+with no compiler cache; `coverage-baseline` saves the ratchet baseline and
+`coverage-warmup`, main's only Ubicloud cache writer, compiles the instrumented
+tests without running them, both on `ubicloud-standard-2`. `runs-on` selects
+the class with the runner-selection expression, shown here for `standard-2`:
 
 ```yaml
 runs-on: >-
@@ -130,26 +132,30 @@ values are empty strings (falsy) and the expression selects Ubicloud; a
 Dependabot pull request therefore builds cold on the hosted pool, and only
 main's Ubicloud jobs write the cache.
 
-The writer sits on Ubicloud because Ubicloud's cache proxy is scoped by ref. A
+The writers sit on Ubicloud because Ubicloud's cache proxy is scoped by ref. A
 pull request's Ubicloud lane reads a warm main scope only when a main job on
 Ubicloud writes it, so a lane can move to Ubicloud only after its main writer
-has.
+has. The measuring job is hosted, so what it would save (the ratchet baseline
+and compiler output) never reaches that scope: `coverage-upload` hands the
+baseline over as an artefact (`publish-baseline: never`), `coverage-baseline`
+saves it on Ubicloud, and `coverage-warmup` also installs Netsuke so its binary
+cache entry is written there.
 
 An Ubicloud runner is a self-hosted just-in-time runner, so GitHub's six-hour
 cap for hosted jobs does not bound it and a hung job would hold a billable
 runner. Every job whose `runs-on` can select Ubicloud therefore states its own
 `timeout-minutes`: twice a measured warm Ubicloud run. `build-test` is at 20
 minutes (a warm standard-4 run took 9.6 min, run 36568765141).
-`coverage-upload` is at 40 minutes: its first Ubicloud main run took 2.4 min
-(run 36556920321), but the test suite now executes Netsuke, and a run that
-misses the Netsuke cache compiles `netsuke-build` from source. That added 7.7
-min to a standard-4 `build-test` run (run 40045937287), so the ceiling allows
-twice that on two vCPUs, doubled again. `build-test` is `standard-4` on a
-measured shortfall: on `standard-2` the tool installs and lint alone took 30
-minutes and the job reached its ceiling (run 36565211532). A fork's pull
-request restores a hosted cache that main no longer refreshes; fork pull
-requests are rare here, and a second hosted writer would pay double on every
-main push.
+`coverage-warmup` is at 40 minutes: a run that misses the Netsuke cache compiles
+`netsuke-build` from source, which added 7.7 min to a standard-4 `build-test`
+run (run 40045937287), so the ceiling allows twice that on two vCPUs, doubled
+again. `coverage-baseline` does no compiling and is at 15. The hosted
+`coverage-upload` is at 60 minutes, because it compiles cold. `build-test` is
+`standard-4` on a measured shortfall: on `standard-2` the tool installs and
+lint alone took 30 minutes and the job reached its ceiling (run 36565211532). A
+fork's pull request restores a hosted cache that main no longer refreshes; fork
+pull requests are rare here, and a second hosted writer would pay double on
+every main push.
 
 `tests/runner_placement/placement_cases.rs` holds this to the files. It
 evaluates the expression for a push or dispatch, a same-repository pull

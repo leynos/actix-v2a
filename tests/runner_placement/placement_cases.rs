@@ -30,11 +30,17 @@ const ESTATE: &str = concat!(
 ///
 /// The inventory is exact, so a new Ubicloud lane without a ceiling, or a class
 /// or ceiling changed, fails here until the change is reviewed.
-const PLACEMENTS: [(&str, &str, &str, u64); 2] = [
+const PLACEMENTS: [(&str, &str, &str, u64); 3] = [
     ("ci.yml", "build-test", "ubicloud-standard-4", 20),
     (
         "coverage-main.yml",
-        "coverage-upload",
+        "coverage-baseline",
+        "ubicloud-standard-2",
+        15,
+    ),
+    (
+        "coverage-main.yml",
+        "coverage-warmup",
         "ubicloud-standard-2",
         40,
     ),

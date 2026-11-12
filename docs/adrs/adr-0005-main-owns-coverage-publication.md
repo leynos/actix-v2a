@@ -119,3 +119,25 @@ two vCPUs it is expected to take about twice as long, so the `coverage-upload`
 ceiling rises from 5 to 40 minutes. The coverage step and its selection are
 unchanged, so the CV-005 parity between this publisher and the pull-request
 ratchet still holds.
+
+## Addendum, 2026-11-12: the measuring job is hosted
+
+The publisher's cost is the instrumented build and the test run, so
+`coverage-upload` moved from `ubicloud-standard-2` to `ubuntu-24.04`, with no
+compiler cache (`use-sccache: 'false'`). Two Ubicloud jobs keep what Ubicloud
+pull-request lanes read from main:
+
+- `coverage-baseline` saves the ratchet baseline. A baseline saved by the hosted
+  job would land in GitHub's store, which the Ubicloud `build-test` cannot see,
+  and the ratchet would compare against a frozen figure. The hosted job
+  therefore sets `publish-baseline: never` and hands the figure over as the
+  `coverage-baseline-handover` artefact. `coverage-baseline` needs the hosted
+  job and runs the shared `publish-coverage-baseline` action, which publishes
+  only on a push to `main`.
+- `coverage-warmup` compiles the instrumented tests with `build-only: 'true'`
+  and installs Netsuke, so the compiler-cache and Netsuke binary-cache entries
+  stay in main's Ubicloud scope. It runs no test and uploads nothing.
+
+The ceilings are in "Runner placement" in the developers' guide. The CV-005
+contract pin in the `Netsukefile` moved with the shared actions to
+`0eabb6bc07148981de5da395e30cd78d83f5c7c2`.
