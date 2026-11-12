@@ -35,26 +35,17 @@ concurrency:
 
 jobs:
   coverage-upload:
-    # Ubicloud's cache proxy is scoped by ref, so a pull request's Ubicloud
-    # build-test reads a warm main scope only if a main job on Ubicloud
-    # writes it. This is that writer. The fork arm never applies on push or
-    # dispatch; it is kept so every Ubicloud lane reads the same way.
-    # Dependabot pull requests run on the hosted pool too (free on a public
-    # repository). The author is tested, not the actor, which changes when
-    # someone else pushes to the branch.
-    runs-on: >-
-      ${{ (github.event.pull_request.head.repo.fork
-      || github.event.pull_request.user.login == 'dependabot[bot]')
-      && 'ubuntu-latest' || 'ubicloud-standard-2' }}
-    # An Ubicloud runner is a self-hosted just-in-time runner with no
-    # six-hour hosted cap, so the job states its own ceiling. The first
-    # Ubicloud main run took 2.4 min (run 36556920321). The test suite now
-    # executes Netsuke, and a run that misses the Netsuke cache compiles
-    # netsuke-build from source: on standard-4 that added 7.7 min to the
-    # pull-request lane (run 40045937287, 17.3 min against a 9.6 min warm
-    # run), so allow twice that on two vCPUs. 2.4 + 15.4, doubled and
-    # rounded up to 40.
-    timeout-minutes: 40
+    # The measuring job runs on a GitHub-hosted runner: Ubicloud minutes are
+    # the scarce ones, and this job's whole cost is compiling and running the
+    # suite. It uses no compiler cache (`use-sccache: 'false'`), because on a
+    # hosted runner sccache reaches only GitHub's store, which no Ubicloud lane
+    # reads. The two Ubicloud jobs below carry what Ubicloud lanes need from
+    # main: `coverage-baseline` the ratchet baseline and `coverage-warmup` the
+    # compiler cache.
+    runs-on: ubuntu-24.04
+    # A cold hosted build compiles everything with no cache. The Netsuke miss
+    # alone adds about 8 minutes (run 40045937287), so allow an hour.
+    timeout-minutes: 60
     # The CodeScene token lives in this environment, whose deployment policy
     # admits `main` alone; the codescene environment contract holds it to
     # this job.
@@ -72,6 +63,8 @@ jobs:
         uses: leynos/shared-actions/.github/actions/setup-rust@d9c4e1ad5ce37404760ac02b85ba1e8db279b003
         with:
           install-mold: 'true'
+          use-sccache: 'false'
+          save-cache: 'false'
       - name: Install Ninja
         # The test suite's `Netsukefile` action tests execute Netsuke, which
         # runs Ninja.
@@ -108,11 +101,16 @@ jobs:
           # linker. Assigning RUSTFLAGS displaces every `rustflags` table in
           # .cargo/config.toml.
           RUSTFLAGS: -D warnings
-        uses: leynos/shared-actions/.github/actions/generate-coverage@d9c4e1ad5ce37404760ac02b85ba1e8db279b003
+        uses: leynos/shared-actions/.github/actions/generate-coverage@f84a7def5646a6fc7ba77c1f486906f66a0fed96
         with:
           output-path: lcov.info
           format: lcov
           with-ratchet: 'true'
+          # The baseline is saved by `coverage-baseline`, on Ubicloud, where
+          # the pull-request lane reads it. A baseline saved from this hosted
+          # job would land in GitHub's store, which that lane cannot see.
+          publish-baseline: never
+          baseline-artefact-name: coverage-baseline-handover
       - name: Check for the CodeScene token
         id: codescene-token
         # The expression is evaluated before the shell runs, so this step reports
@@ -127,9 +125,85 @@ jobs:
         # uploading a branch CodeScene does not analyse: the push trigger is
         # restricted to `main`, but a dispatch may name any branch.
         if: ${{ steps.codescene-token.outputs.available == 'true' && github.ref == 'refs/heads/main' }}
-        uses: leynos/shared-actions/.github/actions/upload-codescene-coverage@d9c4e1ad5ce37404760ac02b85ba1e8db279b003
+        uses: leynos/shared-actions/.github/actions/upload-codescene-coverage@f84a7def5646a6fc7ba77c1f486906f66a0fed96
         with:
           path: lcov.info
           format: lcov
           mode: upload
           access-token: ${{ secrets.CS_ACCESS_TOKEN }}
+
+  coverage-baseline:
+    # Saves the ratchet baseline the measuring job hands over, into the store
+    # the Ubicloud pull-request lane reads. It does no compiling. The action
+    # itself publishes only on a push to `main`, so a dispatch leaves the
+    # baseline where it was.
+    needs: coverage-upload
+    runs-on: >-
+      ${{ (github.event.pull_request.head.repo.fork
+      || github.event.pull_request.user.login == 'dependabot[bot]')
+      && 'ubuntu-latest' || 'ubicloud-standard-2' }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Publish the ratchet baseline
+        uses: leynos/shared-actions/.github/actions/publish-coverage-baseline@f84a7def5646a6fc7ba77c1f486906f66a0fed96
+        with:
+          artefact-name: coverage-baseline-handover
+
+  coverage-warmup:
+    # Build-only: compiles the same instrumented test binaries as the
+    # pull-request lane so their compiler-cache entries sit in main's
+    # Ubicloud scope, and installs Netsuke so its binary cache entry does
+    # too. Ubicloud's cache proxy is scoped by ref, so a pull request reads a
+    # warm main scope only if a main job on Ubicloud writes it. It runs no
+    # test and uploads nothing.
+    runs-on: >-
+      ${{ (github.event.pull_request.head.repo.fork
+      || github.event.pull_request.user.login == 'dependabot[bot]')
+      && 'ubuntu-latest' || 'ubicloud-standard-2' }}
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    env:
+      CARGO_TERM_COLOR: always
+      BUILD_PROFILE: debug
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Setup Rust
+        uses: leynos/shared-actions/.github/actions/setup-rust@d9c4e1ad5ce37404760ac02b85ba1e8db279b003
+        with:
+          install-mold: 'true'
+      - name: Install Ninja
+        # The workflow contract requires Netsuke and Ninja before any coverage
+        # step, build-only or not.
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Cache Netsuke
+        # The same key as the pull-request lane and the measuring job; keep it
+        # in step with the install step's environment.
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ~/.cargo/bin/netsuke
+          key: netsuke-${{ runner.os }}-${{ runner.arch }}-0.1.0-beta4-nightly-2026-08-23
+      - name: Install Netsuke from crates.io
+        env:
+          NETSUKE_TOOLCHAIN: nightly-2026-08-23
+          NETSUKE_VERSION: 0.1.0-beta4
+        run: |
+          set -euo pipefail
+          if netsuke --version 2>/dev/null | grep --fixed-strings --quiet "${NETSUKE_VERSION}"; then
+            exit 0
+          fi
+          rustup toolchain install "${NETSUKE_TOOLCHAIN}" --profile minimal
+          cargo "+${NETSUKE_TOOLCHAIN}" install --locked \
+            netsuke-build --version "=${NETSUKE_VERSION}"
+      - name: Compile the instrumented tests
+        env:
+          RUSTFLAGS: -D warnings
+        uses: leynos/shared-actions/.github/actions/generate-coverage@f84a7def5646a6fc7ba77c1f486906f66a0fed96
+        with:
+          output-path: lcov.info
+          format: lcov
+          build-only: 'true'

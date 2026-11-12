@@ -25,7 +25,7 @@ vars:
   # The CV-005 CodeScene contracts live in shared-actions and run from a full
   # commit, so a fix is a pin bump. `.github/cv005.toml` holds this
   # repository's only parameters.
-  cv005_contracts_ref: "88977798a5c3bae1549afb99642529488c665276"
+  cv005_contracts_ref: "f84a7def5646a6fc7ba77c1f486906f66a0fed96"
   typos_config_builder_version: "v0.1.3"
   # `fmt` and `check-fmt` call mdtablefix directly. `--git` selects the
   # Markdown files Git tracks and `--include-untracked` adds the untracked
