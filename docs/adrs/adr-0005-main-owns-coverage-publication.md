@@ -140,4 +140,4 @@ pull-request lanes read from main:
 
 The ceilings are in "Runner placement" in the developers' guide. The CV-005
 contract pin in the `Netsukefile` moved with the shared actions to
-`f84a7def5646a6fc7ba77c1f486906f66a0fed96`.
+`0eabb6bc07148981de5da395e30cd78d83f5c7c2`.
