@@ -60,7 +60,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup Rust
-        uses: leynos/shared-actions/.github/actions/setup-rust@0eabb6bc07148981de5da395e30cd78d83f5c7c2
+        uses: leynos/shared-actions/.github/actions/setup-rust@a0519a1476ab769ca7b8badfa794f3751213f1ea
         with:
           install-mold: 'true'
           use-sccache: 'false'
@@ -101,7 +101,7 @@ jobs:
           # linker. Assigning RUSTFLAGS displaces every `rustflags` table in
           # .cargo/config.toml.
           RUSTFLAGS: -D warnings
-        uses: leynos/shared-actions/.github/actions/generate-coverage@0eabb6bc07148981de5da395e30cd78d83f5c7c2
+        uses: leynos/shared-actions/.github/actions/generate-coverage@a0519a1476ab769ca7b8badfa794f3751213f1ea
         with:
           output-path: lcov.info
           format: lcov
@@ -125,7 +125,7 @@ jobs:
         # uploading a branch CodeScene does not analyse: the push trigger is
         # restricted to `main`, but a dispatch may name any branch.
         if: ${{ steps.codescene-token.outputs.available == 'true' && github.ref == 'refs/heads/main' }}
-        uses: leynos/shared-actions/.github/actions/upload-codescene-coverage@0eabb6bc07148981de5da395e30cd78d83f5c7c2
+        uses: leynos/shared-actions/.github/actions/upload-codescene-coverage@a0519a1476ab769ca7b8badfa794f3751213f1ea
         with:
           path: lcov.info
           format: lcov
@@ -147,7 +147,7 @@ jobs:
       contents: read
     steps:
       - name: Publish the ratchet baseline
-        uses: leynos/shared-actions/.github/actions/publish-coverage-baseline@0eabb6bc07148981de5da395e30cd78d83f5c7c2
+        uses: leynos/shared-actions/.github/actions/publish-coverage-baseline@a0519a1476ab769ca7b8badfa794f3751213f1ea
         with:
           artefact-name: coverage-baseline-handover
 
@@ -173,7 +173,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup Rust
-        uses: leynos/shared-actions/.github/actions/setup-rust@0eabb6bc07148981de5da395e30cd78d83f5c7c2
+        uses: leynos/shared-actions/.github/actions/setup-rust@a0519a1476ab769ca7b8badfa794f3751213f1ea
         with:
           install-mold: 'true'
       - name: Install Ninja
@@ -202,7 +202,7 @@ jobs:
       - name: Compile the instrumented tests
         env:
           RUSTFLAGS: -D warnings
-        uses: leynos/shared-actions/.github/actions/generate-coverage@0eabb6bc07148981de5da395e30cd78d83f5c7c2
+        uses: leynos/shared-actions/.github/actions/generate-coverage@a0519a1476ab769ca7b8badfa794f3751213f1ea
         with:
           output-path: lcov.info
           format: lcov
