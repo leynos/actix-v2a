@@ -35,10 +35,11 @@ incremental state and debug information that nobody read. Cargo selects one
   `release` assigns the inherited value alone, so a shipped artefact keeps the
   platform linker and the single-threaded frontend.
 - Cranelift is the development-profile backend (`[profile.dev] codegen-backend`
-  with `[unstable] codegen-backend`), because the whole suite passes under it;
-  the measurement is in the developers' guide. Coverage selects LLVM, which
-  instrumentation needs, and assigns `RUSTFLAGS: -D warnings` so it takes
-  neither flag.
+  with `[unstable] codegen-backend`), because the whole suite passed under it
+  when the decision was taken (the developers' guide no longer carries the
+  measurement, since the selection is disabled; see the addendum below).
+  Coverage selects LLVM, which instrumentation needs, and assigns
+  `RUSTFLAGS: -D warnings` so it takes neither flag.
 - The dev profile sets `incremental = false` and `debug = 0`, and
   `[unstable] embed-metadata = false` is the native Cargo key for the dated
   nightly (the `rust-dev-build-footprint` rule).
@@ -64,3 +65,11 @@ incremental state and debug information that nobody read. Cargo selects one
   boundary.
 - Revisit Cranelift if a later bump fails the suite under it: record the failing
   tests in the guide and remove the backend.
+
+## Addendum (2026-11-14)
+
+The user abandoned Cranelift for now. The `[profile.dev]` selection in
+`.cargo/config.toml` is commented out, so LLVM is the default backend; the
+unstable key, the component and the `cranelift: 'true'` Whitaker input stay for
+an opt-in. This supersedes the Cranelift default above; the estate standard is
+LLVM, with review due 14 May 2027.

@@ -510,20 +510,25 @@ clearing an inherited `CARGO_ENCODED_RUSTFLAGS`, which Cargo ranks above
 `RUSTFLAGS`. Whitaker runs under the toolchain its installer manages, so it
 takes none of the development standard (no parallel frontend, no `mold` linker
 flag and no inherited `RUSTFLAGS`), and because it starts outside the checkout,
-Cargo never discovers `.cargo/config.toml` and its Cranelift profile, which
-that toolchain does not carry. `tests/netsuke_actions.rs` proves the working
-directory, the manifest path and the literal flags against the real manifest.
+Cargo never discovers `.cargo/config.toml` and its opt-in Cranelift profile,
+which that toolchain does not carry. `tests/netsuke_actions.rs` proves the
+working directory, the manifest path and the literal flags against the real
+manifest.
 
 ### Cranelift
 
-Cranelift is the development-profile codegen backend. The full suite was
-measured under it on the pinned `nightly-2026-10-30` on 2026-10-31: all 251
-nextest tests and 26 doctests pass (`netsuke build test`). Coverage selects
-LLVM explicitly (`CARGO_PROFILE_DEV_CODEGEN_BACKEND=llvm`), because
-instrumentation needs it, and release builds use the release profile, which
-Cranelift does not touch. Re-measure the whole suite on the next toolchain
-bump; if it fails, record the failing tests here as an exception and remove the
-backend from `.cargo/config.toml`.
+The estate standard is LLVM, which is the default backend here; review is due
+14 May 2027 under the
+[estate ADR](https://github.com/leynos/concordat/blob/main/docs/adrs/adr-0004-cranelift-is-not-part-of-the-rust-build-standard.md).
+The `[profile.dev] codegen-backend = "cranelift"` selection in
+`.cargo/config.toml` is commented out; uncommenting it is a persistent opt-in
+that also needs `tests/build_standard_contract.rs` updated. The
+`[unstable] codegen-backend` key and the component stay. Cranelift does not
+unwind, so no test may rely on a caught panic under it. An inherited
+`CARGO_PROFILE_DEV_CODEGEN_BACKEND` can still select Cranelift. Coverage builds
+with LLVM: the pinned coverage action removes inherited backend overrides and
+selects LLVM itself when it detects a Cranelift configuration, so with the
+selection commented out LLVM is simply the default.
 
 ## Quality gates
 

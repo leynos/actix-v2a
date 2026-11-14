@@ -1,10 +1,10 @@
 //! Contract for the development build standard (the Concordat `rust-build-defaults` rule).
 //!
 //! Development, test, lint and typecheck builds use the parallel `rustc` frontend and, on Linux,
-//! the `mold` linker; Cranelift is the development-profile backend; coverage and release take
-//! neither flag. The `Netsukefile` recipes are proved by `netsuke_actions.rs`, which runs the real
-//! `netsuke`; this contract holds the Cargo configuration, the pin and the workflows the recipes
-//! do not reach.
+//! the `mold` linker; LLVM is the default backend (the Cranelift selection is disabled); coverage
+//! and release take neither flag. The `Netsukefile` recipes are proved by `netsuke_actions.rs`,
+//! which runs the real `netsuke`; this contract holds the Cargo configuration, the pin and the
+//! workflows the recipes do not reach.
 
 /// Cargo configuration holding the flags, the backend and the footprint settings.
 const CARGO_CONFIG: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/.cargo/config.toml"));
@@ -72,22 +72,31 @@ fn the_rustflags_sources_carry_the_frontend_everywhere_and_mold_on_linux_only() 
 
 /// Scenario: the development profile's backend.
 ///
-/// Invariant: Cranelift is the default, and the unstable key it needs is enabled.
+/// Invariant: the development backend is unset (LLVM) or LLVM, and the unstable key an opt-in
+/// needs stays enabled. Uncommenting the Cranelift selection is a persistent opt-in that needs
+/// this contract updated.
 #[test]
-fn cranelift_is_the_development_backend_behind_its_unstable_key() -> Result<(), String> {
+fn llvm_is_the_development_backend_with_the_unstable_key_kept() -> Result<(), String> {
     let unstable = table_lines(CARGO_CONFIG, "[unstable]");
     let profile = table_lines(CARGO_CONFIG, "[profile.dev]");
     require(unstable.contains(&"codegen-backend = true"), || {
         "[unstable] must enable codegen-backend".to_owned()
     })?;
-    require(profile.contains(&"codegen-backend = \"cranelift\""), || {
-        "[profile.dev] must select the Cranelift backend".to_owned()
+    // TOML treats basic- and literal-quoted keys like bare keys, and ignores spacing around `=`.
+    let selects_other_backend = profile.iter().any(|line| {
+        let (raw_key, raw_value) = line.split_once('=').unwrap_or((line, ""));
+        let key = raw_key.trim().trim_matches(['"', '\'']);
+        let value = raw_value.trim().trim_matches(['"', '\'']);
+        key == "codegen-backend" && value != "llvm"
+    });
+    require(!selects_other_backend, || {
+        "[profile.dev] must leave the codegen backend unset or select LLVM".to_owned()
     })
 }
 
 /// Scenario: the pinned toolchain.
 ///
-/// Invariant: it carries the Cranelift component, which the development profile needs.
+/// Invariant: it carries the Cranelift component, which an opt-in needs.
 #[test]
 fn the_pin_carries_the_cranelift_component() -> Result<(), String> {
     require(
