@@ -525,9 +525,10 @@ The `[profile.dev] codegen-backend = "cranelift"` selection in
 that also needs `tests/build_standard_contract.rs` updated. The
 `[unstable] codegen-backend` key and the component stay. Cranelift does not
 unwind, so no test may rely on a caught panic under it. An inherited
-`CARGO_PROFILE_DEV_CODEGEN_BACKEND` can still select Cranelift. Coverage
-selects LLVM explicitly (`CARGO_PROFILE_DEV_CODEGEN_BACKEND=llvm`), because
-instrumentation needs it.
+`CARGO_PROFILE_DEV_CODEGEN_BACKEND` can still select Cranelift. Coverage builds
+with LLVM: the pinned coverage action removes inherited backend overrides and
+selects LLVM itself when it detects a Cranelift configuration, so with the
+selection commented out LLVM is simply the default.
 
 ## Quality gates
 

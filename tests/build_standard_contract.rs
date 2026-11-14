@@ -82,14 +82,12 @@ fn llvm_is_the_development_backend_with_the_unstable_key_kept() -> Result<(), St
     require(unstable.contains(&"codegen-backend = true"), || {
         "[unstable] must enable codegen-backend".to_owned()
     })?;
+    // TOML treats basic- and literal-quoted keys like bare keys, and ignores spacing around `=`.
     let selects_other_backend = profile.iter().any(|line| {
-        let key = line
-            .split('=')
-            .next()
-            .unwrap_or("")
-            .trim()
-            .trim_matches('"');
-        key == "codegen-backend" && *line != "codegen-backend = \"llvm\""
+        let (raw_key, raw_value) = line.split_once('=').unwrap_or((line, ""));
+        let key = raw_key.trim().trim_matches(['"', '\'']);
+        let value = raw_value.trim().trim_matches(['"', '\'']);
+        key == "codegen-backend" && value != "llvm"
     });
     require(!selects_other_backend, || {
         "[profile.dev] must leave the codegen backend unset or select LLVM".to_owned()

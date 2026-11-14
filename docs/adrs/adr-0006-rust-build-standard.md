@@ -35,10 +35,11 @@ incremental state and debug information that nobody read. Cargo selects one
   `release` assigns the inherited value alone, so a shipped artefact keeps the
   platform linker and the single-threaded frontend.
 - Cranelift is the development-profile backend (`[profile.dev] codegen-backend`
-  with `[unstable] codegen-backend`), because the whole suite passes under it;
-  the measurement is in the developers' guide. Coverage selects LLVM, which
-  instrumentation needs, and assigns `RUSTFLAGS: -D warnings` so it takes
-  neither flag.
+  with `[unstable] codegen-backend`), because the whole suite passed under it
+  when the decision was taken (the developers' guide no longer carries the
+  measurement, since the selection is disabled; see the addendum below).
+  Coverage selects LLVM, which instrumentation needs, and assigns
+  `RUSTFLAGS: -D warnings` so it takes neither flag.
 - The dev profile sets `incremental = false` and `debug = 0`, and
   `[unstable] embed-metadata = false` is the native Cargo key for the dated
   nightly (the `rust-dev-build-footprint` rule).
