@@ -232,7 +232,8 @@ project:
     `-Zthreads=8` and, on Linux, `-Clink-arg=-fuse-ld=mold` (the `mold` linker)
     onto any inherited `RUSTFLAGS`. Whitaker takes neither flag: it runs from
     the checkout's parent directory with the checkout's absolute manifest path,
-    and it clears any inherited `CARGO_ENCODED_RUSTFLAGS` first.
+    and it is the only recipe that clears any inherited
+    `CARGO_ENCODED_RUSTFLAGS`, which Cargo gives precedence over `RUSTFLAGS`.
   - `netsuke build test` executes:
 
     ```sh
@@ -243,11 +244,12 @@ project:
     running the full test suite and then the doctests, because neither nextest
     nor `cargo test --all-targets` runs doctests. Rust warnings are denied with
     `RUSTFLAGS="-D warnings"`, composed with `-Zthreads=8` and, on Linux,
-    `-Clink-arg=-fuse-ld=mold` onto any inherited `RUSTFLAGS`. When
-    `cargo-nextest` is not installed, `cargo test --all-targets --all-features`
-    replaces the nextest run; the doctest run is unchanged. Use
-    `netsuke build fmt` to apply the Rust and Markdown formatting fixes reported
-    by the formatter check.
+    `-Clink-arg=-fuse-ld=mold` onto any inherited `RUSTFLAGS`. An inherited
+    `CARGO_ENCODED_RUSTFLAGS` takes precedence over these and is not cleared
+    here. When `cargo-nextest` is not installed,
+    `cargo test --all-targets --all-features` replaces the nextest run; the
+    doctest run is unchanged. Use `netsuke build fmt` to apply the Rust and
+    Markdown formatting fixes reported by the formatter check.
   - `netsuke build` with no action runs `all`: spelling, the CV-005 workflow
     contracts, `check-fmt`, `lint`, and `test`, in that order.
   - `netsuke help targets` lists every action with its description.
@@ -375,10 +377,10 @@ project:
   invoking the generated application binary through `assert_cmd` may configure
   the environment via `Command::env`/`Command::env_clear`, because the mutation
   is confined to the child process. A test manipulating the environment
-  in-process does not qualify, whatever layer it claims to occupy. The accepted
-  local form is the child-process sandbox in
-  `tests/netsuke_actions/sandbox.rs`, which clears the inherited environment
-  and sets variables only on the spawned `Command`.
+  in-process does not qualify, whatever layer it claims to occupy. The same
+  exemption covers the repository's child-process helper: the sandbox in
+  `tests/netsuke_actions/sandbox.rs` spawns `netsuke` directly on a cleared
+  environment and sets variables only on that `Command`.
 
 ### Dependency management
 
