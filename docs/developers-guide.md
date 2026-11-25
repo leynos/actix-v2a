@@ -502,6 +502,19 @@ flags are used, and the pin is not moved to suit the key.
 `tests/build_footprint_contract.rs` holds all three settings and reads them by
 parsing the repository's own configuration. It starts no Cargo process.
 
+### Cognitive complexity
+
+Cognitive complexity is not gated by Clippy. Clippy's `cognitive_complexity`
+scores code after macro expansion, so it counts branching a macro generated,
+and neither `Cargo.toml` nor `clippy.toml` enables it. Whitaker's experimental
+`macro_aware_cognitive_complexity` gates it at `max_complexity = 9`,
+CodeScene's ceiling. `dylint.toml` opts in with
+`experimental = ["macro_aware_cognitive_complexity"]` in its `[whitaker]`
+table. Fix a finding by extracting named helpers, never by raising the
+threshold. A Whitaker suite installed before the lint existed (v0.2.12 or
+earlier) does not register it and silently leaves the gate inactive, so rerun
+`whitaker-installer` to refresh the suite after updating a checkout.
+
 ### Whitaker isolation
 
 The `lint` recipe runs Whitaker from the checkout's parent directory with an
@@ -558,7 +571,6 @@ Key enforced lints:
 
 - `unwrap_used`, `expect_used` — no panics in production code
 - `indexing_slicing` — bounds-checked access only
-- `cognitive_complexity` — functions must be simple and clear
 - `missing_const_for_fn` — mark eligible functions as `const`
 - `missing_docs` — all public items require documentation
 
